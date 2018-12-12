@@ -140,6 +140,7 @@ zshz() {
     ########################################################
     _zshz_maintain_datafile() {
       # Characters special to the shell are quoted with backslashes
+      # shellcheck disable=SC2154
       local add_path=${(q)1}
       local now=$EPOCHSECONDS count x
       local -a lines
@@ -202,7 +203,7 @@ zshz() {
     # Arguments:
     #   $1 The string to be completed
     ########################################################
-    _zshz_tab_complete() {
+    _zshz_legacy_complete() {
       setopt LOCAL_OPTIONS EXTENDED_GLOB
 
       local imatch path_field
@@ -227,7 +228,7 @@ zshz() {
       done
     }
 
-    _zshz_tab_complete "$2"
+    _zshz_legacy_complete "$2"
 
   else
     # list/go
