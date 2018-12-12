@@ -94,21 +94,6 @@ zshz() {
   [[ -z ${ZSHZ_OWNER:-${_Z_OWNER}} ]] && [[ -f $datafile ]] \
     && [[ ! -O $datafile ]] && return
 
-  ##########################################################
-  # Parse the datafile. For each item in the first field,
-  # check to make sure that is a directory; if it is, print
-  # it to STDOUT.
-  ##########################################################
-  _zshz_dirs () {
-    local -a lines
-    local line
-    lines=( "${(f)"$(< $datafile)"}" )
-    for line in $lines; do
-      # Only print lines with directories that still exist
-      [[ -d ${line%%\|*} ]] && print $line
-    done
-  }
-
   # Add entries to the datafile
   if [[ $1 == "--add" ]]; then
     shift
@@ -301,11 +286,26 @@ zshz() {
 
     # shellcheck disable=SC2034
     local q=${${fnd// ##/*}#\^} hi_rank=-9999999999 ihi_rank=-9999999999 dx
-    local best_match ibest_match rank
+    local best_match ibest_match rank line
     local -A matches imatches
+    local -a lines existing_paths
 
-    local line path_field rank_field time_field
-    while IFS='|' read path_field rank_field time_field; do
+    # Load the datafile into an aray and parse it
+    lines=( ${(f)"$(< $datafile)"} )
+
+    # Remove paths from database if they no longer exist
+    local -a existing_paths
+    for line in $lines; do
+      [[ -d ${line%%\|*} ]] && existing_paths+=( $line )
+    done
+    lines=( $existing_paths )
+
+    local path_field rank_field time_field
+    for line in $lines; do
+      path_field=${line%%\|*}
+      rank_field=${${line%\|*}#*\|}
+      time_field=${line##*\|} 
+
       case $typ in
         rank) rank=$rank_field ;;
         recent) (( rank = time_field - EPOCHSECONDS )) ;;
@@ -340,7 +340,7 @@ zshz() {
         ibest_match=$path_field
         ihi_rank=${imatches[$path_field]}
       fi
-    done < <(_zshz_dirs)
+    done
 
     ########################################################
     # Find the common root of a list of matches, if it
