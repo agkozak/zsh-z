@@ -213,10 +213,8 @@ zshz() {
       [[ $1 == ${1:l} ]] && imatch=1
       1=${1// ##/*}
 
-      # shellcheck disable=SC2206
-      lines=( ${(@f)"$(_zshz_dirs)"} )
-      path_fields=( ${${(M)lines#*\|}%\|} )
-      for path_field in $path_fields; do
+      local path_field rank_field time_field
+      while read -r path_field rank_field time_field;  do
         if (( imatch )); then
           # shellcheck disable=SC2086,SC2154
           if [[ ${path_field:l} == *${~1}* ]]; then
