@@ -58,6 +58,7 @@ ZSH-z has environment variables (they all begin with `ZSHZ_`) that change its be
 * ZSH-z uses the "new" `zshcompsys` completion system instead of the old `compctl` one. It will load `compinit` if it has not already been loaded.
 * `ZSHZ_EXCLUDE_DIRS` works.
 * No error message when the database file has not yet been created.
+* Support for special characters (e.g. '[') in directory names
 
 
 ## Known Bugs
