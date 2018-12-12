@@ -70,13 +70,9 @@ With no ARGUMENT, list the directory history in ascending rank.
   -t    Match by recent access
   -x    Remove the current directory from the database"
 
-# If the user prefer's z's simpler method for populating tab completion matches,
-# he or she may set ZSHZ_COMPLETION='legacy'
- [[ -z $ZSHZ_COMPLETION ]] && typeset -g ZSHZ_COMPLETION='frecent'
-
 # If the datafile is a directory, print a warning
-[[ -d ${ZSHZ_DATA:-${_Z_DATA:-$HOME/.z}} ]] && {
-  print "ERROR: ZSH-z's datafile (${ZSHZ_DATA:-${_Z_DATA:-$HOME/.z}}) is a directory." >&2
+[[ -d ${ZSHZ_DATA:-${_Z_DATA:-${HOME}/.z}} ]] && {
+  print "ERROR: ZSH-z's datafile (${ZSHZ_DATA:-${_Z_DATA:-${HOME}/.z}}) is a directory." >&2
 }
 
 # Load zsh/datetime module, if necessary
@@ -89,7 +85,7 @@ zshz() {
   setopt LOCAL_OPTIONS EXTENDED_GLOB
 
   # Allow the user to specify the datafile name in $ZSHZ_DATA (default: ~/.z)
-  local datafile="${ZSHZ_DATA:-${_Z_DATA:-$HOME/.z}}"
+  local datafile="${ZSHZ_DATA:-${_Z_DATA:-${HOME}/.z}}"
 
   # If datafile is a symlink, dereference it
   [[ -h $datafile ]] && datafile=${datafile:A}
@@ -187,14 +183,14 @@ zshz() {
     if (( $? != 0 )) && [[ -f $datafile ]]; then
       command rm -f "$tempfile"
     else
-      if [[ -n ${ZSHZ_OWNER:-$_Z_OWNER} ]]; then
-        chown "${ZSHZ_OWNER:-$_Z_OWNER}":"$(id -ng "${ZSHZ_OWNER:-$_Z_OWNER}")" "$tempfile"
+      if [[ -n ${ZSHZ_OWNER:-${_Z_OWNER}} ]]; then
+        chown "${ZSHZ_OWNER:-${_Z_OWNER}}":"$(id -ng "${ZSHZ_OWNER:-${_Z_OWNER}}")" "$tempfile"
       fi
       command mv -f "$tempfile" "$datafile" 2> /dev/null \
         || command rm -f "$tempfile"
     fi
 
-  elif [[ $ZSHZ_COMPLETION == 'legacy' ]] && [[ $1 == '--complete' ]] \
+  elif [[ ${ZSHZ_COMPLETION:-frecent} == 'legacy' ]] && [[ $1 == '--complete' ]] \
     && [[ -s $datafile ]]; then
 
     ########################################################
@@ -241,7 +237,8 @@ zshz() {
       case $1 in
         # The new frecent completion method returns directories in the order of
         # most frecent to least frecent
-        --complete) [[ $ZSHZ_COMPLETION != 'legacy' ]] && frecent_completion=1 ;;
+        --complete) [[ ${ZSHZ_COMPLETION:-frecent} != 'legacy' ]] \
+          && frecent_completion=1 ;;
         --)
           while [[ -n $1 ]]; do
             shift
@@ -298,14 +295,8 @@ zshz() {
     local best_match ibest_match rank
     local -A matches imatches
 
-    local -a lines
     local line path_field rank_field time_field
-    lines=( ${(f)"$(_zshz_dirs 2> /dev/null)"} )
-    for line in $lines; do
-      path_field="${line%%\|*}"
-      rank_field="${${line%\|*}#${line%%\|*}\|}"
-      time_field="${line##*\|}"
-
+    while IFS='|' read path_field rank_field time_field; do
       case $typ in
         rank) rank=$rank_field ;;
         recent) (( rank = time_field - EPOCHSECONDS )) ;;
@@ -340,7 +331,7 @@ zshz() {
         ibest_match=$path_field
         ihi_rank=${imatches[$path_field]}
       fi
-    done
+    done < <(_zshz_dirs)
 
     ########################################################
     # Find the common root of a list of matches, if it
@@ -462,7 +453,7 @@ alias ${ZSHZ_CMD:-${_Z_CMD:-z}}='zshz 2>&1'
 # Add the PWD to the datafile, unless ZSHZ_REMOVED shows it to
 # have been recently removed with z -x
 
-if [[ -n ${ZSHZ_NO_RESOLVE_SYMLINKS:-$_Z_NO_RESOLVE_SYMLINKS} ]]; then
+if [[ -n ${ZSHZ_NO_RESOLVE_SYMLINKS:-${_Z_NO_RESOLVE_SYMLINKS}} ]]; then
   _zshz_precmd() {
     (( ! ZSHZ_REMOVED )) && (zshz --add "${PWD:a}" &)
   }
@@ -499,7 +490,7 @@ _zshz_chpwd() {
 # The completion handler
 ############################################################
 _zshz() {
-  if [[ $ZSHZ_COMPLETION == 'legacy' ]]; then
+  if [[ ${ZSHZ_COMPLETION} == 'legacy' ]]; then
     # shellcheck disable=SC2154
     compadd -x 'Completing directory' -U "${(f)"$(zshz --complete "$PREFIX")"}"
   else
