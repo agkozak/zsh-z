@@ -37,7 +37,6 @@
 #       * Set ZSHZ_COMPLETION to 'legacy' to restore the simpler, alphabetic
 #           completion sorting method
 #       * Set ZSHZ_DATA in your .zshrc to change the datafile (default ~/.z)
-#       * Set ZSHZ_MAX_SCORE lower to age entries faster (default: 9000)
 #       * Set ZSHZ_NO_RESOLVE_SYMLINKS to prevent symlink resolution
 #       * Set ZSHZ_EXCLUDE_DIRS to an array of directories to exclude from your
 #           database
@@ -146,7 +145,6 @@ zshz() {
     _zshz_maintain_datafile() {
       # Characters special to the shell are quoted with backslashes
       local add_path=${(q)1}
-      local score=${ZSHZ_MAX_SCORE:-${_Z_MAX_SCORE:-9000}}
       local now=$EPOCHSECONDS count x
       local -a lines
       local -A rank time
@@ -165,7 +163,7 @@ zshz() {
         fi
         (( count += rank_field ))
       done
-      if (( count > $score )); then
+      if (( count > 9000 )); then
         # Aging
         #
         # shellcheck disable=SC2154
