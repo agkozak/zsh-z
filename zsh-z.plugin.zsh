@@ -219,17 +219,13 @@ zshz() {
     _zshz_legacy_complete() {
       setopt LOCAL_OPTIONS EXTENDED_GLOB
 
-      local imatch path_field
-      local -a lines path_fields
+      local imatch path_field rank_field time_field
 
       # shellcheck disable=SC2053
       [[ $1 == ${1:l} ]] && imatch=1
       1=${1// ##/*}
 
-      # shellcheck disable=SC2206
-      lines=( ${(@f)"$(_zshz_dirs)"} )
-      path_fields=( ${${(M)lines#*\|}%\|} )
-      for path_field in $path_fields; do
+      while IFS='|' read -r path_field rank_field time_field;  do
         if (( imatch )); then
           # shellcheck disable=SC2086,SC2154
           if [[ ${path_field:l} == *${~1}* ]]; then
@@ -238,7 +234,7 @@ zshz() {
         elif [[ $path_field == *${~1}* ]]; then
           print $path_field
         fi
-      done
+      done < "$datafile"
     }
 
     _zshz_legacy_complete "$2"

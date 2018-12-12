@@ -13,6 +13,7 @@ ZSH-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
 - [Installation](#installation)
 - [Command Line Options](#command-line-options)
 - [Settings](#settings)
+- [Examples](#examples)
 - [Improvements and Fixes](#improvements-and-fixes)
 - [Known Bugs](#known-bugs)
 
@@ -32,13 +33,13 @@ to your `.zshrc`, your completion menus will look very nice.
 
 ## Command Line Options
 
-`-c`    Only match subdirectories of the current directory
-`-e`    Echo the best match without going to it
-`-h`    Display help
-`-l`    List all matches without going to them
-`-r`    Match by rank (i.e. how much time you spend in directories)
-`-t`    Time -- match by how recently you have been to directories
-`-x`    Remove the current directory from the database
+- `-c`    Only match subdirectories of the current directory
+- `-e`    Echo the best match without going to it
+- `-h`    Display help
+- `-l`    List all matches without going to them
+- `-r`    Match by rank (i.e. how much time you spend in directories)
+- `-t`    Time -- match by how recently you have been to directories
+- `-x`    Remove the current directory from the database
 
 # Settings
 
