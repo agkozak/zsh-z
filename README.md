@@ -50,6 +50,7 @@ ZSH-z has environment variables (they all begin with `ZSHZ_`) that change its be
 * `ZSHZ_EXCLUDE_DIRS` is an array of directories to keep out of the database (default: empty)
 * `ZSHZ_NO_RESOLVE_SYMLINKS`  prevents symlink resolution (default: `0`)
 * `ZSHZ_OWNER` allows usage when in `sudo -s` mode (default: empty)
+* `ZSHZ_MAX_SCORE` determines how quickly your entries will age, lower in rank, and eventually drop out of the database (default: 9000 -- lower is faster)
 
 ## Improvements and Fixes
 
