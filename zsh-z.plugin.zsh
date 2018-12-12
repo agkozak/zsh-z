@@ -295,14 +295,8 @@ zshz() {
     local best_match ibest_match rank
     local -A matches imatches
 
-    local -a lines
     local line path_field rank_field time_field
-    lines=( ${(f)"$(_zshz_dirs 2> /dev/null)"} )
-    for line in $lines; do
-      path_field="${line%%\|*}"
-      rank_field="${${line%\|*}#${line%%\|*}\|}"
-      time_field="${line##*\|}"
-
+    while IFS='|' read path_field rank_field time_field; do
       case $typ in
         rank) rank=$rank_field ;;
         recent) (( rank = time_field - EPOCHSECONDS )) ;;
@@ -337,7 +331,7 @@ zshz() {
         ibest_match=$path_field
         ihi_rank=${imatches[$path_field]}
       fi
-    done
+    done < <(_zshz_dirs)
 
     ########################################################
     # Find the common root of a list of matches, if it
