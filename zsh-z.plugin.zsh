@@ -75,11 +75,15 @@ With no ARGUMENT, list the directory history in ascending rank.
   print "ERROR: ZSH-z's datafile (${ZSHZ_DATA:-${_Z_DATA:-${HOME}/.z}}) is a directory." >&2
 }
 
-# Load zsh/datetime module, if necessary
+# Load zsh/datetime module, if necessary (only necessary on some old versions
+# of ZSH
 (( $+EPOCHSECONDS )) || zmodload zsh/datetime
 
 ############################################################
 # THE COMMAND
+#
+# Arguments:
+#   $* The command line arguments
 ############################################################
 zshz() {
   setopt LOCAL_OPTIONS EXTENDED_GLOB
@@ -90,7 +94,7 @@ zshz() {
   # If datafile is a symlink, dereference it
   [[ -h $datafile ]] && datafile=${datafile:A}
 
-  # Bail if we don't own datafile and $ZSHZ_OWNER is not set
+  # Bail if we don't own the datafile and $ZSHZ_OWNER is not set
   [[ -z ${ZSHZ_OWNER:-${_Z_OWNER}} ]] && [[ -f $datafile ]] \
     && [[ ! -O $datafile ]] && return
 
@@ -260,7 +264,8 @@ zshz() {
                 command mv -f "$tempfile" "$datafile" \
                   || command rm -f "$tempfile"
                 # In order to make z -x work, we have to disable zsh-z's adding
-                # to the database until the user changes directory
+                # to the database until the user changes directory and the
+                # chpwd_functions are run
                 typeset -g ZSHZ_REMOVED=1
                 return 0
                 ;;
