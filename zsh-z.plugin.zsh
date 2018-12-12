@@ -141,12 +141,14 @@ zshz() {
     #   $1 Path to be added to datafile
     ########################################################
     _zshz_maintain_datafile() {
+      # Characters special to the shell are quoted with backslashes
+      local add_path=${(q)1}
       local now=$EPOCHSECONDS count x
       local -a lines
       local -A rank time
 
-      rank[$1]=1
-      time[$1]=$now
+      rank[$add_path]=1
+      time[$add_path]=$now
 
       local path_field rank_field time_field
       while IFS="|" read -r path_field rank_field time_field; do
