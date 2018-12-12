@@ -142,15 +142,28 @@ zshz() {
       # Characters special to the shell are quoted with backslashes
       # shellcheck disable=SC2154
       local add_path=${(q)1}
-      local now=$EPOCHSECONDS count x
+      local now=$EPOCHSECONDS count x line
       local -a lines
       local -A rank time
 
       rank[$add_path]=1
       time[$add_path]=$now
 
-      local path_field rank_field time_field
-      while IFS="|" read -r path_field rank_field time_field; do
+      # Load the datafile into an aray and parse it
+      lines=( ${(f)"$(< $datafile)"} )
+
+      # Remove paths from database if they no longer exist
+      local -a existing_paths
+      for line in $lines; do
+        [[ -d ${line%%\|*} ]] && existing_paths+=( $line )
+      done
+      lines=( $existing_paths )
+
+      for line in $lines; do
+        path_field=${line%%\|*}
+        rank_field=${${line%\|*}#*\|}
+        time_field=${line##*\|} 
+
         if [[ $path_field == "$1" ]]; then
           (( rank[$path_field] = rank_field + 1 ))
           (( time[$path_field] = now ))
@@ -177,7 +190,7 @@ zshz() {
       fi
     }
 
-    _zshz_maintain_datafile "$*" < <(_zshz_dirs) >| "$tempfile"
+    _zshz_maintain_datafile "$*" >| "$tempfile"
 
     # Avoid clobbering the datafile in a race condition
     if (( $? != 0 )) && [[ -f $datafile ]]; then
