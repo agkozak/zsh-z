@@ -34,6 +34,8 @@
 #     * cd around for a while to build up the database
 #     * optionally:
 #       * Set ZSHZ_CMD in your .zshrc to change the command (default z)
+#       * Set ZSHZ_COMPLETION to 'legacy' to restore the simpler, alphabetic
+#           completion sorting method
 #       * Set ZSHZ_DATA in your .zshrc to change the datafile (default ~/.z)
 #       * Set ZSHZ_NO_RESOLVE_SYMLINKS to prevent symlink resolution
 #       * Set ZSHZ_EXCLUDE_DIRS to an array of directories to exclude from your
@@ -68,9 +70,9 @@ With no ARGUMENT, list the directory history in ascending rank.
   -t    Match by recent access
   -x    Remove the current directory from the database"
 
-# If the user prefer's z's simple method for populating tab completion matches,
-# he or she may set ZSHZ_COMPLETION='simple'
- [[ -z $ZSHZ_COMPLETION ]] && typeset -g ZSHZ_COMPLETION='ranked'
+# If the user prefer's z's simpler method for populating tab completion matches,
+# he or she may set ZSHZ_COMPLETION='legacy'
+ [[ -z $ZSHZ_COMPLETION ]] && typeset -g ZSHZ_COMPLETION='frecent'
 
 # If the datafile is a directory, print a warning
 [[ -d ${ZSHZ_DATA:-${_Z_DATA:-$HOME/.z}} ]] && {
@@ -189,7 +191,7 @@ zshz() {
         || command rm -f "$tempfile"
     fi
 
-  elif [[ $ZSHZ_COMPLETION == 'simple' ]] && [[ $1 == '--complete' ]] \
+  elif [[ $ZSHZ_COMPLETION == 'legacy' ]] && [[ $1 == '--complete' ]] \
     && [[ -s $datafile ]]; then
 
     ########################################################
@@ -231,12 +233,12 @@ zshz() {
 
   else
     # list/go
-    local ranked_completion echo fnd last opt list typ
+    local frecent_completion echo fnd last opt list typ
     while [[ -n $1 ]]; do
       case $1 in
-        # The new, ranked completion method returns directories in the order of
+        # The new frecent completion method returns directories in the order of
         # most frecent to least frecent
-        --complete) [[ $ZSHZ_COMPLETION != 'simple' ]] && ranked_completion=1 ;;
+        --complete) [[ $ZSHZ_COMPLETION != 'legacy' ]] && frecent_completion=1 ;;
         --)
           while [[ -n $1 ]]; do
             shift
@@ -387,7 +389,7 @@ zshz() {
       _zshz_common $match_array
       read -rz common
 
-      if (( ranked_completion )); then
+      if (( frecent_completion )); then
         local -a descending_list
         # shellcheck disable=SC2154
         for k in ${(@k)output_matches}; do
@@ -494,7 +496,7 @@ _zshz_chpwd() {
 # The completion handler
 ############################################################
 _zshz() {
-  if [[ $ZSHZ_COMPLETION == 'simple' ]]; then
+  if [[ $ZSHZ_COMPLETION == 'legacy' ]]; then
     # shellcheck disable=SC2154
     compadd -x 'Completing directory' -U "${(f)"$(zshz --complete "$PREFIX")"}"
   else

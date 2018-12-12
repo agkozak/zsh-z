@@ -45,7 +45,7 @@ to your `.zshrc`, your completion menus will look very nice.
 ZSH-z has environment variables (they all begin with `ZSHZ_`) that change its behavior if you set them; you can also keep your old ones if you have been using `rupa/z` (which begin with `_Z_`).
 
 * `ZSHZ_CMD` changes the command name (default: `z`)
-* `ZSHZ_COMPLETION` can be `'ranked'` (default) or `'simple'`, depending on whether you want your completion results sorted according to frecency or simply sorted by length and alphabetization
+* `ZSHZ_COMPLETION` can be `'frecent'` (default) or `'legacy'`, depending on whether you want your completion results sorted according to frecency or simply sorted by alphabetically
 * `ZSHZ_DATA` changes the database file (default: `$HOME/.z`)
 * `ZSHZ_EXCLUDE_DIRS` is an array of directories to keep out of the database (default: empty)
 * `ZSHZ_NO_RESOLVE_SYMLINKS`  prevents symlink resolution (default: `0`)
