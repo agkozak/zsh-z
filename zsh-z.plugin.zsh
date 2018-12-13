@@ -86,7 +86,7 @@ With no ARGUMENT, list the directory history in ascending rank.
 #   $* The command line arguments
 ############################################################
 zshz() {
-  setopt LOCAL_OPTIONS EXTENDED_GLOB
+  setopt LOCAL_OPTIONS EXTENDED_GLOB WARN_CREATE_GLOBAL
 
   # Allow the user to specify the datafile name in $ZSHZ_DATA (default: ~/.z)
   local datafile="${ZSHZ_DATA:-${_Z_DATA:-${HOME}/.z}}"
@@ -148,10 +148,11 @@ zshz() {
       done
       lines=( $existing_paths )
 
+      local path_field rank_field time_field
       for line in $lines; do
         path_field=${line%%\|*}
         rank_field=${${line%\|*}#*\|}
-        time_field=${line##*\|} 
+        time_field=${line##*\|}
 
         if [[ $path_field == "$1" ]]; then
           (( rank[$path_field] = rank_field + 1 ))
@@ -309,7 +310,7 @@ zshz() {
     for line in $lines; do
       path_field=${line%%\|*}
       rank_field=${${line%\|*}#*\|}
-      time_field=${line##*\|} 
+      time_field=${line##*\|}
 
       case $typ in
         rank) rank=$rank_field ;;
@@ -399,6 +400,7 @@ zshz() {
 
       if (( frecent_completion )); then
         local -a descending_list
+        local k
         # shellcheck disable=SC2154
         for k in ${(@k)output_matches}; do
           print -z -f "%.2f|%s" ${output_matches[$k]} $k
