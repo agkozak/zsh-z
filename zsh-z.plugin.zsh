@@ -392,7 +392,6 @@ zshz() {
     lines=( ${(f)"$(< $datafile)"} )
 
     # Remove paths from database if they no longer exist
-    local -a existing_paths
     for line in $lines; do
       [[ -d ${line%%\|*} ]] && existing_paths+=( $line )
     done
