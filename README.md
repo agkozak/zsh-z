@@ -3,6 +3,8 @@
 [![MIT License](img/mit_license.svg)](https://opensource.org/licenses/MIT)
 ![ZSH version 4.3.11 and higher](img/zsh_4.3.11_plus.svg)
 
+![ZSH-z demo](img/demo.gif)
+
 ZSH-z is a command line tool that allows you to jump quickly to directories that you have visited frequently in the past, or recently -- but most often a combination of the two (a concept known as ["frecency"](https://en.wikipedia.org/wiki/Frecency)). It works by keeping track of when you go to directories and how much time you spend in them. It is then in the position to guess where you want to go when you type a partial string, e.g. `z src` might take you to `~/src/zsh`. `z zsh` might also get you there, and `z c/z` might prove to be even more specific -- it all depends on your habits and how much time you have been using ZSH-z to build up a database. After using ZSH-z for a little while, you will get to where you want to be by typing considerably less than you would need if you were using `cd`.
 
 ZSH-z is a native ZSH port of [rupa/z](https://github.com/rupa/z), a tool written for `bash` and ZSH that uses embedded `awk` scripts to do the heavy lifting. It has been quite possibly my most used command line tool for a couple of years. I decided to translate it, `awk` parts and all, into pure ZSH script, to see if by eliminating calls to external tools (`awk`, `sort`, `date`, and `sed`) and reducing forking through subshells I could make it faster. Initial testing has been satisfying: ZSH-z is highly responsive, and the main database maintenance routine (triggered by `precmd_functions`) is considerably more efficient on some Linux, BSD, and Solaris installations. There is particular improvement on MSYS2 and Cygwin, which are notoriously inefficient at forking.
@@ -65,27 +67,3 @@ ZSH-z has environment variables (they all begin with `ZSHZ_`) that change its be
 
 ## Known Bugs
 * It is possible to run a completion on a string with spaces in it, e.g. `z us bi<TAB>` might take you to `/usr/local/bin`. This works, but as things stand, after the completion the command line reads `z us /usr/local/bin`. I am working on eliminating this glitch.
-
-## Benchmarks
-`z -e usr` (echo the best match for 'usr') at 1000 iterations (average of five runs):
-
-| Script   | Ubuntu Laptop | Ubuntu VPS  | FreeBSD VPS |
-| -------- | ------------- | ----------- | ----------- |
-| `rupa/z` | 4.143 secs    | 11.933 secs | 15.3 secs   |
-| ZSH-z    | 1.461 secs    | 7.4 secs    | 6.216 secs  |
-
-| Script   | Windows/MSYS2 | Windows/Cygwin | Windows/WSL |
-| -------- | ------------- | -------------- | ----------- |
-| `rupa/z` | 114 secs      | 80.799         | 153 secs    |
-| ZSH-z    | 9.452 secs    | 9.729 secs     | 8.089 secs  |
-
-Note: Some of the speed difference is due to the fact that `rupa/z` supports both `bash` and ZSH -- there are fewer opportunities for efficiency when one writes in a common dialect of shell script. You will see from my code that I take advantage of hacks only possible in ZSH, e.g.
-
-    foo=$(print 'foo')
-
-can be accomplished using the editor stack buffer:
-
-    print -z 'foo'
-    read -z foo
-
-A subshell is thus avoided, which makes a slight improvement in Linux but a huge one on Windows.
