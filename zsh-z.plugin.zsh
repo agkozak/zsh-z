@@ -81,6 +81,189 @@ With no ARGUMENT, list the directory history in ascending rank.
 # of ZSH
 (( $+EPOCHSECONDS )) || zmodload zsh/datetime
 
+########################################################
+# Maintain the datafile
+#
+# Reads the old datafile contents from STDIN, adds the
+# current path to them, alters the contents to "age"
+# them, and prints the new contents of the datafile to
+# STDOUT.
+#
+# Arguments:
+#   $1 Path to be added to datafile
+########################################################
+_zshz_maintain_datafile() {
+  # Characters special to the shell are quoted with backslashes
+  # shellcheck disable=SC2154
+  local add_path=${(q)1}
+  local now=$EPOCHSECONDS count x line datafile=$ZSHZ_DATA
+  local -a lines
+  local -A rank time
+
+  rank[$add_path]=1
+  time[$add_path]=$now
+
+  # Load the datafile into an aray and parse it
+  lines=( ${(f)"$(< $datafile)"} ) 2> /dev/null
+
+  # Remove paths from database if they no longer exist
+  local -a existing_paths
+  for line in $lines; do
+    [[ -d ${line%%\|*} ]] && existing_paths+=( $line )
+  done
+  lines=( $existing_paths )
+
+  local path_field rank_field time_field
+  for line in $lines; do
+    path_field=${line%%\|*}
+    rank_field=${${line%\|*}#*\|}
+    time_field=${line##*\|}
+
+    if [[ $path_field == "$1" ]]; then
+      (( rank[$path_field] = rank_field + 1 ))
+      (( time[$path_field] = now ))
+    else
+      (( rank[$path_field] = rank_field ))
+      (( time[$path_field] = time_field ))
+    fi
+    (( count += rank_field ))
+  done
+  if (( count > 9000 )); then
+    # Aging
+    #
+    # shellcheck disable=SC2154
+    for x in ${(k)rank}; do
+      # When a rank drops below 1, drop the path from the database
+      if (( (( 0.99 * rank[$x] )) >= 1 )); then
+        print "$x|$(( 0.99 * rank[$x] ))|${time[$x]}"
+      fi
+    done
+  else
+    for x in ${(k)rank}; do
+      print "$x|${rank[$x]}|${time[$x]}"
+    done
+  fi
+}
+
+########################################################
+# Simple, legacy tab completion
+#
+# Process the query string for tab completion. Read the
+# contents of the datafile from STDIN and prints matches
+# to STDOUT.
+#
+# Arguments:
+#   $1 The string to be completed
+########################################################
+_zshz_legacy_complete() {
+  setopt LOCAL_OPTIONS EXTENDED_GLOB
+
+  local imatch path_field rank_field time_field datafile=$ZSHZ_DATA
+
+  # shellcheck disable=SC2053
+  [[ $1 == ${1:l} ]] && imatch=1
+  1=${1// ##/*}
+
+  while IFS='|' read -r path_field rank_field time_field;  do
+    if (( imatch )); then
+      # shellcheck disable=SC2086,SC2154
+      if [[ ${path_field:l} == *${~1}* ]]; then
+        print $path_field
+      fi
+    elif [[ $path_field == *${~1}* ]]; then
+      print $path_field
+    fi
+  done < "$datafile"
+}
+
+########################################################
+# Find the common root of a list of matches, if it
+# exists, and put it on the editor stack buffer
+#
+# Arguments:
+#   $1 Name of associative array of matches and ranks
+########################################################
+_zshz_common() {
+  local -A common_matches
+  common_matches=( ${(Pkv)1} )
+  local x short
+
+  # shellcheck disable=SC2154
+  for x in ${(k)common_matches}; do
+    if (( ${common_matches[$x]} )); then
+      if [[ -z $short ]] || (( ${#x} < ${#short} )); then
+        short=$x
+      fi
+    fi
+  done
+
+  [[ $short == '/' ]] && return
+
+  for x in ${(k)common_matches}; do
+    (( ${common_matches[$x]} )) && [[ $x != $short* ]] && return
+  done
+
+  print -z $short
+}
+
+########################################################
+# Put the desired directory on the editor stack buffer,
+# or list it to STDOUT.
+#
+# Arguments:
+#   $1 Associative array of matches and ranks
+#   $2 best_match or ibest_match
+#   $3 Whether or not to just print the results as a
+#     list (0 or 1)
+########################################################
+_zshz_output() {
+  # shellcheck disable=SC2034
+  local common x match_array=$1 match=$2 list=${3:-0}
+  local -a output
+  local -A output_matches
+  output_matches=( ${(Pkv)match_array} )
+
+  _zshz_common $match_array
+  read -rz common
+
+  local stack
+  if (( frecent_completion )); then
+    local -a descending_list
+    local k
+    # shellcheck disable=SC2154
+    for k in ${(@k)output_matches}; do
+      print -z -f "%.2f|%s" ${output_matches[$k]} $k
+      read -rz stack
+      descending_list+=$stack
+    done
+    descending_list=( ${${(@On)descending_list}#*\|} )
+    print -l $descending_list
+  elif (( list )); then
+    for x in ${(k)output_matches}; do
+      if (( ${output_matches[$x]} )); then
+        print -z -f "%-10.2f %s\n" ${output_matches[$x]} $x
+        read -rz stack
+        output+=$stack
+      fi
+    done
+    if [[ -n $common ]]; then
+      printf "%-10s %s\n" 'common:' $common
+    fi
+    # Sort results and remove trailing ".00"
+    # shellcheck disable=SC2154
+    for x in ${(@on)output};do
+      print "${${x%${x##[[:digit:]]##\.[[:digit:]]##[[:blank:]]}}/\.00/   }${x##[[:digit:]]##\.[[:digit:]]##[[:blank:]]}"
+    done
+  else
+    if [[ -n $common ]]; then
+      print -z $common
+    else
+      # shellcheck disable=SC2154
+      print -z ${(P)match}
+    fi
+  fi
+}
+
 ############################################################
 # THE COMMAND
 #
@@ -118,70 +301,6 @@ zshz() {
     # A temporary file that gets copied over the datafile if all goes well
     local tempfile="$datafile.$RANDOM"
 
-    ########################################################
-    # Maintain the datafile
-    #
-    # Reads the old datafile contents from STDIN, adds the
-    # current path to them, alters the contents to "age"
-    # them, and prints the new contents of the datafile to
-    # STDOUT.
-    #
-    # Arguments:
-    #   $1 Path to be added to datafile
-    ########################################################
-    _zshz_maintain_datafile() {
-      # Characters special to the shell are quoted with backslashes
-      # shellcheck disable=SC2154
-      local add_path=${(q)1}
-      local now=$EPOCHSECONDS count x line
-      local -a lines
-      local -A rank time
-
-      rank[$add_path]=1
-      time[$add_path]=$now
-
-      # Load the datafile into an aray and parse it
-      lines=( ${(f)"$(< $datafile)"} ) 2> /dev/null
-
-      # Remove paths from database if they no longer exist
-      local -a existing_paths
-      for line in $lines; do
-        [[ -d ${line%%\|*} ]] && existing_paths+=( $line )
-      done
-      lines=( $existing_paths )
-
-      local path_field rank_field time_field
-      for line in $lines; do
-        path_field=${line%%\|*}
-        rank_field=${${line%\|*}#*\|}
-        time_field=${line##*\|}
-
-        if [[ $path_field == "$1" ]]; then
-          (( rank[$path_field] = rank_field + 1 ))
-          (( time[$path_field] = now ))
-        else
-          (( rank[$path_field] = rank_field ))
-          (( time[$path_field] = time_field ))
-        fi
-        (( count += rank_field ))
-      done
-      if (( count > 9000 )); then
-        # Aging
-        #
-        # shellcheck disable=SC2154
-        for x in ${(k)rank}; do
-          # When a rank drops below 1, drop the path from the database
-          if (( (( 0.99 * rank[$x] )) >= 1 )); then
-            print "$x|$(( 0.99 * rank[$x] ))|${time[$x]}"
-          fi
-        done
-      else
-        for x in ${(k)rank}; do
-          print "$x|${rank[$x]}|${time[$x]}"
-        done
-      fi
-    }
-
     _zshz_maintain_datafile "$*" >| "$tempfile"
 
     # Avoid clobbering the datafile in a race condition
@@ -197,37 +316,6 @@ zshz() {
 
   elif [[ ${ZSHZ_COMPLETION:-frecent} == 'legacy' ]] && [[ $1 == '--complete' ]] \
     && [[ -s $datafile ]]; then
-
-    ########################################################
-    # Simple, legacy tab completion
-    #
-    # Process the query string for tab completion. Read the
-    # contents of the datafile from STDIN and prints matches
-    # to STDOUT.
-    #
-    # Arguments:
-    #   $1 The string to be completed
-    ########################################################
-    _zshz_legacy_complete() {
-      setopt LOCAL_OPTIONS EXTENDED_GLOB
-
-      local imatch path_field rank_field time_field
-
-      # shellcheck disable=SC2053
-      [[ $1 == ${1:l} ]] && imatch=1
-      1=${1// ##/*}
-
-      while IFS='|' read -r path_field rank_field time_field;  do
-        if (( imatch )); then
-          # shellcheck disable=SC2086,SC2154
-          if [[ ${path_field:l} == *${~1}* ]]; then
-            print $path_field
-          fi
-        elif [[ $path_field == *${~1}* ]]; then
-          print $path_field
-        fi
-      done < "$datafile"
-    }
 
     _zshz_legacy_complete "$2"
 
@@ -349,94 +437,6 @@ zshz() {
         ihi_rank=${imatches[$path_field]}
       fi
     done
-
-    ########################################################
-    # Find the common root of a list of matches, if it
-    # exists, and put it on the editor stack buffer
-    #
-    # Arguments:
-    #   $1 Name of associative array of matches and ranks
-    ########################################################
-    _zshz_common() {
-      local -A common_matches
-      common_matches=( ${(Pkv)1} )
-      local x short
-
-      # shellcheck disable=SC2154
-      for x in ${(k)common_matches}; do
-        if (( ${common_matches[$x]} )); then
-          if [[ -z $short ]] || (( ${#x} < ${#short} )); then
-            short=$x
-          fi
-        fi
-      done
-
-      [[ $short == '/' ]] && return
-
-      for x in ${(k)common_matches}; do
-        (( ${common_matches[$x]} )) && [[ $x != $short* ]] && return
-      done
-
-      print -z $short
-    }
-
-    ########################################################
-    # Put the desired directory on the editor stack buffer,
-    # or list it to STDOUT.
-    #
-    # Arguments:
-    #   $1 Associative array of matches and ranks
-    #   $2 best_match or ibest_match
-    #   $3 Whether or not to just print the results as a
-    #     list (0 or 1)
-    ########################################################
-    _zshz_output() {
-      # shellcheck disable=SC2034
-      local common x match_array=$1 match=$2 list=${3:-0}
-      local -a output
-      local -A output_matches
-      output_matches=( ${(Pkv)match_array} )
-
-      _zshz_common $match_array
-      read -rz common
-
-      local stack
-      if (( frecent_completion )); then
-        local -a descending_list
-        local k
-        # shellcheck disable=SC2154
-        for k in ${(@k)output_matches}; do
-          print -z -f "%.2f|%s" ${output_matches[$k]} $k
-          read -rz stack
-          descending_list+=$stack
-        done
-        descending_list=( ${${(@On)descending_list}#*\|} )
-        print -l $descending_list
-      elif (( list )); then
-        for x in ${(k)output_matches}; do
-          if (( ${output_matches[$x]} )); then
-            print -z -f "%-10.2f %s\n" ${output_matches[$x]} $x
-            read -rz stack
-            output+=$stack
-          fi
-        done
-        if [[ -n $common ]]; then
-          printf "%-10s %s\n" 'common:' $common
-        fi
-        # Sort results and remove trailing ".00"
-        # shellcheck disable=SC2154
-        for x in ${(@on)output};do
-          print "${${x%${x##[[:digit:]]##\.[[:digit:]]##[[:blank:]]}}/\.00/   }${x##[[:digit:]]##\.[[:digit:]]##[[:blank:]]}"
-        done
-      else
-        if [[ -n $common ]]; then
-          print -z $common
-        else
-          # shellcheck disable=SC2154
-          print -z ${(P)match}
-        fi
-      fi
-    }
 
     if [[ -n $best_match ]]; then
       _zshz_output matches best_match $list
