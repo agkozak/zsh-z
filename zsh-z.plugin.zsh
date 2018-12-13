@@ -271,7 +271,9 @@ _zshz_output() {
 #   $* The command line arguments
 ############################################################
 zshz() {
-  setopt LOCAL_OPTIONS EXTENDED_GLOB WARN_CREATE_GLOBAL
+  setopt LOCAL_OPTIONS EXTENDED_GLOB
+
+  (( ZSHZ_DEBUG )) && setopt WARN_CREATE_GLOBAL WARN_NESTED_VAR 2> /dev/null
 
   # Allow the user to specify the datafile name in $ZSHZ_DATA (default: ~/.z)
   local datafile=$ZSHZ_DATA
