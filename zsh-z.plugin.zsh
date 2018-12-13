@@ -88,7 +88,7 @@ With no ARGUMENT, list the directory history in ascending rank.
 #   $* The command line arguments
 ############################################################
 zshz() {
-  setopt LOCAL_OPTIONS EXTENDED_GLOB WARN_CREATE_GLOBAL
+  setopt LOCAL_OPTIONS EXTENDED_GLOB
 
   # Allow the user to specify the datafile name in $ZSHZ_DATA (default: ~/.z)
   local datafile=$ZSHZ_DATA
