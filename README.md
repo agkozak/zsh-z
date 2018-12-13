@@ -16,6 +16,7 @@ ZSH-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
 - [Examples](#examples)
 - [Improvements and Fixes](#improvements-and-fixes)
 - [Known Bugs](#known-bugs)
+- [Benchmarks](#benchmarks)
 
 ## Installation
 
@@ -64,3 +65,27 @@ ZSH-z has environment variables (they all begin with `ZSHZ_`) that change its be
 
 ## Known Bugs
 * It is possible to run a completion on a string with spaces in it, e.g. `z us bi<TAB>` might take you to `/usr/local/bin`. This works, but as things stand, after the completion the command line reads `z us /usr/local/bin`. I am working on eliminating this glitch.
+
+## Benchmarks
+`z -e usr` (echo the best match for 'usr') at 1000 iterations (average of five runs):
+
+| Script   | Ubuntu Laptop | Ubuntu VPS  | FreeBSD VPS |
+| -------- | ------------- | ----------- | ----------- |
+| `rupa/z` | 4.143 secs    | 11.933 secs | 15.3 secs   |
+| ZSH-z    | 1.461 secs    | 7.4 secs    | 6.216 secs  |
+
+| Script   | Windows/MSYS2 | Windows/Cygwin | Windows/WSL |
+| -------- | ------------- | -------------- | ----------- |
+| `rupa/z` | 114 secs      | 80.799         | 153 secs    |
+| ZSH-z    | 9.452 secs    | 9.729 secs     | 8.089 secs  |
+
+Note: Some of the speed difference is due to the fact that `rupa/z` supports both `bash` and ZSH -- there are fewer opportunities for efficiency when one writes in a common dialect of shell script. You will see from my code that I take advantage of hacks only possible in ZSH, e.g.
+
+    foo=$(print 'foo')
+
+can be accomplished using the editor stack buffer:
+
+    print -z 'foo'
+    read -z foo
+
+A subshell is thus avoided, which makes a slight improvement in Linux but a huge one on Windows.
