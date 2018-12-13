@@ -70,9 +70,11 @@ With no ARGUMENT, list the directory history in ascending rank.
   -t    Match by recent access
   -x    Remove the current directory from the database"
 
+: ${ZSHZ_DATA:=${_Z_DATA:=${HOME}/.z}}
+
 # If the datafile is a directory, print a warning
-[[ -d ${ZSHZ_DATA:-${_Z_DATA:-${HOME}/.z}} ]] && {
-  print "ERROR: ZSH-z's datafile (${ZSHZ_DATA:-${_Z_DATA:-${HOME}/.z}}) is a directory." >&2
+[[ -d $ZSHZ_DATA ]] && {
+  print "ERROR: ZSH-z's datafile (${ZSHZ_DATA}) is a directory." >&2
 }
 
 # Load zsh/datetime module, if necessary (only necessary on some old versions
@@ -89,7 +91,7 @@ zshz() {
   setopt LOCAL_OPTIONS EXTENDED_GLOB WARN_CREATE_GLOBAL
 
   # Allow the user to specify the datafile name in $ZSHZ_DATA (default: ~/.z)
-  local datafile="${ZSHZ_DATA:-${_Z_DATA:-${HOME}/.z}}"
+  local datafile=$ZSHZ_DATA
 
   # If datafile is a symlink, dereference it
   [[ -h $datafile ]] && datafile=${datafile:A}
@@ -139,7 +141,7 @@ zshz() {
       time[$add_path]=$now
 
       # Load the datafile into an aray and parse it
-      lines=( ${(f)"$(< $datafile)"} )
+      lines=( ${(f)"$(< $datafile)"} ) 2> /dev/null
 
       # Remove paths from database if they no longer exist
       local -a existing_paths
@@ -398,14 +400,15 @@ zshz() {
       _zshz_common $match_array
       read -rz common
 
+      local stack
       if (( frecent_completion )); then
         local -a descending_list
         local k
         # shellcheck disable=SC2154
         for k in ${(@k)output_matches}; do
           print -z -f "%.2f|%s" ${output_matches[$k]} $k
-          read -rz
-          descending_list+=$REPLY
+          read -rz stack
+          descending_list+=$stack
         done
         descending_list=( ${${(@On)descending_list}#*\|} )
         print -l $descending_list
@@ -413,8 +416,8 @@ zshz() {
         for x in ${(k)output_matches}; do
           if (( ${output_matches[$x]} )); then
             print -z -f "%-10.2f %s\n" ${output_matches[$x]} $x
-            read -rz
-            output+=$REPLY
+            read -rz stack
+            output+=$stack
           fi
         done
         if [[ -n $common ]]; then
