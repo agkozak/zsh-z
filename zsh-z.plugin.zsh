@@ -70,11 +70,9 @@ With no ARGUMENT, list the directory history in ascending rank.
   -t    Match by recent access
   -x    Remove the current directory from the database"
 
-: ${ZSHZ_DATA:=${_Z_DATA:=${HOME}/.z}}
-
 # If the datafile is a directory, print a warning
-[[ -d $ZSHZ_DATA ]] && {
-  print "ERROR: ZSH-z's datafile (${ZSHZ_DATA}) is a directory." >&2
+[[ -d ${ZSHZ_DATA:-${_Z_DATA:-${HOME}/.z}} ]] && {
+  print "ERROR: ZSH-z's datafile (${ZSHZ_DATA:-${_Z_DATA:-${HOME}/.z}}) is a directory." >&2
 }
 
 # Load zsh/datetime module, if necessary (only necessary on some old versions
@@ -96,7 +94,8 @@ _zshz_maintain_datafile() {
   # Characters special to the shell are quoted with backslashes
   # shellcheck disable=SC2154
   local add_path=${(q)1}
-  local now=$EPOCHSECONDS count x line datafile=$ZSHZ_DATA
+  local now=$EPOCHSECONDS count x line
+  local datafile=${ZSHZ_DATA:-${_Z_DATA:-${HOME}/.z}}
   local -a lines
   local -A rank time
 
@@ -158,7 +157,8 @@ _zshz_maintain_datafile() {
 _zshz_legacy_complete() {
   setopt LOCAL_OPTIONS EXTENDED_GLOB
 
-  local imatch path_field rank_field time_field datafile=$ZSHZ_DATA
+  local imatch path_field rank_field time_field
+  datafile=${ZSHZ_DATA:-${_Z_DATA:-${HOME}/.z}}
 
   # shellcheck disable=SC2053
   [[ $1 == ${1:l} ]] && imatch=1
@@ -276,7 +276,7 @@ zshz() {
   (( ZSHZ_DEBUG )) && setopt WARN_CREATE_GLOBAL WARN_NESTED_VAR 2> /dev/null
 
   # Allow the user to specify the datafile name in $ZSHZ_DATA (default: ~/.z)
-  local datafile=$ZSHZ_DATA
+  local datafile=${ZSHZ_DATA:-${_Z_DATA:-${HOME}/.z}}
 
   # If datafile is a symlink, dereference it
   [[ -h $datafile ]] && datafile=${datafile:A}
