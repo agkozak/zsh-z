@@ -91,13 +91,14 @@ With no ARGUMENT, list the directory history in ascending rank.
 #   $1 Path to be added to datafile
 ########################################################
 _zshz_maintain_datafile() {
-  # Characters special to the shell are quoted with backslashes
+  local -A rank time
+  # Characters special to the shell (such as '[]') are quoted with backslashes
   # shellcheck disable=SC2154
   local add_path=${(q)1}
-  local now=$EPOCHSECONDS count x line
+  local -a lines existing_paths
+  local now=$EPOCHSECONDS line
   local datafile=${ZSHZ_DATA:-${_Z_DATA:-${HOME}/.z}}
-  local -a lines
-  local -A rank time
+  local path_field rank_field time_field count x
 
   rank[$add_path]=1
   time[$add_path]=$now
@@ -106,13 +107,11 @@ _zshz_maintain_datafile() {
   lines=( ${(f)"$(< $datafile)"} ) 2> /dev/null
 
   # Remove paths from database if they no longer exist
-  local -a existing_paths
   for line in $lines; do
     [[ -d ${line%%\|*} ]] && existing_paths+=( $line )
   done
   lines=( $existing_paths )
 
-  local path_field rank_field time_field
   for line in $lines; do
     path_field=${line%%\|*}
     rank_field=${${line%\|*}#*\|}
@@ -158,7 +157,7 @@ _zshz_legacy_complete() {
   setopt LOCAL_OPTIONS EXTENDED_GLOB
 
   local imatch path_field rank_field time_field
-  datafile=${ZSHZ_DATA:-${_Z_DATA:-${HOME}/.z}}
+  local datafile=${ZSHZ_DATA:-${_Z_DATA:-${HOME}/.z}}
 
   # shellcheck disable=SC2053
   [[ $1 == ${1:l} ]] && imatch=1
@@ -176,6 +175,35 @@ _zshz_legacy_complete() {
   done < "$datafile"
 }
 
+############################################################
+# Remove a directory from the datafile
+#
+# Arguments:
+#   $1 Directory to be removed
+############################################################
+_zshz_remove_directory () {
+  local directory=$1
+  local -a lines
+  local datafile=${ZSHZ_DATA:-${_Z_DATA:-${HOME}/.z}}
+  local tempfile="${datafile}.${RANDOM}"
+
+  lines=( "${(@f)"$(<$datafile)"}" )
+
+  # All of the lines that don't match the directory to be deleted
+  lines=( ${(M)lines:#^${directory}\|*} )
+
+  print -l $lines > "$tempfile"
+
+  command mv -f "$tempfile" "$datafile" \
+    || command rm -f "$tempfile"
+
+  # In order to make z -x work, we have to disable zsh-z's adding
+  # to the database until the user changes directory and the
+  # chpwd_functions are run
+  typeset -g ZSHZ_REMOVED=1
+}
+
+
 ########################################################
 # Find the common root of a list of matches, if it
 # exists, and put it on the editor stack buffer
@@ -185,8 +213,9 @@ _zshz_legacy_complete() {
 ########################################################
 _zshz_common() {
   local -A common_matches
-  common_matches=( ${(Pkv)1} )
   local x short
+
+  common_matches=( ${(Pkv)1} )
 
   # shellcheck disable=SC2154
   for x in ${(k)common_matches}; do
@@ -218,18 +247,17 @@ _zshz_common() {
 ########################################################
 _zshz_output() {
   # shellcheck disable=SC2034
-  local common x match_array=$1 match=$2 list=${3:-0}
-  local -a output
+  local match_array=$1 match=$2 list=${3:-0}
+  local common stack k x
   local -A output_matches
+  local -a descending_list output
+
   output_matches=( ${(Pkv)match_array} )
 
   _zshz_common $match_array
   read -rz common
 
-  local stack
   if (( frecent_completion )); then
-    local -a descending_list
-    local k
     # shellcheck disable=SC2154
     for k in ${(@k)output_matches}; do
       print -z -f "%.2f|%s" ${output_matches[$k]} $k
@@ -322,7 +350,7 @@ zshz() {
     _zshz_legacy_complete "$2"
 
   else
-    # list/go
+    # Frecent completion, echo/list, help, and cd to match
     local frecent_completion echo fnd last opt list typ
     while [[ -n $1 ]]; do
       case $1 in
@@ -347,19 +375,9 @@ zshz() {
               r) typ='rank' ;;
               t) typ='recent' ;;
               x)
-                local -a lines
-                local line
-                local tempfile="${datafile}.${RANDOM}"
-                lines=( "${(@f)"$(<$datafile)"}" )
-                # All of the lines that don't match the PWD
-                lines=( ${(M)lines:#^${PWD}\|*} )
-                print -l $lines > "$tempfile"
-                command mv -f "$tempfile" "$datafile" \
-                  || command rm -f "$tempfile"
-                # In order to make z -x work, we have to disable zsh-z's adding
-                # to the database until the user changes directory and the
-                # chpwd_functions are run
-                typeset -g ZSHZ_REMOVED=1
+                _zshz_remove_directory $PWD
+
+                # TODO: Something more intelligent that just returning 0
                 return 0
                 ;;
             esac
@@ -382,11 +400,12 @@ zshz() {
     # If there is no datafile yet
     [[ -f $datafile ]] || return
 
-    # shellcheck disable=SC2034
-    local q=${${fnd// ##/*}#\^} hi_rank=-9999999999 ihi_rank=-9999999999 dx
-    local best_match ibest_match rank line
-    local -A matches imatches
     local -a lines existing_paths
+    local line path_field rank_field time_field rank dx
+    # shellcheck disable=SC2034
+    local q=${${fnd// ##/*}#\^}
+    local -A matches imatches
+    local best_match ibest_match hi_rank=-9999999999 ihi_rank=-9999999999
 
     # Load the datafile into an aray and parse it
     lines=( ${(f)"$(< $datafile)"} )
@@ -397,7 +416,6 @@ zshz() {
     done
     lines=( $existing_paths )
 
-    local path_field rank_field time_field
     for line in $lines; do
       path_field=${line%%\|*}
       rank_field=${${line%\|*}#*\|}
