@@ -148,10 +148,11 @@ zshz() {
       done
       lines=( $existing_paths )
 
+      local path_field rank_field time_field
       for line in $lines; do
         path_field=${line%%\|*}
         rank_field=${${line%\|*}#*\|}
-        time_field=${line##*\|} 
+        time_field=${line##*\|}
 
         if [[ $path_field == "$1" ]]; then
           (( rank[$path_field] = rank_field + 1 ))
@@ -309,7 +310,7 @@ zshz() {
     for line in $lines; do
       path_field=${line%%\|*}
       rank_field=${${line%\|*}#*\|}
-      time_field=${line##*\|} 
+      time_field=${line##*\|}
 
       case $typ in
         rank) rank=$rank_field ;;
