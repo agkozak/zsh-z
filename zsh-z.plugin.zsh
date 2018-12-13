@@ -120,11 +120,11 @@ _zshz_maintain_datafile() {
     time_field=${line##*\|}
 
     if [[ $path_field == "$1" ]]; then
-      (( rank[$path_field] = rank_field + 1 ))
-      (( time[$path_field] = now ))
+      rank[$path_field]=$(( rank_field + 1 ))
+      time[$path_field]=$now
     else
-      (( rank[$path_field] = rank_field ))
-      (( time[$path_field] = time_field ))
+      rank[$path_field]=$(( rank_field ))
+      time[$path_field]=$(( time_field ))
     fi
     (( count += rank_field ))
   done
