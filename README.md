@@ -68,3 +68,4 @@ ZSH-z has environment variables (they all begin with `ZSHZ_`) that change its be
 
 ## Known Bugs
 * It is possible to run a completion on a string with spaces in it, e.g. `z us bi<TAB>` might take you to `/usr/local/bin`. This works, but as things stand, after the completion the command line reads `z us /usr/local/bin`. I am working on eliminating this glitch.
+* The database file can occasionally be lost in a race condition. I am experimenting with methods to mitigate this behavior.
