@@ -186,7 +186,7 @@ _zshz_legacy_complete() {
 
 ########################################################
 # Find the common root of a list of matches, if it
-# exists, and put it on the editor stack buffer
+# exists, and put it on the editing buffer stack
 #
 # Arguments:
 #   $1 Name of associative array of matches and ranks
@@ -216,7 +216,7 @@ _zshz_common() {
 }
 
 ########################################################
-# Put the desired directory on the editor stack buffer,
+# Put the desired directory on the editing buffer stack,
 # or list it to STDOUT.
 #
 # Arguments:
