@@ -57,7 +57,7 @@
 # shellcheck shell=ksh
 # shellcheck disable=SC2016,SC2079,SC2086,SC2128
 
-typeset -g USAGE="Usage: ${ZSHZ_CMD:-${_Z_CMD:-z}} [OPTION]... [ARGUMENT]
+typeset -g ZSHZ_USAGE="Usage: ${ZSHZ_CMD:-${_Z_CMD:-z}} [OPTION]... [ARGUMENT]
 Jump to a directory that you have visited frequently or recently, or a bit of both, based on the partial string ARGUMENT.
 
 With no ARGUMENT, list the directory history in ascending rank.
@@ -370,7 +370,7 @@ zshz() {
             case ${opt:0:1} in
               c) fnd="^$PWD $fnd" ;;
               e) echo=1 ;;
-              h|-help) print $USAGE >&2; return ;;
+              h|-help) print $ZSHZ_USAGE >&2; return ;;
               l) list=1 ;;
               r) typ='rank' ;;
               t) typ='recent' ;;
