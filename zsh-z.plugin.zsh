@@ -454,12 +454,12 @@ zshz() {
       _zshz_output imatches ibest_match $list
     fi
 
-    local success=$?
+    local ret=$?
 
     local cd
     read -rz cd
 
-    if (( success == 0 )) && [[ -n $cd ]]; then
+    if (( ret == 0 )) && [[ -n $cd ]]; then
       if (( echo )); then
         print -- "$cd"
       else
@@ -467,7 +467,7 @@ zshz() {
         builtin cd "$cd"
       fi
     else
-      return 1
+      return $ret
     fi
   fi
 }
