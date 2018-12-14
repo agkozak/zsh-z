@@ -133,12 +133,12 @@ _zshz_maintain_datafile() {
     for x in ${(k)rank}; do
       # When a rank drops below 1, drop the path from the database
       if (( (( 0.99 * rank[$x] )) >= 1 )); then
-        print "$x|$(( 0.99 * rank[$x] ))|${time[$x]}"
+        print -- "$x|$(( 0.99 * rank[$x] ))|${time[$x]}"
       fi
     done
   else
     for x in ${(k)rank}; do
-      print "$x|${rank[$x]}|${time[$x]}"
+      print -- "$x|${rank[$x]}|${time[$x]}"
     done
   fi
 }
@@ -167,10 +167,10 @@ _zshz_legacy_complete() {
     if (( imatch )); then
       # shellcheck disable=SC2086,SC2154
       if [[ ${path_field:l} == *${~1}* ]]; then
-        print $path_field
+        print -- $path_field
       fi
     elif [[ $path_field == *${~1}* ]]; then
-      print $path_field
+      print -- $path_field
     fi
   done < "$datafile"
 }
@@ -192,7 +192,7 @@ _zshz_remove_directory () {
   # All of the lines that don't match the directory to be deleted
   lines=( ${(M)lines:#^${directory}\|*} )
 
-  print -l $lines > "$tempfile"
+  print -l -- $lines > "$tempfile"
 
   command mv -f "$tempfile" "$datafile" \
     || command rm -f "$tempfile"
@@ -232,7 +232,7 @@ _zshz_common() {
     (( ${common_matches[$x]} )) && [[ $x != $short* ]] && return
   done
 
-  print -z $short
+  print -z -- $short
 }
 
 ########################################################
@@ -287,7 +287,7 @@ _zshz_output() {
       print -z $common
     else
       # shellcheck disable=SC2154
-      print -z ${(P)match}
+      print -z -- ${(P)match}
     fi
   fi
 }
@@ -470,7 +470,7 @@ zshz() {
 
     if (( success == 0 )) && [[ -n $cd ]]; then
       if (( echo )); then
-        print "$cd"
+        print -- "$cd"
       else
         # shellcheck disable=SC2164
         builtin cd "$cd"
