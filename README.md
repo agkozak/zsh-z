@@ -2,6 +2,7 @@
 
 [![MIT License](img/mit_license.svg)](https://opensource.org/licenses/MIT)
 ![ZSH version 4.3.11 and higher](img/zsh_4.3.11_plus.svg)
+[![GitHub stars](https://img.shields.io/github/stars/agkozak/zsh-z.svg)](https://github.com/agkozak/zsh-z/stargazers)
 
 ![ZSH-z demo](img/demo.gif)
 
