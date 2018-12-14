@@ -79,6 +79,15 @@ With no ARGUMENT, list the directory history in ascending rank.
 # of ZSH
 (( $+EPOCHSECONDS )) || zmodload zsh/datetime
 
+# Load zsh/system, if necessary
+whence -w zsystem &> /dev/null || zmodload zsh/system &> /dev/null
+
+# Determine whether zsystem flock is available
+if zsystem supports flock &> /dev/null; then
+  typeset -g ZSHZ_USE_ZSYSTEM_FLOCK=1
+fi
+
+
 ########################################################
 # Maintain the datafile
 #
@@ -238,6 +247,7 @@ _zshz_output() {
     descending_list=( ${${(@On)descending_list}#*\|} )
     print -l $descending_list
   elif (( list )); then
+    # shellcheck disable=SC2154
     for x in ${(k)output_matches}; do
       if (( ${output_matches[$x]} )); then
         print -z -f "%-10.2f %s\n" ${output_matches[$x]} $x
@@ -300,19 +310,46 @@ zshz() {
     done
 
     # A temporary file that gets copied over the datafile if all goes well
-    local tempfile="$datafile.$RANDOM"
+    #
+    # See https://github.com/rupa/z/pull/199/commits/4736e919f58e7bb6a2e9f5ebcf6a8404a75a8a76
+    local tempfile="$(mktemp "${datafile}.XXXXXXXX")"
 
-    _zshz_maintain_datafile "$*" >| "$tempfile"
+    # See https://github.com/rupa/z/pull/199/commits/ed6eeed9b70d27c1582e3dd050e72ebfe246341c
+    if (( ZSHZ_USE_ZSYSTEM_FLOCK )); then
 
-    # Avoid clobbering the datafile in a race condition
-    if (( $? != 0 )) && [[ -f $datafile ]]; then
-      command rm -f "$tempfile"
-    else
-      if [[ -n ${ZSHZ_OWNER:-${_Z_OWNER}} ]]; then
-        chown "${ZSHZ_OWNER:-${_Z_OWNER}}":"$(id -ng "${ZSHZ_OWNER:-${_Z_OWNER}}")" "$tempfile"
+      # Make sure that the datafile exists for locking
+      [[ -f $datafile ]] || touch "$datafile"
+      local lockfd
+
+      # Grab exclusive lock (released when function exits)
+      if (( ZSHZ_DEBUG )); then
+        zsystem flock -f lockfd "$datafile" || return
+      else
+        zsystem flock -f lockfd "$datafile" 2> /dev/null || return
       fi
-      command mv -f "$tempfile" "$datafile" 2> /dev/null \
-        || command rm -f "$tempfile"
+
+      if [[ ${ZSHZ_OWNER:-${_Z_OWNER}} ]]; then
+        chown ${ZSHZ_OWNER:-${_Z_OWNER}}:"$(id -ng ${ZSHZ_OWNER:_${_Z_OWNER}})" "$datafile"
+      fi
+
+      print -- "$(< =(_zshz_maintain_datafile "$*"))" >| "$tempfile"
+      (( $? == 0 )) && print -- "$(< "$tempfile")" >| $datafile || return
+
+    else
+
+      _zshz_maintain_datafile "$*" >| "$tempfile"
+      local ret=$?
+
+      # Avoid clobbering the datafile in a race condition
+      if (( ret != 0 )) && [[ -f $datafile ]]; then
+        command rm -f "$tempfile"
+      else
+        if [[ -n ${ZSHZ_OWNER:-${_Z_OWNER}} ]]; then
+          chown "${ZSHZ_OWNER:-${_Z_OWNER}}":"$(id -ng "${ZSHZ_OWNER:-${_Z_OWNER}}")" "$tempfile"
+        fi
+        command mv -f "$tempfile" "$datafile" 2> /dev/null \
+          || command rm -f "$tempfile"
+      fi
     fi
 
   elif [[ ${ZSHZ_COMPLETION:-frecent} == 'legacy' ]] && [[ $1 == '--complete' ]] \
@@ -454,12 +491,12 @@ zshz() {
       _zshz_output imatches ibest_match $list
     fi
 
-    local ret=$?
+    local ret2=$?
 
     local cd
     read -rz cd
 
-    if (( ret == 0 )) && [[ -n $cd ]]; then
+    if (( ret2 == 0 )) && [[ -n $cd ]]; then
       if (( echo )); then
         print -- "$cd"
       else
@@ -467,7 +504,7 @@ zshz() {
         builtin cd "$cd"
       fi
     else
-      return $ret
+      return $ret2
     fi
   fi
 }
@@ -485,10 +522,13 @@ alias ${ZSHZ_CMD:-${_Z_CMD:-z}}='zshz 2>&1'
 if [[ -n ${ZSHZ_NO_RESOLVE_SYMLINKS:-${_Z_NO_RESOLVE_SYMLINKS}} ]]; then
   _zshz_precmd() {
     (( ! ZSHZ_REMOVED )) && (zshz --add "${PWD:a}" &)
+    # See https://github.com/rupa/z/pull/247/commits/081406117ea42ccb8d159f7630cfc7658db054b6
+    : $RANDOM
   }
 else
   _zshz_precmd() {
     (( ! ZSHZ_REMOVED )) && (zshz --add "${PWD:A}" &)
+    : $RANDOM
   }
 fi
 
