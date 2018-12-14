@@ -175,35 +175,6 @@ _zshz_legacy_complete() {
   done < "$datafile"
 }
 
-############################################################
-# Remove a directory from the datafile
-#
-# Arguments:
-#   $1 Directory to be removed
-############################################################
-_zshz_remove_directory () {
-  local directory=$1
-  local -a lines
-  local datafile=${ZSHZ_DATA:-${_Z_DATA:-${HOME}/.z}}
-  local tempfile="${datafile}.${RANDOM}"
-
-  lines=( "${(@f)"$(<$datafile)"}" )
-
-  # All of the lines that don't match the directory to be deleted
-  lines=( ${(M)lines:#^${directory}\|*} )
-
-  print -l -- $lines > "$tempfile"
-
-  command mv -f "$tempfile" "$datafile" \
-    || command rm -f "$tempfile"
-
-  # In order to make z -x work, we have to disable zsh-z's adding
-  # to the database until the user changes directory and the
-  # chpwd_functions are run
-  typeset -g ZSHZ_REMOVED=1
-}
-
-
 ########################################################
 # Find the common root of a list of matches, if it
 # exists, and put it on the editor stack buffer
@@ -375,7 +346,27 @@ zshz() {
               r) typ='rank' ;;
               t) typ='recent' ;;
               x)
-                _zshz_remove_directory $PWD
+                # TODO: Take $ZSHZ_OWNER into account?
+
+                local -a lines
+
+                # TODO: flock?
+                local tempfile="${datafile}.${RANDOM}"
+
+                lines=( "${(@f)"$(<$datafile)"}" )
+
+                # All of the lines that don't match the directory to be deleted
+                lines=( ${(M)lines:#^${PWD}\|*} )
+
+                print -l -- $lines > "$tempfile"
+
+                command mv -f "$tempfile" "$datafile" \
+                  || command rm -f "$tempfile"
+
+                # In order to make z -x work, we have to disable zsh-z's adding
+                # to the database until the user changes directory and the
+                # chpwd_functions are run
+                typeset -g ZSHZ_REMOVED=1
 
                 # TODO: Something more intelligent that just returning 0
                 return 0
