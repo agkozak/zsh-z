@@ -329,9 +329,8 @@ zshz() {
         chown ${ZSHZ_OWNER:-${_Z_OWNER}}:"$(id -ng ${ZSHZ_OWNER:_${_Z_OWNER}})" "$datafile"
       fi
 
-      print -- "$(< =(_zshz_update_datafile "$*"))" >| "$tempfile"
-      (( $? == 0 )) && print -- "$(< "$tempfile")" >| $datafile \
-        && command rm $tempfile || return
+      # =() process substitution serves as a tempfile
+      print -- "$(< =(_zshz_update_datafile "$*"))" >| "$datafile" || return
 
     else
 
