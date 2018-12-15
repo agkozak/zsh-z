@@ -97,9 +97,12 @@ fi
 ########################################################
 _zshz_update_datafile() {
   local -A rank time
+
   # Characters special to the shell (such as '[]') are quoted with backslashes
+  # See https://github.com/rupa/z/issues/246
   # shellcheck disable=SC2154
   local add_path=${(q)1}
+
   local -a lines existing_paths
   local now=$EPOCHSECONDS line
   local datafile=${ZSHZ_DATA:-${_Z_DATA:-${HOME}/.z}}
