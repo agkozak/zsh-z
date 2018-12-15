@@ -310,9 +310,7 @@ zshz() {
     done
 
     # A temporary file that gets copied over the datafile if all goes well
-    #
-    # See https://github.com/rupa/z/pull/199/commits/4736e919f58e7bb6a2e9f5ebcf6a8404a75a8a76
-    local tempfile="$(mktemp "${datafile}.XXXXXXXX")"
+    local tempfile="${datafile}.${RANDOM}"
 
     # See https://github.com/rupa/z/pull/199/commits/ed6eeed9b70d27c1582e3dd050e72ebfe246341c
     if (( ZSHZ_USE_ZSYSTEM_FLOCK )); then
