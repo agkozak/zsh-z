@@ -333,7 +333,8 @@ zshz() {
       fi
 
       print -- "$(< =(_zshz_maintain_datafile "$*"))" >| "$tempfile"
-      (( $? == 0 )) && print -- "$(< "$tempfile")" >| $datafile || return
+      (( $? == 0 )) && print -- "$(< "$tempfile")" >| $datafile \
+        && command rm $tempfile || return
 
     else
 
