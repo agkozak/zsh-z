@@ -87,19 +87,15 @@ if zsystem supports flock &> /dev/null; then
   typeset -g ZSHZ_USE_ZSYSTEM_FLOCK=1
 fi
 
-
 ########################################################
-# Maintain the datafile
-#
-# Reads the old datafile contents from STDIN, adds the
-# current path to them, alters the contents to "age"
-# them, and prints the new contents of the datafile to
-# STDOUT.
+# Reads the curent datafile contents from STDIN, updates
+# them, "ages" them when the total rank gets high
+# enough, and prints the new contents to STDOUT.
 #
 # Arguments:
 #   $1 Path to be added to datafile
 ########################################################
-_zshz_maintain_datafile() {
+_zshz_update_datafile() {
   local -A rank time
   # Characters special to the shell (such as '[]') are quoted with backslashes
   # shellcheck disable=SC2154
@@ -330,13 +326,13 @@ zshz() {
         chown ${ZSHZ_OWNER:-${_Z_OWNER}}:"$(id -ng ${ZSHZ_OWNER:_${_Z_OWNER}})" "$datafile"
       fi
 
-      print -- "$(< =(_zshz_maintain_datafile "$*"))" >| "$tempfile"
+      print -- "$(< =(_zshz_update_datafile "$*"))" >| "$tempfile"
       (( $? == 0 )) && print -- "$(< "$tempfile")" >| $datafile \
         && command rm $tempfile || return
 
     else
 
-      _zshz_maintain_datafile "$*" >| "$tempfile"
+      _zshz_update_datafile "$*" >| "$tempfile"
       local ret=$?
 
       # Avoid clobbering the datafile in a race condition
