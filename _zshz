@@ -46,4 +46,4 @@ compstate[insert]=menu
 
 return 0
 
-# vim: ft=zsh:ts=2:et:sts=2:sw=2:
+# vim: ft=zsh:fdm=indent:ts=2:et:sts=2:sw=2:

@@ -559,4 +559,4 @@ fpath=( ${0:A:h} $fpath )
 
 compdef _zshz zshz
 
-# vim: ts=2:et:sts=2:sw=2:
+# vim: fdm=indent:ts=2:et:sts=2:sw=2:
