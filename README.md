@@ -50,6 +50,22 @@ Execute the following command:
 
 and add `zsh-z` to the line of your `.zshrc` that specifies `plugins=()` (e.g. `plugins=( git zsh-z )`).
 
+### For [zgen](https://github.com/tarjoilija/zgen) users
+
+Add the line
+
+    zgen load agkozak/zsh-z
+
+somewhere above the line that says `zgen save`.
+
+### For [zplug](https://github.com/zplug/zplug) users
+
+Add the line
+
+    zplug "agkozak/zsh-z"
+
+somewhere above the line that says `zplug load`.
+
 ### For [zplugin](https://github.com/zdharma/zplugin) users
 
 Add the line
