@@ -1,0 +1,14 @@
+#compdef zshz
+  
+if [[ ${ZSHZ_COMPLETION} == 'legacy' ]]; then
+  # shellcheck disable=SC2154
+  compadd -x 'Completing directory' -U "${(f)"$(zshz --complete "$PREFIX")"}"
+else
+  # shellcheck disable=SC2154
+  compadd -x 'Completing directory' -U -V zsh-z "${(f)$(zshz --complete "$PREFIX")}"
+fi
+
+# shellcheck disable=SC2034,SC2154
+compstate[insert]=menu
+
+return 0
