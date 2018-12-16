@@ -548,25 +548,11 @@ _zshz_chpwd() {
 # COMPLETION
 ############################################################
 
+fpath=( ${0:A:h} $fpath )
+
 # Load compinit only if it has not already been loaded
 # shellcheck disable=SC2154
 (( $+functions[compinit] )) || autoload -U compinit && compinit
-
-############################################################
-# The completion handler
-############################################################
-_zshz() {
-  if [[ ${ZSHZ_COMPLETION} == 'legacy' ]]; then
-    # shellcheck disable=SC2154
-    compadd -x 'Completing directory' -U "${(f)"$(zshz --complete "$PREFIX")"}"
-  else
-    # shellcheck disable=SC2154
-    compadd -x 'Completing directory' -U -V zsh-z "${(f)$(zshz --complete "$PREFIX")}"
-  fi
-
-  # shellcheck disable=SC2034,SC2154
-  compstate[insert]=menu
-}
 
 compdef _zshz zshz
 
