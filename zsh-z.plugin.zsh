@@ -533,16 +533,10 @@ _zshz_chpwd() {
   typeset -g ZSHZ_REMOVED=0
 }
 
-# Be careful not to load the precmd and chpwd functions
-# more than once
+autoload -U add-zsh-hook
 
-[[ -n "${precmd_functions[(r)_zshz_precmd]}" ]] || {
-  precmd_functions[$(($#precmd_functions+1))]=_zshz_precmd
-}
-
-[[ -n "${chpwd_functions[(r)_zshz_chpwd]}" ]] || {
-  chpwd_functions[$(($#chpwd_functions+1))]=_zshz_chpwd
-}
+add-zsh-hook precmd _zshz_precmd
+add-zsh-hook chpwd _zshz_chpwd
 
 ############################################################
 # COMPLETION
