@@ -322,7 +322,7 @@ zshz() {
         zsystem flock -f lockfd "$datafile" 2> /dev/null || return
       fi
 
-      if [[ ${ZSHZ_OWNER:-${_Z_OWNER}} ]]; then
+      if [[ -n ${ZSHZ_OWNER:-${_Z_OWNER}} ]]; then
         chown ${ZSHZ_OWNER:-${_Z_OWNER}}:"$(id -ng ${ZSHZ_OWNER:_${_Z_OWNER}})" "$datafile"
       fi
 
