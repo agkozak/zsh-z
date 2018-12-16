@@ -22,17 +22,41 @@ ZSH-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
 
 ## Installation
 
+### For users without a framework
+
 This script can be installed simply by downloading it and sourcing it from your `.zshrc`:
 
     source /path/to/zsh-z.plugin.zsh
-
-I will include extensive instructions for various ZSH frameworks soon.
 
 If you add
 
     zstyle ':completion:*' menu select
 
 to your `.zshrc`, your completion menus will look very nice.
+
+### For [antigen](https://github.com/zsh-users/antigen) users
+
+Add the line
+
+    antigen bundle agkozak/zsh-z
+
+to your `.zshrc`, somewhere above the line that says `antigen apply`.
+
+### For [oh-my-zsh](http://ohmyz.sh/) users
+
+Execute the following command:
+
+    git clone https://github.com/agkozak/zsh-z $ZSH_CUSTOM/plugins/zsh-z
+
+and add `zsh-z` to the line of your `.zshrc` that specifies `plugins=()` (e.g. `plugins=( git zsh-z )`).
+
+### For [zplugin](https://github.com/zdharma/zplugin) users
+
+Add the line
+
+    zplugin load agkozak/agkozak-zsh-prompt
+
+to your `.zshrc`.
 
 ## Command Line Options
 
