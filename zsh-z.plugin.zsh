@@ -87,14 +87,14 @@ if zsystem supports flock &> /dev/null; then
   typeset -g ZSHZ_USE_ZSYSTEM_FLOCK=1
 fi
 
-########################################################
+############################################################
 # Reads the curent datafile contents from STDIN, updates
-# them, "ages" them when the total rank gets high
-# enough, and prints the new contents to STDOUT.
+# them, "ages" them when the total rank gets high enough,
+# and prints the new contents to STDOUT.
 #
 # Arguments:
 #   $1 Path to be added to datafile
-########################################################
+############################################################
 _zshz_update_datafile() {
   local -A rank time
 
@@ -151,16 +151,16 @@ _zshz_update_datafile() {
   fi
 }
 
-########################################################
+############################################################
 # Simple, legacy tab completion
 #
 # Process the query string for tab completion. Read the
-# contents of the datafile from STDIN and prints matches
-# to STDOUT.
+# contents of the datafile from STDIN and prints matches to
+# STDOUT.
 #
 # Arguments:
 #   $1 The string to be completed
-########################################################
+############################################################
 _zshz_legacy_complete() {
   setopt LOCAL_OPTIONS EXTENDED_GLOB
 
@@ -183,13 +183,13 @@ _zshz_legacy_complete() {
   done < "$datafile"
 }
 
-########################################################
-# Find the common root of a list of matches, if it
-# exists, and put it on the editing buffer stack
+############################################################
+# Find the common root of a list of matches, if it exists,
+# and put it on the editing buffer stack.
 #
 # Arguments:
 #   $1 Name of associative array of matches and ranks
-########################################################
+############################################################
 _zshz_common() {
   local -A common_matches
   local x short
@@ -214,16 +214,16 @@ _zshz_common() {
   print -z -- $short
 }
 
-########################################################
-# Put the desired directory on the editing buffer stack,
-# or list it to STDOUT.
+############################################################
+# Put the desired directory on the editing buffer stack, or
+# list it to STDOUT.
 #
 # Arguments:
 #   $1 Associative array of matches and ranks
 #   $2 best_match or ibest_match
 #   $3 Whether or not to just print the results as a
 #     list (0 or 1)
-########################################################
+############################################################
 _zshz_output() {
   # shellcheck disable=SC2034
   local match_array=$1 match=$2 list=${3:-0}
