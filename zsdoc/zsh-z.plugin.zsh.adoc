@@ -8,7 +8,7 @@ zsh-z.plugin.zsh - a shell script
 
 SYNOPSIS
 --------
-Documentation automatically generated with `zshelldoc'
+Plugin script for ZSH-z (https://github.com/agkozak/zsh-z)
 
 FUNCTIONS
 ---------
