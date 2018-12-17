@@ -128,6 +128,9 @@ _zshz_update_datafile() {
     rank_field=${${line%\|*}#*\|}
     time_field=${line##*\|}
 
+    # When a rank drops below 1, drop the path from the database
+    (( rank_field < 1 )) && continue
+
     if [[ $path_field == "$1" ]]; then
       rank[$path_field]=$(( rank_field + 1 ))
       time[$path_field]=$now
@@ -142,10 +145,7 @@ _zshz_update_datafile() {
     #
     # shellcheck disable=SC2154
     for x in ${(k)rank}; do
-      # When a rank drops below 1, drop the path from the database
-      if (( (( 0.99 * rank[$x] )) >= 1 )); then
-        print -- "$x|$(( 0.99 * rank[$x] ))|${time[$x]}"
-      fi
+      print -- "$x|$(( 0.99 * rank[$x] ))|${time[$x]}"
     done
   else
     for x in ${(k)rank}; do
