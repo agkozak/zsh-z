@@ -380,7 +380,7 @@ zshz() {
           opt=${1:1}
           while [[ -n $opt ]]; do
             case ${opt:0:1} in
-              c) fnd="^$PWD $fnd" ;;
+              c) fnd="$PWD $fnd" ;;
               e) echo=1 ;;
               h|-help) print $ZSHZ_USAGE >&2; return ;;
               l) list=1 ;;
@@ -421,7 +421,7 @@ zshz() {
       last=$1
       (( $# )) && shift
     done
-    [[ -n $fnd ]] && [[ "$fnd" != "^$PWD " ]] || list=1
+    [[ -n $fnd ]] && [[ $fnd != "$PWD " ]] || list=1
 
     # If we hit enter on a completion just go there
     case $last in
@@ -435,7 +435,7 @@ zshz() {
     local -a lines existing_paths
     local line path_field rank_field time_field rank dx
     # shellcheck disable=SC2034
-    local q=${${fnd// ##/*}#\^}
+    local q=${fnd// ##/*}
     local -A matches imatches
     local best_match ibest_match hi_rank=-9999999999 ihi_rank=-9999999999
 
