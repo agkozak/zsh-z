@@ -8,7 +8,12 @@ _zshz - a shell script
 
 SYNOPSIS
 --------
-Completion script for ZSH-z (https://github.com/agkozak/zsh-z)
+
+ZSH-z - jump around with ZSH - A native ZSH version of z without awk, sort,
+date, or sed
+
+https://github.com/agkozak/zsh-z
+
 
 FUNCTIONS
 ---------

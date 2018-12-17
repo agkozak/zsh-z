@@ -1,9 +1,10 @@
 #compdef zshz
-#
+# synopsis {{{
 # ZSH-z - jump around with ZSH - A native ZSH version of z without awk, sort,
 # date, or sed
 #
 # https://github.com/agkozak/zsh-z
+# }}}
 #
 # Copyright (c) 2018 Alexandros Kozak
 #

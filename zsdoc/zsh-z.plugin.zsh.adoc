@@ -8,7 +8,12 @@ zsh-z.plugin.zsh - a shell script
 
 SYNOPSIS
 --------
-Plugin script for ZSH-z (https://github.com/agkozak/zsh-z)
+
+ZSH-z - jump around with ZSH - A native ZSH version of z without awk, sort,
+date, or sed
+
+https://github.com/agkozak/zsh-z
+
 
 FUNCTIONS
 ---------
@@ -22,6 +27,18 @@ AUTOLOAD add-zsh-hook
 AUTOLOAD compinit
 CHPWD-HOOK _zshz_chpwd
 PRECMD-HOOK _zshz_precmd
+
+ENVIRONMENT VARIABLES
+---------------------
+[width="80%",cols="4,10"]
+|======
+|ZSHZ_CMD|name of command (default: z)
+|ZSHZ_COMPLETION|completion method (default: 'frecent'; 'legacy' for alphabetic sorting)
+|ZSHZ_DATA|name of datafile (default: ~/.z)
+|ZSHZ_EXCLUDE_DIRS|array of directories to exclude from your database
+|ZSHZ_NO_RESOLVE_SYMLINKS|'1' prevents symlink resolution
+|ZSHZ_OWNER|your username (if you want use ZSH-z while using sudo -s) 
+|======
 
 DETAILS
 -------
@@ -74,8 +91,8 @@ _zshz_common
 
 ____
  
- Find the common root of a list of matches, if it
- exists, and put it on the editing buffer stack
+ Find the common root of a list of matches, if it exists,
+ and put it on the editing buffer stack.
  
  Arguments:
  $1 Name of associative array of matches and ranks
@@ -95,8 +112,8 @@ ____
  Simple, legacy tab completion
  
  Process the query string for tab completion. Read the
- contents of the datafile from STDIN and prints matches
- to STDOUT.
+ contents of the datafile from STDIN and prints matches to
+ STDOUT.
  
  Arguments:
  $1 The string to be completed
@@ -113,8 +130,8 @@ _zshz_output
 
 ____
  
- Put the desired directory on the editing buffer stack,
- or list it to STDOUT.
+ Put the desired directory on the editing buffer stack, or
+ list it to STDOUT.
  
  Arguments:
  $1 Associative array of matches and ranks
@@ -154,8 +171,8 @@ _zshz_update_datafile
 ____
  
  Reads the curent datafile contents from STDIN, updates
- them, "ages" them when the total rank gets high
- enough, and prints the new contents to STDOUT.
+ them, "ages" them when the total rank gets high enough,
+ and prints the new contents to STDOUT.
  
  Arguments:
  $1 Path to be added to datafile
@@ -169,6 +186,11 @@ Called by:
 
 add-zsh-hook
 ~~~~~~~~~~~~
+
+____
+ 
+ vim: fdm=indent:ts=2:et:sts=2:sw=2:
+____
 
 Has 93 line(s). Doesn't call other functions.
 

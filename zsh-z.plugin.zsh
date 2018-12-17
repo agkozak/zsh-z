@@ -1,7 +1,9 @@
+# synopsis {{{
 # ZSH-z - jump around with ZSH - A native ZSH version of z without awk, sort,
 # date, or sed
 #
 # https://github.com/agkozak/zsh-z
+# }}}
 #
 # Copyright (c) 2018 Alexandros Kozak
 #
@@ -32,16 +34,6 @@
 #     * put something like this in your .zshrc:
 #         source /path/to/zsh-z.plugin.zsh
 #     * cd around for a while to build up the database
-#     * optionally:
-#       * Set ZSHZ_CMD in your .zshrc to change the command (default z)
-#       * Set ZSHZ_COMPLETION to 'legacy' to restore the simpler, alphabetic
-#           completion sorting method
-#       * Set ZSHZ_DATA in your .zshrc to change the datafile (default ~/.z)
-#       * Set ZSHZ_NO_RESOLVE_SYMLINKS to prevent symlink resolution
-#       * Set ZSHZ_EXCLUDE_DIRS to an array of directories to exclude from your
-#           database
-#       * Set ZSHZ_OWNER to your username if you want use ZSH-z while sudoing
-#           with $HOME kept
 #
 # USAGE:
 #     * z foo     # cd to the most frecent directory matching foo
@@ -53,7 +45,17 @@
 #     * z -e foo  # Echo the best match without changing directories
 #     * z -c foo  # Restrict matches to subdirectories of PWD
 #     * z -x foo  # Remove the PWD from the database
-
+#
+# ENVIRONMENT VARIABLES:
+#
+# env-vars {{{
+#     ZSHZ_CMD -> name of command (default: z)
+#     ZSHZ_COMPLETION -> completion method (default: 'frecent'; 'legacy' for alphabetic sorting)
+#     ZSHZ_DATA -> name of datafile (default: ~/.z)
+#     ZSHZ_NO_RESOLVE_SYMLINKS -> '1' prevents symlink resolution
+#     ZSHZ_EXCLUDE_DIRS -> array of directories to exclude from your database
+#     ZSHZ_OWNER -> your username (if you want use ZSH-z while using sudo -s) }}}
+#
 # shellcheck shell=ksh
 # shellcheck disable=SC2016,SC2079,SC2086,SC2128
 
