@@ -389,20 +389,26 @@ zshz() {
               x)
                 # TODO: Take $ZSHZ_OWNER into account?
 
+                if (( ZSHZ_USE_ZSYSTEM_FLOCK )); then
+                  [[ -f $datafile ]] || touch $datafile
+                  local lockfd
+                  zsystem flock -f lockfd $datafile 2> /dev/null || return
+                fi
+
                 local -a lines
-
-                # TODO: flock?
-                local tempfile="${datafile}.${RANDOM}"
-
                 lines=( "${(@f)"$(<$datafile)"}" )
-
                 # All of the lines that don't match the directory to be deleted
                 lines=( ${(M)lines:#^${PWD}\|*} )
 
-                print -l -- $lines > "$tempfile"
-
-                command mv -f "$tempfile" "$datafile" \
-                  || command rm -f "$tempfile"
+                if (( ZSHZ_USE_ZSYSTEM_FLOCK )); then
+                  # =() process substitution serves as the tempfile
+                  print -- "$(< =(print -l $lines))" >| $datafile || return
+                else
+                  local tempfile="${datafile}.${RANDOM}"
+                  print -l -- $lines > "$tempfile"
+                  command mv -f "$tempfile" "$datafile" \
+                    || command rm -f "$tempfile"
+                fi
 
                 # In order to make z -x work, we have to disable zsh-z's adding
                 # to the database until the user changes directory and the
