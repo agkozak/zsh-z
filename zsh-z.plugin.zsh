@@ -60,7 +60,9 @@
 # shellcheck shell=ksh
 # shellcheck disable=SC2016,SC2079,SC2086,SC2128
 
-typeset -g ZSHZ_USAGE="Usage: ${ZSHZ_CMD:-${_Z_CMD:-z}} [OPTION]... [ARGUMENT]
+_zshz_usage() {
+  cat <<-EOF
+Usage: ${ZSHZ_CMD:-${_Z_CMD:-z}} [OPTION]... [ARGUMENT]
 Jump to a directory that you have visited frequently or recently, or a bit of both, based on the partial string ARGUMENT.
 
 With no ARGUMENT, list the directory history in ascending rank.
@@ -72,6 +74,8 @@ With no ARGUMENT, list the directory history in ascending rank.
   -r    Match by rank
   -t    Match by recent access
   -x    Remove the current directory from the database"
+EOF
+}
 
 # If the datafile is a directory, print a warning
 [[ -d ${ZSHZ_DATA:-${_Z_DATA:-${HOME}/.z}} ]] && {
@@ -382,7 +386,7 @@ zshz() {
             case ${opt:0:1} in
               c) fnd="$PWD $fnd" ;;
               e) echo=1 ;;
-              h|-help) print $ZSHZ_USAGE >&2; return ;;
+              h|-help) _zshz_usage >&2; return ;;
               l) list=1 ;;
               r) typ='rank' ;;
               t) typ='recent' ;;
