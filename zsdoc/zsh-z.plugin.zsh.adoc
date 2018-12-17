@@ -59,7 +59,7 @@ zshz
 
 ____
  
- THE COMMAND
+ The ZSH-z Command
  
  Arguments:
  $* The command line arguments
@@ -82,6 +82,13 @@ Called by:
 _zshz_chpwd
 ~~~~~~~~~~~
 
+____
+ 
+ When the $PWD is removed from the datafile with z -x,
+ ZSH-z refrains from adding it again until the user has
+ left the directory.
+____
+
 Has 1 line(s). *Is a chpwd hook*. Doesn't call other functions.
 
 Not called by script or any function (may be e.g. a hook, a Zle widget, etc.).
@@ -91,8 +98,8 @@ _zshz_common
 
 ____
  
- Find the common root of a list of matches, if it exists,
- and put it on the editing buffer stack.
+ If matches share a common root, find it, and put it on the
+ editing buffer stack for _zshz_output to use.
  
  Arguments:
  $1 Name of associative array of matches and ranks
@@ -109,11 +116,10 @@ _zshz_legacy_complete
 
 ____
  
- Simple, legacy tab completion
+ The original tab completion method
  
- Process the query string for tab completion. Read the
- contents of the datafile from STDIN and prints matches to
- STDOUT.
+ Process a string for tab completion. Read the contents of
+ the datafile and print matches to STDOUT.
  
  Arguments:
  $1 The string to be completed
@@ -130,12 +136,17 @@ _zshz_output
 
 ____
  
- Put the desired directory on the editing buffer stack, or
- list it to STDOUT.
+ Fetch the common root path from the editing buffer stack.
+ Then either
+ 
+ 1) Print a list of completions in frecent order;
+ 2) List them (z -l) to STDOUT; or
+ 3) Put a common root or best match onto the editing
+ buffer stack.
  
  Arguments:
- $1 Associative array of matches and ranks
- $2 best_match or ibest_match
+ $1 Name of an associative array of matches and ranks
+ $2 The best match or best case-insensitive match
  $3 Whether or not to just print the results as a
  list (0 or 1)
 ____
@@ -154,6 +165,13 @@ Called by:
 _zshz_precmd
 ~~~~~~~~~~~~
 
+____
+ 
+ Add the $PWD to the datafile, unless $ZSHZ_REMOVED shows it to have been
+ recently removed with z -x
+   
+____
+
 Has 4 line(s). *Is a precmd hook*. Calls functions:
 
  _zshz_precmd
@@ -170,9 +188,9 @@ _zshz_update_datafile
 
 ____
  
- Reads the curent datafile contents from STDIN, updates
- them, "ages" them when the total rank gets high enough,
- and prints the new contents to STDOUT.
+ Read the curent datafile contents, update them, "age" them
+ when the total rank gets high enough, and print the new
+ contents to STDOUT.
  
  Arguments:
  $1 Path to be added to datafile
@@ -186,11 +204,6 @@ Called by:
 
 add-zsh-hook
 ~~~~~~~~~~~~
-
-____
- 
- vim: fdm=indent:ts=2:et:sts=2:sw=2:
-____
 
 Has 93 line(s). Doesn't call other functions.
 

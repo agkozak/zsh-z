@@ -1,5 +1,7 @@
 #!/usr/bin/env zsh
 
+# Generate Zshelldoc files for ZSH-z
+
 zsd \
   --cignore '(\#*vim:*|\#\#*)' \
 	--scomm \

@@ -56,6 +56,7 @@
 #     ZSHZ_EXCLUDE_DIRS -> array of directories to exclude from your database
 #     ZSHZ_OWNER -> your username (if you want use ZSH-z while using sudo -s) }}}
 #
+# vim: fdm=indent:ts=2:et:sts=2:sw=2:
 # shellcheck shell=ksh
 # shellcheck disable=SC2016,SC2079,SC2086,SC2128
 
@@ -90,9 +91,9 @@ if zsystem supports flock &> /dev/null; then
 fi
 
 ############################################################
-# Reads the curent datafile contents from STDIN, updates
-# them, "ages" them when the total rank gets high enough,
-# and prints the new contents to STDOUT.
+# Read the curent datafile contents, update them, "age" them
+# when the total rank gets high enough, and print the new
+# contents to STDOUT.
 #
 # Arguments:
 #   $1 Path to be added to datafile
@@ -154,11 +155,10 @@ _zshz_update_datafile() {
 }
 
 ############################################################
-# Simple, legacy tab completion
+# The original tab completion method
 #
-# Process the query string for tab completion. Read the
-# contents of the datafile from STDIN and prints matches to
-# STDOUT.
+# Process a string for tab completion. Read the contents of
+# the datafile and print matches to STDOUT.
 #
 # Arguments:
 #   $1 The string to be completed
@@ -186,8 +186,8 @@ _zshz_legacy_complete() {
 }
 
 ############################################################
-# Find the common root of a list of matches, if it exists,
-# and put it on the editing buffer stack.
+# If matches share a common root, find it, and put it on the
+# editing buffer stack for _zshz_output to use.
 #
 # Arguments:
 #   $1 Name of associative array of matches and ranks
@@ -217,12 +217,17 @@ _zshz_common() {
 }
 
 ############################################################
-# Put the desired directory on the editing buffer stack, or
-# list it to STDOUT.
+# Fetch the common root path from the editing buffer stack.
+# Then either
+#
+#   1) Print a list of completions in frecent order;
+#   2) List them (z -l) to STDOUT; or
+#   3) Put a common root or best match onto the editing
+#     buffer stack.
 #
 # Arguments:
-#   $1 Associative array of matches and ranks
-#   $2 best_match or ibest_match
+#   $1 Name of an associative array of matches and ranks
+#   $2 The best match or best case-insensitive match
 #   $3 Whether or not to just print the results as a
 #     list (0 or 1)
 ############################################################
@@ -266,7 +271,7 @@ _zshz_output() {
     done
   else
     if [[ -n $common ]]; then
-      print -z $common
+      print -z -- $common
     else
       # shellcheck disable=SC2154
       print -z -- ${(P)match}
@@ -275,7 +280,7 @@ _zshz_output() {
 }
 
 ############################################################
-# THE COMMAND
+# The ZSH-z Command
 #
 # Arguments:
 #   $* The command line arguments
@@ -515,9 +520,6 @@ alias ${ZSHZ_CMD:-${_Z_CMD:-z}}='zshz 2>&1'
 # precmd and chpwd
 ############################################################
 
-# Add the PWD to the datafile, unless ZSHZ_REMOVED shows it to
-# have been recently removed with z -x
-
 if [[ -n ${ZSHZ_NO_RESOLVE_SYMLINKS:-${_Z_NO_RESOLVE_SYMLINKS}} ]]; then
   _zshz_precmd() {
     (( ! ZSHZ_REMOVED )) && (zshz --add "${PWD:a}" &)
@@ -525,12 +527,19 @@ if [[ -n ${ZSHZ_NO_RESOLVE_SYMLINKS:-${_Z_NO_RESOLVE_SYMLINKS}} ]]; then
     : $RANDOM
   }
 else
+  # Add the $PWD to the datafile, unless $ZSHZ_REMOVED shows it to have been
+  # recently removed with z -x
   _zshz_precmd() {
     (( ! ZSHZ_REMOVED )) && (zshz --add "${PWD:A}" &)
     : $RANDOM
   }
 fi
 
+############################################################
+# When the $PWD is removed from the datafile with z -x,
+# ZSH-z refrains from adding it again until the user has
+# left the directory.
+############################################################
 _zshz_chpwd() {
   typeset -g ZSHZ_REMOVED=0
 }
@@ -554,5 +563,3 @@ fpath=( ${0:A:h} $fpath )
 (( $+functions[compinit] )) || autoload -U compinit && compinit
 
 compdef _zshz zshz
-
-# vim: fdm=indent:ts=2:et:sts=2:sw=2:
