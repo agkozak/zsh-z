@@ -1,0 +1,3 @@
+#!/usr/bin/env zsh
+
+zsd --cignore '\#\#*' --scomm zsh-z.plugin.zsh _zshz

@@ -1,0 +1,196 @@
+zsh-z.plugin.zsh(1)
+===================
+:compat-mode!:
+
+NAME
+----
+zsh-z.plugin.zsh - a shell script
+
+SYNOPSIS
+--------
+Documentation automatically generated with `zshelldoc'
+
+FUNCTIONS
+---------
+
+ zshz
+ _zshz_common
+ _zshz_legacy_complete
+ _zshz_output
+ _zshz_update_datafile
+AUTOLOAD add-zsh-hook
+AUTOLOAD compinit
+CHPWD-HOOK _zshz_chpwd
+PRECMD-HOOK _zshz_precmd
+
+DETAILS
+-------
+
+Script Body
+~~~~~~~~~~~
+
+Has 37 line(s). Calls functions:
+
+ Script-Body
+ |-- add-zsh-hook
+ `-- compinit
+
+Uses feature(s): _alias_, _autoload_, _zmodload_
+
+zshz
+~~~~
+
+____
+ 
+ THE COMMAND
+ 
+ Arguments:
+ $* The command line arguments
+____
+
+Has 173 line(s). Calls functions:
+
+ zshz
+ |-- _zshz_legacy_complete
+ |-- _zshz_output
+ |   `-- _zshz_common
+ `-- _zshz_update_datafile
+
+Uses feature(s): _read_
+
+Called by:
+
+ _zshz_precmd
+
+_zshz_chpwd
+~~~~~~~~~~~
+
+Has 1 line(s). *Is a chpwd hook*. Doesn't call other functions.
+
+Not called by script or any function (may be e.g. a hook, a Zle widget, etc.).
+
+_zshz_common
+~~~~~~~~~~~~
+
+____
+ 
+ Find the common root of a list of matches, if it
+ exists, and put it on the editing buffer stack
+ 
+ Arguments:
+ $1 Name of associative array of matches and ranks
+____
+
+Has 19 line(s). Doesn't call other functions.
+
+Called by:
+
+ _zshz_output
+
+_zshz_legacy_complete
+~~~~~~~~~~~~~~~~~~~~~
+
+____
+ 
+ Simple, legacy tab completion
+ 
+ Process the query string for tab completion. Read the
+ contents of the datafile from STDIN and prints matches
+ to STDOUT.
+ 
+ Arguments:
+ $1 The string to be completed
+____
+
+Has 16 line(s). Doesn't call other functions.
+
+Called by:
+
+ zshz
+
+_zshz_output
+~~~~~~~~~~~~
+
+____
+ 
+ Put the desired directory on the editing buffer stack,
+ or list it to STDOUT.
+ 
+ Arguments:
+ $1 Associative array of matches and ranks
+ $2 best_match or ibest_match
+ $3 Whether or not to just print the results as a
+ list (0 or 1)
+____
+
+Has 39 line(s). Calls functions:
+
+ _zshz_output
+ `-- _zshz_common
+
+Uses feature(s): _read_
+
+Called by:
+
+ zshz
+
+_zshz_precmd
+~~~~~~~~~~~~
+
+Has 4 line(s). *Is a precmd hook*. Calls functions:
+
+ _zshz_precmd
+ `-- zshz
+     |-- _zshz_legacy_complete
+     |-- _zshz_output
+     |   `-- _zshz_common
+     `-- _zshz_update_datafile
+
+Not called by script or any function (may be e.g. a hook, a Zle widget, etc.).
+
+_zshz_update_datafile
+~~~~~~~~~~~~~~~~~~~~~
+
+____
+ 
+ Reads the curent datafile contents from STDIN, updates
+ them, "ages" them when the total rank gets high
+ enough, and prints the new contents to STDOUT.
+ 
+ Arguments:
+ $1 Path to be added to datafile
+____
+
+Has 41 line(s). Doesn't call other functions.
+
+Called by:
+
+ zshz
+
+add-zsh-hook
+~~~~~~~~~~~~
+
+____
+ 
+ vim: fdm=indent:ts=2:et:sts=2:sw=2:
+____
+
+Has 93 line(s). Doesn't call other functions.
+
+Uses feature(s): _autoload_, _getopts_
+
+Called by:
+
+ Script-Body
+
+compinit
+~~~~~~~~
+
+Has 549 line(s). Doesn't call other functions.
+
+Uses feature(s): _autoload_, _bindkey_, _eval_, _read_, _unfunction_, _zle_, _zstyle_
+
+Called by:
+
+ Script-Body
+
