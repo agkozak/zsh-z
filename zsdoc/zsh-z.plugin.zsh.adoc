@@ -170,11 +170,6 @@ Called by:
 add-zsh-hook
 ~~~~~~~~~~~~
 
-____
- 
- vim: fdm=indent:ts=2:et:sts=2:sw=2:
-____
-
 Has 93 line(s). Doesn't call other functions.
 
 Uses feature(s): _autoload_, _getopts_
