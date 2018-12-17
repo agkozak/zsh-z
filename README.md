@@ -113,6 +113,7 @@ ZSH-z has environment variables (they all begin with `ZSHZ_`) that change its be
 * `ZSHZ_EXCLUDE_DIRS` works.
 * There is no error message when the database file has not yet been created.
 * There is support for special characters (e.g. '[') in directory names.
+* If `z -l` only returns one match, a common root is not printed.
 
 
 ## Known Bugs

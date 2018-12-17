@@ -262,7 +262,7 @@ _zshz_output() {
       fi
     done
     if [[ -n $common ]]; then
-      printf "%-10s %s\n" 'common:' $common
+      (( ${#output} > 1 )) && printf "%-10s %s\n" 'common:' $common
     fi
     # Sort results and remove trailing ".00"
     # shellcheck disable=SC2154
