@@ -447,8 +447,6 @@ zshz() {
 
     local -a lines existing_paths
     local line path_field rank_field time_field rank dx
-    # shellcheck disable=SC2034
-    local q=${fnd// ##/*}
     local -A matches imatches
     local best_match ibest_match hi_rank=-9999999999 ihi_rank=-9999999999
 
@@ -484,22 +482,20 @@ zshz() {
           ;;
       esac
 
-      # If the -c option has not been used
-      if (( ! current )); then
-        # shellcheck disable=SC2154
-        if [[ $path_field == *${~q}* ]]; then
-          matches[$path_field]=$rank
-        elif [[ ${path_field:l} == *${~q:l}* ]]; then
-          imatches[$path_field]=$rank
-        fi
-      # If the -c option is being used
+      # Pattern matching is different when the -c option is on
+      # shellcheck disable=SC2034
+      local q=${fnd// ##/*}
+      if (( current )); then
+        q="$q*"
       else
-        # shellcheck disable=SC2154
-        if [[ $path_field == ${~q}* ]]; then
-          matches[$path_field]=$rank
-        elif [[ ${path_field:l} == ${~q:l}* ]]; then
-          imatches[$path_field]=$rank
-        fi
+        q="*$q*"
+      fi
+
+      # shellcheck disable=SC2154
+      if [[ $path_field == ${~q} ]]; then
+        matches[$path_field]=$rank
+      elif [[ ${path_field:l} == ${~q:l} ]]; then
+        imatches[$path_field]=$rank
       fi
 
       if (( matches[$path_field] )) \
