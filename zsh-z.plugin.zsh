@@ -367,7 +367,7 @@ zshz() {
 
   else
     # Frecent completion, echo/list, help, and cd to match
-    local frecent_completion echo fnd last opt list typ
+    local current echo fnd frecent_completion last opt list typ
     while [[ -n $1 ]]; do
       case $1 in
         # The new frecent completion method returns directories in the order of
@@ -384,7 +384,10 @@ zshz() {
           opt=${1:1}
           while [[ -n $opt ]]; do
             case ${opt:0:1} in
-              c) fnd="^$PWD $fnd" ;;
+              c)
+                fnd="$PWD $fnd"
+                current=1
+                ;;
               e) echo=1 ;;
               h|-help) _zshz_usage >&2; return ;;
               l) list=1 ;;
@@ -431,7 +434,7 @@ zshz() {
       last=$1
       (( $# )) && shift
     done
-    [[ -n $fnd ]] && [[ "$fnd" != "^$PWD " ]] || list=1
+    [[ -n $fnd ]] && [[ $fnd != "$PWD " ]] || list=1
 
     # If we hit enter on a completion just go there
     case $last in
@@ -445,7 +448,7 @@ zshz() {
     local -a lines existing_paths
     local line path_field rank_field time_field rank dx
     # shellcheck disable=SC2034
-    local q=${${fnd// ##/*}#\^}
+    local q=${fnd// ##/*}
     local -A matches imatches
     local best_match ibest_match hi_rank=-9999999999 ihi_rank=-9999999999
 
@@ -481,11 +484,22 @@ zshz() {
           ;;
       esac
 
-      # shellcheck disable=SC2154
-      if [[ $path_field == *${~q}* ]]; then
-        matches[$path_field]=$rank
-      elif [[ ${path_field:l} == *${~q:l}* ]]; then
-        imatches[$path_field]=$rank
+      # If the -c option has not been used
+      if (( ! current )); then
+        # shellcheck disable=SC2154
+        if [[ $path_field == *${~q}* ]]; then
+          matches[$path_field]=$rank
+        elif [[ ${path_field:l} == *${~q:l}* ]]; then
+          imatches[$path_field]=$rank
+        fi
+      # If the -c option is being used
+      else
+        # shellcheck disable=SC2154
+        if [[ $path_field == ${~q}* ]]; then
+          matches[$path_field]=$rank
+        elif [[ ${path_field:l} == ${~q:l}* ]]; then
+          imatches[$path_field]=$rank
+        fi
       fi
 
       if (( matches[$path_field] )) \
