@@ -590,4 +590,5 @@ fpath=( ${0:A:h} $fpath )
 # shellcheck disable=SC2154
 (( $+functions[compinit] )) || autoload -U compinit && compinit
 
-compdef _zshz zshz
+# The alias is include for people who setopt COMPLETE_ALIASES
+compdef _zshz zshz ${ZSHZ_CMD:-${_Z_CMD:-z}}
