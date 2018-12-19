@@ -60,6 +60,9 @@
 # shellcheck shell=ksh
 # shellcheck disable=SC2016,SC2079,SC2086,SC2128
 
+############################################################
+# The help message
+############################################################
 _zshz_usage() {
   cat <<-EOF
 Usage: ${ZSHZ_CMD:-${_Z_CMD:-z}} [OPTION]... [ARGUMENT]

@@ -23,6 +23,7 @@ FUNCTIONS
  _zshz_legacy_complete
  _zshz_output
  _zshz_update_datafile
+ _zshz_usage
 AUTOLOAD add-zsh-hook
 AUTOLOAD compinit
 CHPWD-HOOK _zshz_chpwd
@@ -46,7 +47,7 @@ DETAILS
 Script Body
 ~~~~~~~~~~~
 
-Has 37 line(s). Calls functions:
+Has 16 line(s). Calls functions:
 
  Script-Body
  |-- add-zsh-hook
@@ -129,6 +130,7 @@ Has 16 line(s). Doesn't call other functions.
 
 Called by:
 
+ _zshz_usage
  zshz
 
 _zshz_output
@@ -160,6 +162,7 @@ Uses feature(s): _read_
 
 Called by:
 
+ _zshz_usage
  zshz
 
 _zshz_precmd
@@ -200,7 +203,27 @@ Has 41 line(s). Doesn't call other functions.
 
 Called by:
 
+ _zshz_usage
  zshz
+
+_zshz_usage
+~~~~~~~~~~~
+
+____
+ 
+ The help message
+____
+
+Has 424 line(s). Calls functions:
+
+ _zshz_usage
+ |-- _zshz_legacy_complete
+ |-- _zshz_output
+ `-- _zshz_update_datafile
+
+Uses feature(s): _read_
+
+Not called by script or any function (may be e.g. a hook, a Zle widget, etc.).
 
 add-zsh-hook
 ~~~~~~~~~~~~
