@@ -64,8 +64,7 @@
 # The help message
 ############################################################
 _zshz_usage() {
-  cat <<-EOF
-Usage: ${ZSHZ_CMD:-${_Z_CMD:-z}} [OPTION]... [ARGUMENT]
+  print "Usage: ${ZSHZ_CMD:-${_Z_CMD:-z}} [OPTION]... [ARGUMENT]
 Jump to a directory that you have visited frequently or recently, or a bit of both, based on the partial string ARGUMENT.
 
 With no ARGUMENT, list the directory history in ascending rank.
@@ -77,7 +76,6 @@ With no ARGUMENT, list the directory history in ascending rank.
   -r    Match by rank
   -t    Match by recent access
   -x    Remove the current directory from the database"
-EOF
 }
 
 # If the datafile is a directory, print a warning
