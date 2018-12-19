@@ -60,6 +60,12 @@
 # shellcheck shell=ksh
 # shellcheck disable=SC2016,SC2079,SC2086,SC2128
 
+autoload -U is-at-least
+
+if ! is-at-least 4.3.11; then
+  print "ZSH-z requires ZSH v4.3.11 or higher." >&2 && exit
+fi
+
 ############################################################
 # The help message
 ############################################################
