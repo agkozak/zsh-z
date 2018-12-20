@@ -32,7 +32,7 @@ For tab completion to work, you will want to have loaded `compinit`. The framewo
 
     autoload -U compinit && compinit
 
-in your .zshrc just above where you source ZSH-z.
+in your .zshrc somewhere below where you source `zsh-z.plugin.zsh`.
 
 If you add
 
