@@ -25,7 +25,6 @@ FUNCTIONS
  _zshz_update_datafile
  _zshz_usage
 AUTOLOAD add-zsh-hook
-AUTOLOAD compinit
 AUTOLOAD is-at-least
 CHPWD-HOOK _zshz_chpwd
 PRECMD-HOOK _zshz_precmd
@@ -48,11 +47,10 @@ DETAILS
 Script Body
 ~~~~~~~~~~~
 
-Has 31 line(s). Calls functions:
+Has 27 line(s). Calls functions:
 
  Script-Body
  |-- add-zsh-hook
- |-- compinit
  `-- is-at-least
 
 Uses feature(s): _alias_, _autoload_, _zmodload_
@@ -132,7 +130,6 @@ Has 21 line(s). Doesn't call other functions.
 
 Called by:
 
- _zshz_usage
  zshz
 
 _zshz_output
@@ -164,7 +161,6 @@ Uses feature(s): _read_
 
 Called by:
 
- _zshz_usage
  zshz
 
 _zshz_precmd
@@ -205,7 +201,6 @@ Has 40 line(s). Doesn't call other functions.
 
 Called by:
 
- _zshz_usage
  zshz
 
 _zshz_usage
@@ -216,14 +211,7 @@ ____
  The help message
 ____
 
-Has 12 line(s). Calls functions:
-
- _zshz_usage
- |-- _zshz_legacy_complete
- |-- _zshz_output
- `-- _zshz_update_datafile
-
-Uses feature(s): _read_
+Has 12 line(s). Doesn't call other functions.
 
 Not called by script or any function (may be e.g. a hook, a Zle widget, etc.).
 
@@ -233,17 +221,6 @@ add-zsh-hook
 Has 93 line(s). Doesn't call other functions.
 
 Uses feature(s): _autoload_, _getopts_
-
-Called by:
-
- Script-Body
-
-compinit
-~~~~~~~~
-
-Has 549 line(s). Doesn't call other functions.
-
-Uses feature(s): _autoload_, _bindkey_, _eval_, _read_, _unfunction_, _zle_, _zstyle_
 
 Called by:
 
