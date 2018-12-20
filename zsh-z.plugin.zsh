@@ -584,15 +584,10 @@ add-zsh-hook precmd _zshz_precmd
 add-zsh-hook chpwd _zshz_chpwd
 
 ############################################################
-# COMPLETION
+# Completion
 ############################################################
 
 # Standarized $0 handling
 # (See https://github.com/zdharma/Zsh-100-Commits-Club/blob/master/Zsh-Plugin-Standard.adoc)
 0="${${ZERO:-${0:#$ZSH_ARGZERO}}:-${(%):-%N}}"
 fpath=( ${0:A:h} $fpath )
-
-if (( $+functions[compdef] )); then
-  # The third argument is to prevent COMPLETE_ALIASES from stopping completion 
-  compdef _zshz zshz ${ZSHZ_CMD:-${_Z_CMD:-z}}
-fi
