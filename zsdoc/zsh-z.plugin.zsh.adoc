@@ -26,6 +26,7 @@ FUNCTIONS
  _zshz_usage
 AUTOLOAD add-zsh-hook
 AUTOLOAD compinit
+AUTOLOAD is-at-least
 CHPWD-HOOK _zshz_chpwd
 PRECMD-HOOK _zshz_precmd
 
@@ -47,11 +48,12 @@ DETAILS
 Script Body
 ~~~~~~~~~~~
 
-Has 16 line(s). Calls functions:
+Has 31 line(s). Calls functions:
 
  Script-Body
  |-- add-zsh-hook
- `-- compinit
+ |-- compinit
+ `-- is-at-least
 
 Uses feature(s): _alias_, _autoload_, _zmodload_
 
@@ -66,7 +68,7 @@ ____
  $* The command line arguments
 ____
 
-Has 173 line(s). Calls functions:
+Has 189 line(s). Calls functions:
 
  zshz
  |-- _zshz_legacy_complete
@@ -126,7 +128,7 @@ ____
  $1 The string to be completed
 ____
 
-Has 16 line(s). Doesn't call other functions.
+Has 21 line(s). Doesn't call other functions.
 
 Called by:
 
@@ -199,7 +201,7 @@ ____
  $1 Path to be added to datafile
 ____
 
-Has 41 line(s). Doesn't call other functions.
+Has 40 line(s). Doesn't call other functions.
 
 Called by:
 
@@ -214,7 +216,7 @@ ____
  The help message
 ____
 
-Has 424 line(s). Calls functions:
+Has 12 line(s). Calls functions:
 
  _zshz_usage
  |-- _zshz_legacy_complete
@@ -242,6 +244,15 @@ compinit
 Has 549 line(s). Doesn't call other functions.
 
 Uses feature(s): _autoload_, _bindkey_, _eval_, _read_, _unfunction_, _zle_, _zstyle_
+
+Called by:
+
+ Script-Body
+
+is-at-least
+~~~~~~~~~~~
+
+Has 56 line(s). Doesn't call other functions.
 
 Called by:
 
