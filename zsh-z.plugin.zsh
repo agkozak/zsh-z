@@ -592,9 +592,7 @@ add-zsh-hook chpwd _zshz_chpwd
 0="${${ZERO:-${0:#$ZSH_ARGZERO}}:-${(%):-%N}}"
 fpath=( ${0:A:h} $fpath )
 
-# Load compinit only if it has not already been loaded
-# shellcheck disable=SC2154
-(( $+functions[compinit] )) || autoload -U compinit && compinit
-
-# The alias is include for people who setopt COMPLETE_ALIASES
-compdef _zshz zshz ${ZSHZ_CMD:-${_Z_CMD:-z}}
+if (( $+functions[compdef] )); then
+  # The third argument is to prevent COMPLETE_ALIASES from stopping completion 
+  compdef _zshz zshz ${ZSHZ_CMD:-${_Z_CMD:-z}}
+fi
