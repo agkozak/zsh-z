@@ -22,11 +22,17 @@ ZSH-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
 
 ## Installation
 
-### For users without a framework
+### General observations
 
 This script can be installed simply by downloading it and sourcing it from your `.zshrc`:
 
     source /path/to/zsh-z.plugin.zsh
+
+For tab completion to work, you will want to have loaded `compinit`. The frameworks handle this themselves. If you are not using a framework, put
+
+    autoload -U compinit && compinit
+
+in your .zshrc, preferably just above where you source ZSH-z.
 
 If you add
 
