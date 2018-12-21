@@ -66,7 +66,7 @@ ____
  $* The command line arguments
 ____
 
-Has 189 line(s). Calls functions:
+Has 188 line(s). Calls functions:
 
  zshz
  |-- _zshz_legacy_complete
@@ -74,7 +74,7 @@ Has 189 line(s). Calls functions:
  |   `-- _zshz_common
  `-- _zshz_update_datafile
 
-Uses feature(s): _read_
+Uses feature(s): _read_, _zparseopts_
 
 Called by:
 
