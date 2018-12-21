@@ -81,7 +81,7 @@ With no ARGUMENT, list the directory history in ascending rank.
   -l    List all matches without going to them
   -r    Match by rank
   -t    Match by recent access
-  -x    Remove the current directory from the database"
+  -x    Remove the current directory from the database" >&2
 }
 
 # If the datafile is a directory, print a warning
@@ -308,6 +308,20 @@ zshz() {
 
   (( ZSHZ_DEBUG )) && setopt WARN_CREATE_GLOBAL WARN_NESTED_VAR 2> /dev/null
 
+  local -A opts
+
+  zparseopts -E -D -A opts -- \
+    -add \
+    -complete \
+    c \
+    e \
+    h \
+    -help \
+    l \
+    r \
+    t \
+    x
+
   # Allow the user to specify the datafile name in $ZSHZ_DATA (default: ~/.z)
   local datafile=${ZSHZ_DATA:-${_Z_DATA:-${HOME}/.z}}
 
@@ -319,8 +333,7 @@ zshz() {
     && [[ ! -O $datafile ]] && return
 
   # Add entries to the datafile
-  if [[ $1 == "--add" ]]; then
-    shift
+  if (( $+opts[--add] )); then
 
     # $HOME isn't worth matching
     [[ $* == "$HOME" ]] && return
@@ -374,7 +387,7 @@ zshz() {
       fi
     fi
 
-  elif [[ ${ZSHZ_COMPLETION:-frecent} == 'legacy' ]] && [[ $1 == '--complete' ]] \
+  elif [[ ${ZSHZ_COMPLETION:-frecent} == 'legacy' ]] && (( $+opts[--complete] )) \
     && [[ -s $datafile ]]; then
 
     _zshz_legacy_complete "$2"
@@ -382,72 +395,56 @@ zshz() {
   else
     # Frecent completion, echo/list, help, and cd to match
     local current echo fnd frecent_completion last opt list typ
-    while [[ -n $1 ]]; do
-      case $1 in
-        # The new frecent completion method returns directories in the order of
-        # most frecent to least frecent
-        --complete) [[ ${ZSHZ_COMPLETION:-frecent} != 'legacy' ]] \
-          && frecent_completion=1 ;;
-        --)
-          while [[ -n $1 ]]; do
-            shift
-            fnd="$fnd${fnd:+ }$1"
-          done
+
+    for opt in ${(k)opts}; do
+      case $opt in
+        --complete)
+          if [[ ${ZSHZ_COMPLETION:-frecent} != 'legacy' ]]; then
+            frecent_completion=1
+          fi
           ;;
-        -*)
-          opt=${1:1}
-          while [[ -n $opt ]]; do
-            case ${opt:0:1} in
-              c)
-                fnd="$PWD $fnd"
-                current=1
-                ;;
-              e) echo=1 ;;
-              h|-help) _zshz_usage >&2; return ;;
-              l) list=1 ;;
-              r) typ='rank' ;;
-              t) typ='recent' ;;
-              x)
-                # TODO: Take $ZSHZ_OWNER into account?
+        -c) set -- "$PWD $*" ;;
+        -e) echo=1 ;;
+        -h|--help) _zshz_usage; return ;;
+        -l) list=1 ;;
+        -r) typ='rank' ;;
+        -t) typ='recent' ;;
+        -x)
+          # TODO: Take $ZSHZ_OWNER into account?
 
-                if (( ZSHZ_USE_ZSYSTEM_FLOCK )); then
-                  [[ -f $datafile ]] || touch $datafile
-                  local lockfd
-                  zsystem flock -f lockfd $datafile 2> /dev/null || return
-                fi
+          if (( ZSHZ_USE_ZSYSTEM_FLOCK )); then
+            [[ -f $datafile ]] || touch $datafile
+            local lockfd
+            zsystem flock -f lockfd $datafile 2> /dev/null || return
+          fi
 
-                local -a lines
-                lines=( "${(@f)"$(<$datafile)"}" )
-                # All of the lines that don't match the directory to be deleted
-                lines=( ${(M)lines:#^${PWD}\|*} )
+          local -a lines
+          lines=( "${(@f)"$(<$datafile)"}" )
+          # All of the lines that don't match the directory to be deleted
+          lines=( ${(M)lines:#^${PWD}\|*} )
 
-                if (( ZSHZ_USE_ZSYSTEM_FLOCK )); then
-                  # =() process substitution serves as the tempfile
-                  print -- "$(< =(print -l $lines))" >| $datafile || return
-                else
-                  local tempfile="${datafile}.${RANDOM}"
-                  print -l -- $lines > "$tempfile"
-                  command mv -f "$tempfile" "$datafile" \
-                    || command rm -f "$tempfile"
-                fi
+          if (( ZSHZ_USE_ZSYSTEM_FLOCK )); then
+            # =() process substitution serves as the tempfile
+            print -- "$(< =(print -l $lines))" >| $datafile || return
+          else
+            local tempfile="${datafile}.${RANDOM}"
+            print -l -- $lines > "$tempfile"
+            command mv -f "$tempfile" "$datafile" \
+              || command rm -f "$tempfile"
+          fi
 
-                # In order to make z -x work, we have to disable zsh-z's adding
-                # to the database until the user changes directory and the
-                # chpwd_functions are run
-                typeset -g ZSHZ_REMOVED=1
+          # In order to make z -x work, we have to disable zsh-z's adding
+          # to the database until the user changes directory and the
+          # chpwd_functions are run
+          typeset -g ZSHZ_REMOVED=1
 
-                # TODO: Something more intelligent that just returning 0
-                return 0
-                ;;
-            esac
-            opt=${opt:1}
-          done
+          # TODO: Something more intelligent that just returning 0
+          return 0
           ;;
-        *) fnd="$fnd${fnd:+ }$1" ;;
       esac
-      last=$1
-      (( $# )) && shift
     done
+    fnd="$*"
+
     [[ -n $fnd ]] && [[ $fnd != "$PWD " ]] || list=1
 
     # If we hit enter on a completion just go there
