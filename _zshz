@@ -34,12 +34,16 @@
 ############################################################
 # ZSH-z COMPLETIONS
 ############################################################
-if [[ ${ZSHZ_COMPLETION} == 'legacy' ]]; then
-  # shellcheck disable=SC2154
-  compadd -x 'Completing directory' -U "${(f)"$(zshz --complete "$PREFIX")"}"
+
+local completions
+
+completions="${(f)"$(zshz --complete "$PREFIX")"}"
+[[ $completions == '' ]] && return 1
+
+if [[ $ZSHZ_COMPLETION == 'legacy' ]]; then
+  compadd -x 'Completing directory' -U "${(f)completions}"
 else
-  # shellcheck disable=SC2154
-  compadd -x 'Completing directory' -U -V zsh-z "${(f)$(zshz --complete "$PREFIX")}"
+  compadd -x 'Completing directory' -U -V zsh-z "${(f)completions}"
 fi
 
 # shellcheck disable=SC2034,SC2154

@@ -128,7 +128,7 @@ _zshz_update_datafile() {
   rank[$add_path]=1
   time[$add_path]=$now
 
-  # Load the datafile into an aray and parse it
+  # Load the datafile into an array and parse it
   lines=( ${(f)"$(< $datafile)"} ) 2> /dev/null
 
   # Remove paths from database if they no longer exist
@@ -188,7 +188,7 @@ _zshz_legacy_complete() {
   [[ $1 == ${1:l} ]] && imatch=1
   1=${1// ##/*}
 
-  # Load the datafile into an aray and parse it
+  # Load the datafile into an array and parse it
   lines=( ${(f)"$(< $datafile)"} ) 2> /dev/null
 
   for line in $lines; do
@@ -393,7 +393,7 @@ zshz() {
   elif [[ ${ZSHZ_COMPLETION:-frecent} == 'legacy' ]] && (( $+opts[--complete] )) \
     && [[ -s $datafile ]]; then
 
-    _zshz_legacy_complete "$2"
+    _zshz_legacy_complete "$1"
 
   else
     # Frecent completion, echo/list, help, and cd to match
@@ -469,7 +469,7 @@ zshz() {
     local -A matches imatches
     local best_match ibest_match hi_rank=-9999999999 ihi_rank=-9999999999
 
-    # Load the datafile into an aray and parse it
+    # Load the datafile into an array and parse it
     lines=( ${(f)"$(< $datafile)"} )
 
     # Remove paths from database if they no longer exist
