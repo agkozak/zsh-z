@@ -96,9 +96,12 @@ With no ARGUMENT, list the directory history in ascending rank.
 # Load zsh/system, if necessary
 whence -w zsystem &> /dev/null || zmodload zsh/system &> /dev/null
 
+# Global associative array for internal use
+typeset -gA ZSHZ
+
 # Determine whether zsystem flock is available
 if zsystem supports flock &> /dev/null; then
-  typeset -g ZSHZ_USE_ZSYSTEM_FLOCK=1
+  ZSHZ[use_flock]=1
 fi
 
 ############################################################
@@ -352,7 +355,7 @@ zshz() {
     done
 
     # See https://github.com/rupa/z/pull/199/commits/ed6eeed9b70d27c1582e3dd050e72ebfe246341c
-    if (( ZSHZ_USE_ZSYSTEM_FLOCK )); then
+    if (( ZSHZ[use_flock] )); then
 
       # Make sure that the datafile exists for locking
       [[ -f $datafile ]] || touch "$datafile"
@@ -417,7 +420,7 @@ zshz() {
         -x)
           # TODO: Take $ZSHZ_OWNER into account?
 
-          if (( ZSHZ_USE_ZSYSTEM_FLOCK )); then
+          if (( ZSHZ[use_flock] )); then
             [[ -f $datafile ]] || touch $datafile
             local lockfd
             zsystem flock -f lockfd $datafile 2> /dev/null || return
@@ -434,7 +437,7 @@ zshz() {
             return 1
           fi
 
-          if (( ZSHZ_USE_ZSYSTEM_FLOCK )); then
+          if (( ZSHZ[use_flock] )); then
             # =() process substitution serves as the tempfile
             print -- "$(< =(print -l $lines))" >| $datafile || return
           else
@@ -447,7 +450,7 @@ zshz() {
           # In order to make z -x work, we have to disable zsh-z's adding
           # to the database until the user changes directory and the
           # chpwd_functions are run
-          typeset -g ZSHZ_REMOVED=1
+          ZSHZ[directory_removed]=1
 
           # TODO: Something more intelligent that just returning 0
           return 0
@@ -566,15 +569,15 @@ alias ${ZSHZ_CMD:-${_Z_CMD:-z}}='zshz 2>&1'
 
 if [[ -n ${ZSHZ_NO_RESOLVE_SYMLINKS:-${_Z_NO_RESOLVE_SYMLINKS}} ]]; then
   _zshz_precmd() {
-    (( ! ZSHZ_REMOVED )) && (zshz --add "${PWD:a}" &)
+    (( ! ZSHZ[directory_removed] )) && (zshz --add "${PWD:a}" &)
     # See https://github.com/rupa/z/pull/247/commits/081406117ea42ccb8d159f7630cfc7658db054b6
     : $RANDOM
   }
 else
-  # Add the $PWD to the datafile, unless $ZSHZ_REMOVED shows it to have been
+  # Add the $PWD to the datafile, unless $ZSHZ[directory removed] shows it to have been
   # recently removed with z -x
   _zshz_precmd() {
-    (( ! ZSHZ_REMOVED )) && (zshz --add "${PWD:A}" &)
+    (( ! ZSHZ[directory_removed] )) && (zshz --add "${PWD:A}" &)
     : $RANDOM
   }
 fi
@@ -585,7 +588,7 @@ fi
 # left the directory.
 ############################################################
 _zshz_chpwd() {
-  typeset -g ZSHZ_REMOVED=0
+  ZSHZ[directory_removed]=0
 }
 
 autoload -U add-zsh-hook
