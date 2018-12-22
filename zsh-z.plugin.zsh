@@ -122,11 +122,13 @@ _zshz_update_datafile() {
   local datafile=${ZSHZ_DATA:-${_Z_DATA:-${HOME}/.z}}
   local path_field rank_field time_field count x
 
+  [[ -f $datafile ]] || return
+
   rank[$add_path]=1
   time[$add_path]=$now
 
   # Load the datafile into an aray and parse it
-  lines=( ${(f)"$(< $datafile)"} ) 2> /dev/null
+  lines=( ${(f)"$(< $datafile)"} )
 
   # Remove paths from database if they no longer exist
   for line in $lines; do
@@ -185,8 +187,10 @@ _zshz_legacy_complete() {
   [[ $1 == ${1:l} ]] && imatch=1
   1=${1// ##/*}
 
+  [[ -f $datafile ]] | return
+
   # Load the datafile into an aray and parse it
-  lines=( ${(f)"$(< $datafile)"} ) 2> /dev/null
+  lines=( ${(f)"$(< $datafile)"} )
 
   for line in $lines; do
     path_field=${line%%\|*}
