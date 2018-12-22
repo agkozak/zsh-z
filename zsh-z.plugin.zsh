@@ -426,10 +426,15 @@ zshz() {
             zsystem flock -f lockfd $datafile 2> /dev/null || return
           fi
 
-          local -a lines
+          local -a lines lines_to_keep
           lines=( "${(@f)"$(<$datafile)"}" )
           # All of the lines that don't match the directory to be deleted
-          lines=( ${(M)lines:#^${PWD}\|*} )
+          lines_to_keep=( ${(M)lines:#^${PWD}\|*} )
+          if [[ $lines != "$lines_to_keep" ]]; then
+            lines=( $lines_to_keep )
+          else
+            return 1  # The $PWD isn't in the datafile
+          fi
 
           if (( ZSHZ[use_flock] )); then
             # =() process substitution serves as the tempfile
@@ -446,8 +451,7 @@ zshz() {
           # chpwd_functions are run
           ZSHZ[directory_removed]=1
 
-          # TODO: Something more intelligent that just returning 0
-          return 0
+          return
           ;;
       esac
     done
@@ -528,6 +532,9 @@ zshz() {
         ihi_rank=${imatches[$path_field]}
       fi
     done
+
+    # Return 1 when there are no matches
+    [[ -z $best_match ]] && [[ -z $ibest_match ]] && return 1
 
     if [[ -n $best_match ]]; then
       _zshz_output matches best_match $list
