@@ -426,16 +426,10 @@ zshz() {
             zsystem flock -f lockfd $datafile 2> /dev/null || return
           fi
 
-          local -a lines pruned_lines
+          local -a lines
           lines=( "${(@f)"$(<$datafile)"}" )
           # All of the lines that don't match the directory to be deleted
-          pruned_lines=( ${(M)lines:#^${PWD}\|*} )
-          # If there's a difference, update the array of lines; otherwise, bail
-          if [[ $lines != "$pruned_lines" ]]; then
-            lines=( $pruned_lines )
-          else
-            return 1
-          fi
+          lines=( ${(M)lines:#^${PWD}\|*} )
 
           if (( ZSHZ[use_flock] )); then
             # =() process substitution serves as the tempfile
@@ -554,8 +548,7 @@ zshz() {
         builtin cd "$cd"
       fi
     else
-      # When there is no result
-      return 1
+      return $ret2
     fi
   fi
 }
