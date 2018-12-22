@@ -122,6 +122,7 @@ _zshz_update_datafile() {
   local datafile=${ZSHZ_DATA:-${_Z_DATA:-${HOME}/.z}}
   local path_field rank_field time_field count x
 
+  # https://github.com/rupa/z/pull/256
   [[ -f $datafile ]] || return
 
   rank[$add_path]=1
@@ -458,6 +459,7 @@ zshz() {
     esac
 
     # If there is no datafile yet
+    # https://github.com/rupa/z/pull/256
     [[ -f $datafile ]] || return
 
     local -a lines existing_paths
