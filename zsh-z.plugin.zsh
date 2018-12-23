@@ -57,8 +57,6 @@
 #     ZSHZ_OWNER -> your username (if you want use ZSH-z while using sudo -s) }}}
 #
 # vim: fdm=indent:ts=2:et:sts=2:sw=2:
-# shellcheck shell=ksh
-# shellcheck disable=SC2016,SC2079,SC2086,SC2128
 
 autoload -U is-at-least
 
@@ -100,9 +98,7 @@ whence -w zsystem &> /dev/null || zmodload zsh/system &> /dev/null
 typeset -gA ZSHZ
 
 # Determine whether zsystem flock is available
-if zsystem supports flock &> /dev/null; then
-  ZSHZ[use_flock]=1
-fi
+zsystem supports flock &> /dev/null && ZSHZ[use_flock]=1
 
 ############################################################
 # Read the curent datafile contents, update them, "age" them
@@ -117,7 +113,6 @@ _zshz_update_datafile() {
 
   # Characters special to the shell (such as '[]') are quoted with backslashes
   # See https://github.com/rupa/z/issues/246
-  # shellcheck disable=SC2154
   local add_path=${(q)1}
 
   local -a lines existing_paths
@@ -128,7 +123,7 @@ _zshz_update_datafile() {
   rank[$add_path]=1
   time[$add_path]=$now
 
-  # Load the datafile into an array and parse it
+  # Load the datafile into an array
   lines=( ${(f)"$(< $datafile)"} ) 2> /dev/null
 
   # Remove paths from database if they no longer exist
@@ -156,8 +151,6 @@ _zshz_update_datafile() {
   done
   if (( count > 9000 )); then
     # Aging
-    #
-    # shellcheck disable=SC2154
     for x in ${(k)rank}; do
       print -- "$x|$(( 0.99 * rank[$x] ))|${time[$x]}"
     done
@@ -184,7 +177,6 @@ _zshz_legacy_complete() {
   local datafile=${ZSHZ_DATA:-${_Z_DATA:-${HOME}/.z}}
   local -a lines
 
-  # shellcheck disable=SC2053
   [[ $1 == ${1:l} ]] && imatch=1
   1=${1// ##/*}
 
@@ -194,7 +186,6 @@ _zshz_legacy_complete() {
   for line in $lines; do
     path_field=${line%%\|*}
     if (( imatch )); then
-      # shellcheck disable=SC2086,SC2154
       if [[ ${path_field:l} == *${~1}* ]]; then
         print -- $path_field
       fi
@@ -217,7 +208,6 @@ _zshz_common() {
 
   common_matches=( ${(Pkv)1} )
 
-  # shellcheck disable=SC2154
   for x in ${(k)common_matches}; do
     if (( ${common_matches[$x]} )); then
       if [[ -z $short ]] || (( ${#x} < ${#short} )); then
@@ -251,7 +241,6 @@ _zshz_common() {
 #     list (0 or 1)
 ############################################################
 _zshz_output() {
-  # shellcheck disable=SC2034
   local match_array=$1 match=$2 list=${3:-0}
   local common stack k x
   local -A output_matches
@@ -263,7 +252,6 @@ _zshz_output() {
   read -rz common
 
   if (( frecent_completion )); then
-    # shellcheck disable=SC2154
     for k in ${(@k)output_matches}; do
       print -z -f "%.2f|%s" ${output_matches[$k]} $k
       read -rz stack
@@ -272,7 +260,6 @@ _zshz_output() {
     descending_list=( ${${(@On)descending_list}#*\|} )
     print -l $descending_list
   elif (( list )); then
-    # shellcheck disable=SC2154
     for x in ${(k)output_matches}; do
       if (( ${output_matches[$x]} )); then
         print -z -f "%-10.2f %s\n" ${output_matches[$x]} $x
@@ -284,7 +271,6 @@ _zshz_output() {
       (( ${#output} > 1 )) && printf "%-10s %s\n" 'common:' $common
     fi
     # Sort results and remove trailing ".00"
-    # shellcheck disable=SC2154
     for x in ${(@on)output};do
       print "${${x%${x##[[:digit:]]##\.[[:digit:]]##[[:blank:]]}}/\.00/   }${x##[[:digit:]]##\.[[:digit:]]##[[:blank:]]}"
     done
@@ -292,7 +278,6 @@ _zshz_output() {
     if [[ -n $common ]]; then
       print -z -- $common
     else
-      # shellcheck disable=SC2154
       print -z -- ${(P)match}
     fi
   fi
@@ -500,7 +485,6 @@ zshz() {
       esac
 
       # Pattern matching is different when the -c option is on
-      # shellcheck disable=SC2034
       local q=${fnd// ##/*}
       if (( current )); then
         q="$q*"
@@ -508,7 +492,6 @@ zshz() {
         q="*$q*"
       fi
 
-      # shellcheck disable=SC2154
       if [[ $path_field == ${~q} ]]; then
         matches[$path_field]=$rank
       elif [[ ${path_field:l} == ${~q:l} ]]; then
@@ -544,7 +527,6 @@ zshz() {
       if (( echo )); then
         print -- "$cd"
       else
-        # shellcheck disable=SC2164
         builtin cd "$cd"
       fi
     else
@@ -553,7 +535,6 @@ zshz() {
   fi
 }
 
-# shellcheck disable=SC2086,SC2139
 alias ${ZSHZ_CMD:-${_Z_CMD:-z}}='zshz 2>&1'
 
 ############################################################
