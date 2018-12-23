@@ -166,8 +166,9 @@ _zshz_update_datafile() {
 #
 # String processing is smartcase -- case-insensitive if the
 # search string is lowercase, case-sensitive if there are
-# any uppercase letters. Read the contents of the datafile
-# and print matches to STDOUT.
+# any uppercase letters. Spaces in the search string are
+# treated as *'s in globbing. Read the contents of the
+# datafile and print matches to STDOUT.
 #
 # Arguments:
 #   $1 The string to be completed
@@ -175,29 +176,30 @@ _zshz_update_datafile() {
 _zshz_legacy_complete() {
   setopt LOCAL_OPTIONS EXTENDED_GLOB
 
-  local case_insensitive line path_field
+  local line path_field
   local datafile=${ZSHZ_DATA:-${_Z_DATA:-${HOME}/.z}}
   local -a lines
 
-  # If the search string is all lowercase, the search will be case-insensitive
-  [[ $1 == ${1:l} ]] && case_insensitive=1
-
-  # Replace any number of spaces with asterisks for globbing
+  # Replace spaces in the search string with asterisks for globbing
   1=${1// ##/*}
 
-  # Load the datafile into an array and parse it
   lines=( ${(f)"$(< $datafile)"} ) 2> /dev/null
 
   for line in $lines; do
+
     path_field=${line%%\|*}
-    if (( case_insensitive )); then
-      if [[ ${path_field:l} == *${~1}* ]]; then
+
+    # If the search string is all lowercase, the search will be case-insensitive
+    if [[ $1 == "${1:l}" ]] && [[ ${path_field:l} == *${~1}* ]]; then
         print -- $path_field
-      fi
+    # Otherwise, case-sensitive
     elif [[ $path_field == *${~1}* ]]; then
       print -- $path_field
     fi
+
   done
+  # TODO: Search strings with spaces in them are currently treated case-
+  # insensitively.
 }
 
 ############################################################
