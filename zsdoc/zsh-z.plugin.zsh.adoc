@@ -47,7 +47,7 @@ DETAILS
 Script Body
 ~~~~~~~~~~~
 
-Has 27 line(s). Calls functions:
+Has 28 line(s). Calls functions:
 
  Script-Body
  |-- add-zsh-hook
@@ -66,7 +66,7 @@ ____
  $* The command line arguments
 ____
 
-Has 188 line(s). Calls functions:
+Has 195 line(s). Calls functions:
 
  zshz
  |-- _zshz_legacy_complete
@@ -126,7 +126,7 @@ ____
  $1 The string to be completed
 ____
 
-Has 23 line(s). Doesn't call other functions.
+Has 21 line(s). Doesn't call other functions.
 
 Called by:
 
@@ -168,7 +168,7 @@ _zshz_precmd
 
 ____
  
- Add the $PWD to the datafile, unless $ZSHZ_REMOVED shows it to have been
+ Add the $PWD to the datafile, unless $ZSHZ[directory removed] shows it to have been
  recently removed with z -x
    
 ____
@@ -197,7 +197,7 @@ ____
  $1 Path to be added to datafile
 ____
 
-Has 41 line(s). Doesn't call other functions.
+Has 40 line(s). Doesn't call other functions.
 
 Called by:
 
