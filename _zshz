@@ -37,8 +37,8 @@
 
 local completions
 
-completions="${(f)"$(zshz --complete "$PREFIX")"}"
-[[ $completions == '' ]] && return 1
+completions=$(zshz --complete "$PREFIX")
+[[ -z $completions ]] && return 1
 
 if [[ $ZSHZ_COMPLETION == 'legacy' ]]; then
   compadd -x 'Completing directory' -U "${(f)completions}"
