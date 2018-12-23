@@ -180,7 +180,7 @@ _zshz_update_datafile() {
 _zshz_legacy_complete() {
   setopt LOCAL_OPTIONS EXTENDED_GLOB
 
-  local imatch line path_field rank_field time_field
+  local imatch line path_field
   local datafile=${ZSHZ_DATA:-${_Z_DATA:-${HOME}/.z}}
   local -a lines
 
@@ -193,8 +193,6 @@ _zshz_legacy_complete() {
 
   for line in $lines; do
     path_field=${line%%\|*}
-    rank_field=${${line%\|*}#*\|}
-    time_field=${line##*\|}
     if (( imatch )); then
       # shellcheck disable=SC2086,SC2154
       if [[ ${path_field:l} == *${~1}* ]]; then
