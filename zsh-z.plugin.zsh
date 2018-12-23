@@ -164,8 +164,10 @@ _zshz_update_datafile() {
 ############################################################
 # The original tab completion method
 #
-# Process a string for tab completion. Read the contents of
-# the datafile and print matches to STDOUT.
+# String processing is smartcase -- case-insensitive if the
+# search string is lowercase, case-sensitive if there are
+# any uppercase letters. Read the contents of the datafile
+# and print matches to STDOUT.
 #
 # Arguments:
 #   $1 The string to be completed
@@ -173,11 +175,14 @@ _zshz_update_datafile() {
 _zshz_legacy_complete() {
   setopt LOCAL_OPTIONS EXTENDED_GLOB
 
-  local imatch line path_field
+  local case_insensitive line path_field
   local datafile=${ZSHZ_DATA:-${_Z_DATA:-${HOME}/.z}}
   local -a lines
 
-  [[ $1 == ${1:l} ]] && imatch=1
+  # If the search string is all lowercase, the search will be case-insensitive
+  [[ $1 == ${1:l} ]] && case_insensitive=1
+
+  # Replace any number of spaces with asterisks for globbing
   1=${1// ##/*}
 
   # Load the datafile into an array and parse it
@@ -185,7 +190,7 @@ _zshz_legacy_complete() {
 
   for line in $lines; do
     path_field=${line%%\|*}
-    if (( imatch )); then
+    if (( case_insensitive )); then
       if [[ ${path_field:l} == *${~1}* ]]; then
         print -- $path_field
       fi
