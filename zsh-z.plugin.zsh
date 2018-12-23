@@ -390,166 +390,162 @@ zshz() {
   [[ -z ${ZSHZ_OWNER:-${_Z_OWNER}} ]] && [[ -f $datafile ]] \
     && [[ ! -O $datafile ]] && return
 
-  # Add entries to the datafile
-  if (( $+opts[--add] )); then
+  local opt fnd last
 
-    _zshz_add_path "$*"
-
-  else
-
-    local opt fnd last
-
-    for opt in ${(k)opts}; do
-      case $opt in
-        --complete)
-          if [[ -s $datafile ]] \
-            && [[ ${ZSHZ_COMPLETION:-frecent} == 'legacy' ]]; then
-            _zshz_legacy_complete "$1"
-            return
-          fi
-          ;;
-        -c) set -- "$PWD $*" ;;
-        -h|--help)
-          _zshz_usage
+  for opt in ${(k)opts}; do
+    case $opt in
+      --add)
+        _zshz_add_path "$*"
+        return
+        ;;
+      --complete)
+        if [[ -s $datafile ]] \
+          && [[ ${ZSHZ_COMPLETION:-frecent} == 'legacy' ]]; then
+          _zshz_legacy_complete "$1"
           return
-          ;;
-        -x)
-          # TODO: Take $ZSHZ_OWNER into account?
-
-          if (( ZSHZ[use_flock] )); then
-            [[ -f $datafile ]] || touch $datafile
-            local lockfd
-            zsystem flock -f lockfd $datafile 2> /dev/null || return
-          fi
-
-          local -a lines lines_to_keep
-          lines=( "${(@f)"$(<$datafile)"}" )
-          # All of the lines that don't match the directory to be deleted
-          lines_to_keep=( ${(M)lines:#^${PWD}\|*} )
-          if [[ $lines != "$lines_to_keep" ]]; then
-            lines=( $lines_to_keep )
-          else
-            return 1  # The $PWD isn't in the datafile
-          fi
-
-          if (( ZSHZ[use_flock] )); then
-            # =() process substitution serves as the tempfile
-            print -- "$(< =(print -l $lines))" >| $datafile || return
-          else
-            local tempfile="${datafile}.${RANDOM}"
-            print -l -- $lines > "$tempfile"
-            command mv -f "$tempfile" "$datafile" \
-              || command rm -f "$tempfile"
-          fi
-
-          # In order to make z -x work, we have to disable zsh-z's adding
-          # to the database until the user changes directory and the
-          # chpwd_functions are run
-          ZSHZ[directory_removed]=1
-
-          return
-          ;;
-      esac
-    done
-    fnd="$*"
-
-    [[ -n $fnd ]] && [[ $fnd != "$PWD " ]] || opts[-l]=   # list
-
-    # If we hit enter on a completion just go there
-    case $last in
-      # Completions will always start with /
-      /*) (( ! $+opts[-l] )) && [[ -d $last ]] && builtin cd "$last" && return ;;
-    esac
-
-    # If there is no datafile yet
-    # https://github.com/rupa/z/pull/256
-    [[ -f $datafile ]] || return
-
-    local -a lines existing_paths
-    local line path_field rank_field time_field rank dx
-    local -A matches imatches
-    local best_match ibest_match hi_rank=-9999999999 ihi_rank=-9999999999
-
-    # Load the datafile into an array and parse it
-    lines=( ${(f)"$(< $datafile)"} )
-
-    # Remove paths from database if they no longer exist
-    for line in $lines; do
-      [[ -d ${line%%\|*} ]] && existing_paths+=( $line )
-    done
-    lines=( $existing_paths )
-
-    for line in $lines; do
-      path_field=${line%%\|*}
-      rank_field=${${line%\|*}#*\|}
-      time_field=${line##*\|}
-
-      if (( $+opts[-r] )); then                 # Rank
-        rank=$rank_field
-      elif (( $+opts[-t] )); then                  # Recent
-        (( rank = time_field - EPOCHSECONDS ))
-      else
-        # Frecency routine
-        (( dx = EPOCHSECONDS - time_field ))
-        if (( dx < 3600 )); then
-          (( rank = rank_field * 4 ))
-        elif (( dx < 86400 )); then
-          (( rank = rank_field * 2 ))
-        elif (( dx < 604800 )); then
-          (( rank = rank_field / 2. ))
-        else
-          (( rank = rank_field / 4. ))
         fi
-      fi
+        ;;
+      -c) set -- "$PWD $*" ;;
+      -h|--help)
+        _zshz_usage
+        return
+        ;;
+      -x)
+        # TODO: Take $ZSHZ_OWNER into account?
 
-      # Pattern matching is different when the -c option is on
-      local q=${fnd// ##/*}
-      if (( current )); then
-        q="$q*"
-      else
-        q="*$q*"
-      fi
+        if (( ZSHZ[use_flock] )); then
+          [[ -f $datafile ]] || touch $datafile
+          local lockfd
+          zsystem flock -f lockfd $datafile 2> /dev/null || return
+        fi
 
-      if [[ $path_field == ${~q} ]]; then
-        matches[$path_field]=$rank
-      elif [[ ${path_field:l} == ${~q:l} ]]; then
-        imatches[$path_field]=$rank
-      fi
+        local -a lines lines_to_keep
+        lines=( "${(@f)"$(<$datafile)"}" )
+        # All of the lines that don't match the directory to be deleted
+        lines_to_keep=( ${(M)lines:#^${PWD}\|*} )
+        if [[ $lines != "$lines_to_keep" ]]; then
+          lines=( $lines_to_keep )
+        else
+          return 1  # The $PWD isn't in the datafile
+        fi
 
-      if (( matches[$path_field] )) \
-        && (( matches[$path_field] > hi_rank )); then
-        best_match=$path_field
-        hi_rank=${matches[$path_field]}
-      elif (( imatches[$path_field] )) \
-        && (( imatches[$path_field] > ihi_rank )); then
-        ibest_match=$path_field
-        ihi_rank=${imatches[$path_field]}
-      fi
-    done
+        if (( ZSHZ[use_flock] )); then
+          # =() process substitution serves as the tempfile
+          print -- "$(< =(print -l $lines))" >| $datafile || return
+        else
+          local tempfile="${datafile}.${RANDOM}"
+          print -l -- $lines > "$tempfile"
+          command mv -f "$tempfile" "$datafile" \
+            || command rm -f "$tempfile"
+        fi
 
-    # Return 1 when there are no matches
-    [[ -z $best_match ]] && [[ -z $ibest_match ]] && return 1
+        # In order to make z -x work, we have to disable zsh-z's adding
+        # to the database until the user changes directory and the
+        # chpwd_functions are run
+        ZSHZ[directory_removed]=1
 
-    if [[ -n $best_match ]]; then
-      _zshz_output matches best_match $+opts[-l]
-    elif [[ -n $ibest_match ]]; then
-      _zshz_output imatches ibest_match $+opts[-l]
-    fi
+        return
+        ;;
+    esac
+  done
+  fnd="$*"
 
-    local ret2=$?
+  [[ -n $fnd ]] && [[ $fnd != "$PWD " ]] || opts[-l]=   # list
 
-    local cd
-    read -rz cd
+  # If we hit enter on a completion just go there
+  case $last in
+    # Completions will always start with /
+    /*) (( ! $+opts[-l] )) && [[ -d $last ]] && builtin cd "$last" && return ;;
+  esac
 
-    if (( ret2 == 0 )) && [[ -n $cd ]]; then
-      if (( $+opts[-e] )); then               # echo
-        print -- "$cd"
-      else
-        builtin cd "$cd"
-      fi
+  # If there is no datafile yet
+  # https://github.com/rupa/z/pull/256
+  [[ -f $datafile ]] || return
+
+  local -a lines existing_paths
+  local line path_field rank_field time_field rank dx
+  local -A matches imatches
+  local best_match ibest_match hi_rank=-9999999999 ihi_rank=-9999999999
+
+  # Load the datafile into an array and parse it
+  lines=( ${(f)"$(< $datafile)"} )
+
+  # Remove paths from database if they no longer exist
+  for line in $lines; do
+    [[ -d ${line%%\|*} ]] && existing_paths+=( $line )
+  done
+  lines=( $existing_paths )
+
+  for line in $lines; do
+    path_field=${line%%\|*}
+    rank_field=${${line%\|*}#*\|}
+    time_field=${line##*\|}
+
+    if (( $+opts[-r] )); then                 # Rank
+      rank=$rank_field
+    elif (( $+opts[-t] )); then                  # Recent
+      (( rank = time_field - EPOCHSECONDS ))
     else
-      return $ret2
+      # Frecency routine
+      (( dx = EPOCHSECONDS - time_field ))
+      if (( dx < 3600 )); then
+        (( rank = rank_field * 4 ))
+      elif (( dx < 86400 )); then
+        (( rank = rank_field * 2 ))
+      elif (( dx < 604800 )); then
+        (( rank = rank_field / 2. ))
+      else
+        (( rank = rank_field / 4. ))
+      fi
     fi
+
+    # Pattern matching is different when the -c option is on
+    local q=${fnd// ##/*}
+    if (( current )); then
+      q="$q*"
+    else
+      q="*$q*"
+    fi
+
+    if [[ $path_field == ${~q} ]]; then
+      matches[$path_field]=$rank
+    elif [[ ${path_field:l} == ${~q:l} ]]; then
+      imatches[$path_field]=$rank
+    fi
+
+    if (( matches[$path_field] )) \
+      && (( matches[$path_field] > hi_rank )); then
+      best_match=$path_field
+      hi_rank=${matches[$path_field]}
+    elif (( imatches[$path_field] )) \
+      && (( imatches[$path_field] > ihi_rank )); then
+      ibest_match=$path_field
+      ihi_rank=${imatches[$path_field]}
+    fi
+  done
+
+  # Return 1 when there are no matches
+  [[ -z $best_match ]] && [[ -z $ibest_match ]] && return 1
+
+  if [[ -n $best_match ]]; then
+    _zshz_output matches best_match $+opts[-l]
+  elif [[ -n $ibest_match ]]; then
+    _zshz_output imatches ibest_match $+opts[-l]
+  fi
+
+  local ret2=$?
+
+  local cd
+  read -rz cd
+
+  if (( ret2 == 0 )) && [[ -n $cd ]]; then
+    if (( $+opts[-e] )); then               # echo
+      print -- "$cd"
+    else
+      builtin cd "$cd"
+    fi
+  else
+    return $ret2
   fi
 }
 
