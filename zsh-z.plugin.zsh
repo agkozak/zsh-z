@@ -258,7 +258,7 @@ _zshz_output() {
   _zshz_common $match_array
   read -rz common
 
-  if (( frecent_completion )); then
+  if (( $+opts[--complete] )); then
     for k in ${(@k)output_matches}; do
       print -z -f "%.2f|%s" ${output_matches[$k]} $k
       read -rz stack
@@ -266,7 +266,7 @@ _zshz_output() {
     done
     descending_list=( ${${(@On)descending_list}#*\|} )
     print -l $descending_list
-  elif (( list )); then
+  elif (( $+opts[-l] )); then         # list
     for x in ${(k)output_matches}; do
       if (( ${output_matches[$x]} )); then
         print -z -f "%-10.2f %s\n" ${output_matches[$x]} $x
@@ -380,28 +380,24 @@ zshz() {
       fi
     fi
 
-  elif [[ ${ZSHZ_COMPLETION:-frecent} == 'legacy' ]] && (( $+opts[--complete] )) \
-    && [[ -s $datafile ]]; then
-
-    _zshz_legacy_complete "$1"
-
   else
-    # Frecent completion, echo/list, help, and cd to match
-    local current echo fnd frecent_completion last opt list typ
+
+    local opt fnd last
 
     for opt in ${(k)opts}; do
       case $opt in
         --complete)
-          if [[ ${ZSHZ_COMPLETION:-frecent} != 'legacy' ]]; then
-            frecent_completion=1
+          if [[ -s $datafile ]] \
+            && [[ ${ZSHZ_COMPLETION:-frecent} == 'legacy' ]]; then
+            _zshz_legacy_complete "$1"
+            return
           fi
           ;;
         -c) set -- "$PWD $*" ;;
-        -e) echo=1 ;;
-        -h|--help) _zshz_usage; return ;;
-        -l) list=1 ;;
-        -r) typ='rank' ;;
-        -t) typ='recent' ;;
+        -h|--help)
+          _zshz_usage
+          return
+          ;;
         -x)
           # TODO: Take $ZSHZ_OWNER into account?
 
@@ -442,12 +438,12 @@ zshz() {
     done
     fnd="$*"
 
-    [[ -n $fnd ]] && [[ $fnd != "$PWD " ]] || list=1
+    [[ -n $fnd ]] && [[ $fnd != "$PWD " ]] || opts[-l]=   # list
 
     # If we hit enter on a completion just go there
     case $last in
       # Completions will always start with /
-      /*) (( ! list )) && [[ -d $last ]] && builtin cd "$last" && return ;;
+      /*) (( ! $+opts[-l] )) && [[ -d $last ]] && builtin cd "$last" && return ;;
     esac
 
     # If there is no datafile yet
@@ -473,23 +469,23 @@ zshz() {
       rank_field=${${line%\|*}#*\|}
       time_field=${line##*\|}
 
-      case $typ in
-        rank) rank=$rank_field ;;
-        recent) (( rank = time_field - EPOCHSECONDS )) ;;
+      if (( $+opts[-r] )); then                 # Rank
+        rank=$rank_field
+      elif (( $+opts[-t] )); then                  # Recent
+        (( rank = time_field - EPOCHSECONDS ))
+      else
         # Frecency routine
-        *)
-          (( dx = EPOCHSECONDS - time_field ))
-          if (( dx < 3600 )); then
-            (( rank = rank_field * 4 ))
-          elif (( dx < 86400 )); then
-            (( rank = rank_field * 2 ))
-          elif (( dx < 604800 )); then
-            (( rank = rank_field / 2. ))
-          else
-            (( rank = rank_field / 4. ))
-          fi
-          ;;
-      esac
+        (( dx = EPOCHSECONDS - time_field ))
+        if (( dx < 3600 )); then
+          (( rank = rank_field * 4 ))
+        elif (( dx < 86400 )); then
+          (( rank = rank_field * 2 ))
+        elif (( dx < 604800 )); then
+          (( rank = rank_field / 2. ))
+        else
+          (( rank = rank_field / 4. ))
+        fi
+      fi
 
       # Pattern matching is different when the -c option is on
       local q=${fnd// ##/*}
@@ -520,9 +516,9 @@ zshz() {
     [[ -z $best_match ]] && [[ -z $ibest_match ]] && return 1
 
     if [[ -n $best_match ]]; then
-      _zshz_output matches best_match $list
+      _zshz_output matches best_match $+opts[-l]
     elif [[ -n $ibest_match ]]; then
-      _zshz_output imatches ibest_match $list
+      _zshz_output imatches ibest_match $+opts[-l]
     fi
 
     local ret2=$?
@@ -531,7 +527,7 @@ zshz() {
     read -rz cd
 
     if (( ret2 == 0 )) && [[ -n $cd ]]; then
-      if (( echo )); then
+      if (( $+opts[-e] )); then               # echo
         print -- "$cd"
       else
         builtin cd "$cd"
