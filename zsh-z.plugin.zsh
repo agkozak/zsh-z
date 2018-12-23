@@ -268,6 +268,50 @@ _zshz_legacy_complete() {
 }
 
 ############################################################
+# Remove path from datafile
+#
+# Arguments:
+#   $1 Path to be removed
+############################################################
+_zshz_remove_path() {
+
+  local datafile=${ZSHZ_DATA:-${_Z_DATA:-${HOME}/.z}}
+
+  # TODO: Take $ZSHZ_OWNER into account?
+
+  if (( ZSHZ[use_flock] )); then
+    [[ -f $datafile ]] || touch $datafile
+    local lockfd
+    zsystem flock -f lockfd $datafile 2> /dev/null || return
+  fi
+
+  local -a lines lines_to_keep
+  lines=( "${(@f)"$(<$datafile)"}" )
+  # All of the lines that don't match the directory to be deleted
+  lines_to_keep=( ${(M)lines:#^${PWD}\|*} )
+  if [[ $lines != "$lines_to_keep" ]]; then
+    lines=( $lines_to_keep )
+  else
+    return 1  # The $PWD isn't in the datafile
+  fi
+
+  if (( ZSHZ[use_flock] )); then
+    # =() process substitution serves as the tempfile
+    print -- "$(< =(print -l $lines))" >| $datafile || return
+  else
+    local tempfile="${datafile}.${RANDOM}"
+    print -l -- $lines > "$tempfile"
+    command mv -f "$tempfile" "$datafile" \
+      || command rm -f "$tempfile"
+  fi
+
+  # In order to make z -x work, we have to disable zsh-z's adding
+  # to the database until the user changes directory and the
+  # chpwd_functions are run
+  ZSHZ[directory_removed]=1
+}
+
+############################################################
 # If matches share a common root, find it, and put it on the
 # editing buffer stack for _zshz_output to use.
 #
@@ -411,39 +455,7 @@ zshz() {
         return
         ;;
       -x)
-        # TODO: Take $ZSHZ_OWNER into account?
-
-        if (( ZSHZ[use_flock] )); then
-          [[ -f $datafile ]] || touch $datafile
-          local lockfd
-          zsystem flock -f lockfd $datafile 2> /dev/null || return
-        fi
-
-        local -a lines lines_to_keep
-        lines=( "${(@f)"$(<$datafile)"}" )
-        # All of the lines that don't match the directory to be deleted
-        lines_to_keep=( ${(M)lines:#^${PWD}\|*} )
-        if [[ $lines != "$lines_to_keep" ]]; then
-          lines=( $lines_to_keep )
-        else
-          return 1  # The $PWD isn't in the datafile
-        fi
-
-        if (( ZSHZ[use_flock] )); then
-          # =() process substitution serves as the tempfile
-          print -- "$(< =(print -l $lines))" >| $datafile || return
-        else
-          local tempfile="${datafile}.${RANDOM}"
-          print -l -- $lines > "$tempfile"
-          command mv -f "$tempfile" "$datafile" \
-            || command rm -f "$tempfile"
-        fi
-
-        # In order to make z -x work, we have to disable zsh-z's adding
-        # to the database until the user changes directory and the
-        # chpwd_functions are run
-        ZSHZ[directory_removed]=1
-
+        _zshz_remove_path "$*"
         return
         ;;
     esac
