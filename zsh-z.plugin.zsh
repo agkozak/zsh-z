@@ -353,11 +353,10 @@ _zshz_common() {
 # Arguments:
 #   $1 Name of an associative array of matches and ranks
 #   $2 The best match or best case-insensitive match
-#   $3 Whether or not to just print the results as a
-#     list (0 or 1)
+#   $3 Whether to produce a completion or a list
 ############################################################
 _zshz_output() {
-  local match_array=$1 match=$2 list=${3:-0}
+  local match_array=$1 match=$2 format=$3
   local common stack k x
   local -A output_matches
   local -a descending_list output
@@ -367,7 +366,7 @@ _zshz_output() {
   _zshz_common $match_array
   read -rz common
 
-  if (( $+opts[--complete] )); then
+  if [[ $format == 'completion' ]]; then
     for k in ${(@k)output_matches}; do
       print -z -f "%.2f|%s" ${output_matches[$k]} $k
       read -rz stack
@@ -375,7 +374,7 @@ _zshz_output() {
     done
     descending_list=( ${${(@On)descending_list}#*\|} )
     print -l $descending_list
-  elif (( $+opts[-l] )); then         # list
+  elif [[ $format == 'list' ]]; then
     for x in ${(k)output_matches}; do
       if (( ${output_matches[$x]} )); then
         print -z -f "%-10.2f %s\n" ${output_matches[$x]} $x
@@ -434,7 +433,7 @@ zshz() {
   [[ -z ${ZSHZ_OWNER:-${_Z_OWNER}} ]] && [[ -f $datafile ]] \
     && [[ ! -O $datafile ]] && return
 
-  local opt fnd last
+  local opt output_format fnd
 
   for opt in ${(k)opts}; do
     case $opt in
@@ -448,12 +447,14 @@ zshz() {
           _zshz_legacy_complete "$1"
           return
         fi
+        output_format='completion'
         ;;
       -c) set -- "$PWD $*" ;;
       -h|--help)
         _zshz_usage
         return
         ;;
+      -l) output_format='list' ;;
       -x)
         _zshz_remove_path "$*"
         return
@@ -462,10 +463,11 @@ zshz() {
   done
   fnd="$*"
 
-  [[ -n $fnd ]] && [[ $fnd != "$PWD " ]] || opts[-l]=   # list
+  [[ -n $fnd ]] && [[ $fnd != "$PWD " ]] || output_format='list'
 
   # If we hit enter on a completion just go there
-  (( ! $+opts[-l] )) && [[ -d ${@: -1} ]] && builtin cd ${@: -1} && return
+  [[ $output_format == 'list' ]] && [[ -d ${@: -1} ]] && builtin cd ${@: -1} \
+    && return
 
   # If there is no datafile yet
   # https://github.com/rupa/z/pull/256
@@ -537,9 +539,9 @@ zshz() {
   [[ -z $best_match ]] && [[ -z $ibest_match ]] && return 1
 
   if [[ -n $best_match ]]; then
-    _zshz_output matches best_match $+opts[-l]
+    _zshz_output matches best_match $output_format
   elif [[ -n $ibest_match ]]; then
-    _zshz_output imatches ibest_match $+opts[-l]
+    _zshz_output imatches ibest_match $output_format
   fi
 
   local ret2=$?
