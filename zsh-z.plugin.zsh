@@ -101,6 +101,71 @@ typeset -gA ZSHZ
 zsystem supports flock &> /dev/null && ZSHZ[use_flock]=1
 
 ############################################################
+# Add a path to the datafile
+#
+# Arguments:
+#   $1 Path to be added
+############################################################
+_zshz_add_path() {
+
+  local datafile=${ZSHZ_DATA:-${_Z_DATA:-${HOME}/.z}}
+
+  # $HOME isn't worth matching
+  [[ $* == "$HOME" ]] && return
+
+  # Don't track directory trees excluded in ZSHZ_EXCLUDE_DIRS
+  local exclude
+  for exclude in ${(@)ZSHZ_EXCLUDE_DIRS:-${(@)_Z_EXCLUDE_DIRS}}; do
+    case $* in
+      $exclude*) return ;;
+    esac
+  done
+
+  # See https://github.com/rupa/z/pull/199/commits/ed6eeed9b70d27c1582e3dd050e72ebfe246341c
+  if (( ZSHZ[use_flock] )); then
+
+    # Make sure that the datafile exists for locking
+    [[ -f $datafile ]] || touch "$datafile"
+    local lockfd
+
+    # Grab exclusive lock (released when function exits)
+    if (( ZSHZ_DEBUG )); then
+      zsystem flock -f lockfd "$datafile" || return
+    else
+      zsystem flock -f lockfd "$datafile" 2> /dev/null || return
+    fi
+
+    if [[ -n ${ZSHZ_OWNER:-${_Z_OWNER}} ]]; then
+      chown ${ZSHZ_OWNER:-${_Z_OWNER}}:"$(id -ng ${ZSHZ_OWNER:_${_Z_OWNER}})" \
+        "$datafile"
+    fi
+
+    # =() process substitution serves as a tempfile
+    print -- "$(< =(_zshz_update_datafile "$*"))" >| "$datafile" || return
+
+  else
+
+    # A temporary file that gets copied over the datafile if all goes well
+    local tempfile="${datafile}.${RANDOM}"
+
+    _zshz_update_datafile "$*" >| "$tempfile"
+    local ret=$?
+
+    # Avoid clobbering the datafile in a race condition
+    if (( ret != 0 )) && [[ -f $datafile ]]; then
+      command rm -f "$tempfile"
+    else
+      if [[ -n ${ZSHZ_OWNER:-${_Z_OWNER}} ]]; then
+        chown "${ZSHZ_OWNER:-${_Z_OWNER}}":"$(id -ng "${ZSHZ_OWNER:-${_Z_OWNER}}")" \
+          "$tempfile"
+      fi
+      command mv -f "$tempfile" "$datafile" 2> /dev/null \
+        || command rm -f "$tempfile"
+    fi
+  fi
+}
+
+############################################################
 # Read the curent datafile contents, update them, "age" them
 # when the total rank gets high enough, and print the new
 # contents to STDOUT.
@@ -328,57 +393,7 @@ zshz() {
   # Add entries to the datafile
   if (( $+opts[--add] )); then
 
-    # $HOME isn't worth matching
-    [[ $* == "$HOME" ]] && return
-
-    # Don't track directory trees excluded in ZSHZ_EXCLUDE_DIRS
-    local exclude
-    for exclude in ${(@)ZSHZ_EXCLUDE_DIRS:-${(@)_Z_EXCLUDE_DIRS}}; do
-      case $* in
-        $exclude*) return ;;
-      esac
-    done
-
-    # See https://github.com/rupa/z/pull/199/commits/ed6eeed9b70d27c1582e3dd050e72ebfe246341c
-    if (( ZSHZ[use_flock] )); then
-
-      # Make sure that the datafile exists for locking
-      [[ -f $datafile ]] || touch "$datafile"
-      local lockfd
-
-      # Grab exclusive lock (released when function exits)
-      if (( ZSHZ_DEBUG )); then
-        zsystem flock -f lockfd "$datafile" || return
-      else
-        zsystem flock -f lockfd "$datafile" 2> /dev/null || return
-      fi
-
-      if [[ -n ${ZSHZ_OWNER:-${_Z_OWNER}} ]]; then
-        chown ${ZSHZ_OWNER:-${_Z_OWNER}}:"$(id -ng ${ZSHZ_OWNER:_${_Z_OWNER}})" "$datafile"
-      fi
-
-      # =() process substitution serves as a tempfile
-      print -- "$(< =(_zshz_update_datafile "$*"))" >| "$datafile" || return
-
-    else
-
-      # A temporary file that gets copied over the datafile if all goes well
-      local tempfile="${datafile}.${RANDOM}"
-
-      _zshz_update_datafile "$*" >| "$tempfile"
-      local ret=$?
-
-      # Avoid clobbering the datafile in a race condition
-      if (( ret != 0 )) && [[ -f $datafile ]]; then
-        command rm -f "$tempfile"
-      else
-        if [[ -n ${ZSHZ_OWNER:-${_Z_OWNER}} ]]; then
-          chown "${ZSHZ_OWNER:-${_Z_OWNER}}":"$(id -ng "${ZSHZ_OWNER:-${_Z_OWNER}}")" "$tempfile"
-        fi
-        command mv -f "$tempfile" "$datafile" 2> /dev/null \
-          || command rm -f "$tempfile"
-      fi
-    fi
+    _zshz_add_path "$*"
 
   else
 
