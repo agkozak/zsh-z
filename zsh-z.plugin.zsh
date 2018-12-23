@@ -465,10 +465,7 @@ zshz() {
   [[ -n $fnd ]] && [[ $fnd != "$PWD " ]] || opts[-l]=   # list
 
   # If we hit enter on a completion just go there
-  case $last in
-    # Completions will always start with /
-    /*) (( ! $+opts[-l] )) && [[ -d $last ]] && builtin cd "$last" && return ;;
-  esac
+  (( ! $+opts[-l] )) && [[ -d ${@: -1} ]] && builtin cd ${@: -1} && return
 
   # If there is no datafile yet
   # https://github.com/rupa/z/pull/256
