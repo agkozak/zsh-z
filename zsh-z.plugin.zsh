@@ -423,7 +423,13 @@ zshz() {
     t \
     x
 
-  [[ -n ${(M)@:#-*} ]] && print "Improper option." && _zshz_usage && return
+  if [[ $1 == '--' ]]; then
+    shift
+  elif [[ -n ${(M)@:#-*} ]]; then
+    print "Improper option(s) given."
+    _zshz_usage
+    return
+  fi
 
   # Allow the user to specify the datafile name in $ZSHZ_DATA (default: ~/.z)
   local datafile=${ZSHZ_DATA:-${_Z_DATA:-${HOME}/.z}}
