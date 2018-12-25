@@ -286,7 +286,7 @@ _zshz_remove_path() {
   fi
 
   local -a lines lines_to_keep
-  lines=( "${(@f)"$(<$datafile)"}" )
+  lines=( ${(f)"$(<$datafile)"} )
   # All of the lines that don't match the directory to be deleted
   lines_to_keep=( ${(M)lines:#^${PWD}\|*} )
   if [[ $lines != "$lines_to_keep" ]]; then
