@@ -68,7 +68,7 @@ ____
  $* The command line arguments
 ____
 
-Has 130 line(s). Calls functions:
+Has 141 line(s). Calls functions:
 
  zshz
  |-- _zshz_add_path
@@ -177,8 +177,7 @@ ____
  Arguments:
  $1 Name of an associative array of matches and ranks
  $2 The best match or best case-insensitive match
- $3 Whether or not to just print the results as a
- list (0 or 1)
+ $3 Whether to produce a completion or a list
 ____
 
 Has 39 line(s). Calls functions:
