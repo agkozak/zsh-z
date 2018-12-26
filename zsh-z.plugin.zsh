@@ -568,9 +568,12 @@ zshz() {
 
   [[ -n $fnd ]] && [[ $fnd != "$PWD " ]] || output_format='list'
 
-  # If we hit enter on a completion just go there
-  [[ $output_format == 'list' ]] && [[ -d ${@: -1} ]] && builtin cd ${@: -1} \
-    && return
+  # TODO: rupa/z's behavior of switching to directories that exist but are not
+  # in the directory may ultimately be desirable, but not when the -e or -l
+  # options are being used
+  if [[ ${@: -1} == /* ]] && (( ! $+opts[-e] )) && (( ! $+opts[-l] )); then
+    [[ -d ${@: -1} ]] && builtin cd ${@: -1} && return
+  fi
 
   _zshz_match $method $output_format
 
