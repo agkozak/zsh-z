@@ -366,36 +366,43 @@ _zshz_output() {
   _zshz_common $match_array
   read -rz common
 
-  if [[ $format == 'completion' ]]; then
-    for k in ${(@k)output_matches}; do
-      print -z -f "%.2f|%s" ${output_matches[$k]} $k
-      read -rz stack
-      descending_list+=$stack
-    done
-    descending_list=( ${${(@On)descending_list}#*\|} )
-    print -l $descending_list
-  elif [[ $format == 'list' ]]; then
-    for x in ${(k)output_matches}; do
-      if (( ${output_matches[$x]} )); then
-        print -z -f "%-10.2f %s\n" ${output_matches[$x]} $x
+  case $format in
+
+    completion)
+      for k in ${(@k)output_matches}; do
+        print -z -f "%.2f|%s" ${output_matches[$k]} $k
         read -rz stack
-        output+=$stack
+        descending_list+=$stack
+      done
+      descending_list=( ${${(@On)descending_list}#*\|} )
+      print -l $descending_list
+      ;;
+
+    list)
+      for x in ${(k)output_matches}; do
+        if (( ${output_matches[$x]} )); then
+          print -z -f "%-10.2f %s\n" ${output_matches[$x]} $x
+          read -rz stack
+          output+=$stack
+        fi
+      done
+      if [[ -n $common ]]; then
+        (( ${#output} > 1 )) && printf "%-10s %s\n" 'common:' $common
       fi
-    done
-    if [[ -n $common ]]; then
-      (( ${#output} > 1 )) && printf "%-10s %s\n" 'common:' $common
-    fi
-    # Sort results and remove trailing ".00"
-    for x in ${(@on)output};do
-      print "${${x%${x##[[:digit:]]##\.[[:digit:]]##[[:blank:]]}}/\.00/   }${x##[[:digit:]]##\.[[:digit:]]##[[:blank:]]}"
-    done
-  else
-    if [[ -n $common ]]; then
-      print -z -- $common
-    else
-      print -z -- ${(P)match}
-    fi
-  fi
+      # Sort results and remove trailing ".00"
+      for x in ${(@on)output};do
+        print "${${x%${x##[[:digit:]]##\.[[:digit:]]##[[:blank:]]}}/\.00/   }${x##[[:digit:]]##\.[[:digit:]]##[[:blank:]]}"
+      done
+      ;;
+
+    *)
+      if [[ -n $common ]]; then
+        print -z -- $common
+      else
+        print -z -- ${(P)match}
+      fi
+      ;;
+  esac
 }
 
 ############################################################
