@@ -399,6 +399,102 @@ _zshz_output() {
 }
 
 ############################################################
+# _zshz_match
+#
+# Arguments:
+#   $1 Matching method (rank, time, or [default] frecency)
+#   $2 Output format (completion, list, or [default] print)
+############################################################
+_zshz_match() {
+  local method=$1 format=$2
+
+  # Allow the user to specify the datafile name in $ZSHZ_DATA (default: ~/.z)
+  local datafile=${ZSHZ_DATA:-${_Z_DATA:-${HOME}/.z}}
+
+  # If datafile is a symlink, dereference it
+  [[ -h $datafile ]] && datafile=${datafile:A}
+
+  # Bail if we don't own the datafile and $ZSHZ_OWNER is not set
+  [[ -z ${ZSHZ_OWNER:-${_Z_OWNER}} ]] && [[ -f $datafile ]] \
+    && [[ ! -O $datafile ]] && return
+
+  # If there is no datafile yet
+  # https://github.com/rupa/z/pull/256
+  [[ -f $datafile ]] || return
+
+  local -a lines existing_paths
+  local line path_field rank_field time_field rank dx
+  local -A matches imatches
+  local best_match ibest_match hi_rank=-9999999999 ihi_rank=-9999999999
+
+  # Load the datafile into an array and parse it
+  lines=( ${(f)"$(< $datafile)"} )
+
+  # Remove paths from database if they no longer exist
+  for line in $lines; do
+    [[ -d ${line%%\|*} ]] && existing_paths+=( $line )
+  done
+  lines=( $existing_paths )
+
+  for line in $lines; do
+    path_field=${line%%\|*}
+    rank_field=${${line%\|*}#*\|}
+    time_field=${line##*\|}
+
+    case $method in
+      rank) rank=$rank_field ;;
+      time) (( rank = time_field - EPOCHSECONDS )) ;;
+      *)
+        # Frecency routine
+        (( dx = EPOCHSECONDS - time_field ))
+        if (( dx < 3600 )); then
+          (( rank = rank_field * 4 ))
+        elif (( dx < 86400 )); then
+          (( rank = rank_field * 2 ))
+        elif (( dx < 604800 )); then
+          (( rank = rank_field / 2. ))
+        else
+          (( rank = rank_field / 4. ))
+        fi
+        ;;
+    esac
+
+    # Pattern matching is different when the -c option is on
+    local q=${fnd// ##/*}
+    if (( current )); then
+      q="$q*"
+    else
+      q="*$q*"
+    fi
+
+    if [[ $path_field == ${~q} ]]; then
+      matches[$path_field]=$rank
+    elif [[ ${path_field:l} == ${~q:l} ]]; then
+      imatches[$path_field]=$rank
+    fi
+
+    if (( matches[$path_field] )) \
+      && (( matches[$path_field] > hi_rank )); then
+      best_match=$path_field
+      hi_rank=${matches[$path_field]}
+    elif (( imatches[$path_field] )) \
+      && (( imatches[$path_field] > ihi_rank )); then
+      ibest_match=$path_field
+      ihi_rank=${imatches[$path_field]}
+    fi
+  done
+
+  # Return 1 when there are no matches
+  [[ -z $best_match ]] && [[ -z $ibest_match ]] && return 1
+
+  if [[ -n $best_match ]]; then
+    _zshz_output matches best_match $format
+  elif [[ -n $ibest_match ]]; then
+    _zshz_output imatches ibest_match $format
+  fi
+}
+
+############################################################
 # The ZSH-z Command
 #
 # Arguments:
@@ -431,17 +527,7 @@ zshz() {
     return
   fi
 
-  # Allow the user to specify the datafile name in $ZSHZ_DATA (default: ~/.z)
-  local datafile=${ZSHZ_DATA:-${_Z_DATA:-${HOME}/.z}}
-
-  # If datafile is a symlink, dereference it
-  [[ -h $datafile ]] && datafile=${datafile:A}
-
-  # Bail if we don't own the datafile and $ZSHZ_OWNER is not set
-  [[ -z ${ZSHZ_OWNER:-${_Z_OWNER}} ]] && [[ -f $datafile ]] \
-    && [[ ! -O $datafile ]] && return
-
-  local opt output_format fnd
+  local opt output_format='datafile' method='frecency' fnd
 
   for opt in ${(k)opts}; do
     case $opt in
@@ -463,6 +549,8 @@ zshz() {
         return
         ;;
       -l) output_format='list' ;;
+      -r) method='rank' ;;
+      -t) method='time' ;;
       -x)
         _zshz_remove_path "$*"
         return
@@ -477,80 +565,7 @@ zshz() {
   [[ $output_format == 'list' ]] && [[ -d ${@: -1} ]] && builtin cd ${@: -1} \
     && return
 
-  # If there is no datafile yet
-  # https://github.com/rupa/z/pull/256
-  [[ -f $datafile ]] || return
-
-  local -a lines existing_paths
-  local line path_field rank_field time_field rank dx
-  local -A matches imatches
-  local best_match ibest_match hi_rank=-9999999999 ihi_rank=-9999999999
-
-  # Load the datafile into an array and parse it
-  lines=( ${(f)"$(< $datafile)"} )
-
-  # Remove paths from database if they no longer exist
-  for line in $lines; do
-    [[ -d ${line%%\|*} ]] && existing_paths+=( $line )
-  done
-  lines=( $existing_paths )
-
-  for line in $lines; do
-    path_field=${line%%\|*}
-    rank_field=${${line%\|*}#*\|}
-    time_field=${line##*\|}
-
-    if (( $+opts[-r] )); then                 # Rank
-      rank=$rank_field
-    elif (( $+opts[-t] )); then                  # Recent
-      (( rank = time_field - EPOCHSECONDS ))
-    else
-      # Frecency routine
-      (( dx = EPOCHSECONDS - time_field ))
-      if (( dx < 3600 )); then
-        (( rank = rank_field * 4 ))
-      elif (( dx < 86400 )); then
-        (( rank = rank_field * 2 ))
-      elif (( dx < 604800 )); then
-        (( rank = rank_field / 2. ))
-      else
-        (( rank = rank_field / 4. ))
-      fi
-    fi
-
-    # Pattern matching is different when the -c option is on
-    local q=${fnd// ##/*}
-    if (( current )); then
-      q="$q*"
-    else
-      q="*$q*"
-    fi
-
-    if [[ $path_field == ${~q} ]]; then
-      matches[$path_field]=$rank
-    elif [[ ${path_field:l} == ${~q:l} ]]; then
-      imatches[$path_field]=$rank
-    fi
-
-    if (( matches[$path_field] )) \
-      && (( matches[$path_field] > hi_rank )); then
-      best_match=$path_field
-      hi_rank=${matches[$path_field]}
-    elif (( imatches[$path_field] )) \
-      && (( imatches[$path_field] > ihi_rank )); then
-      ibest_match=$path_field
-      ihi_rank=${imatches[$path_field]}
-    fi
-  done
-
-  # Return 1 when there are no matches
-  [[ -z $best_match ]] && [[ -z $ibest_match ]] && return 1
-
-  if [[ -n $best_match ]]; then
-    _zshz_output matches best_match $output_format
-  elif [[ -n $ibest_match ]]; then
-    _zshz_output imatches ibest_match $output_format
-  fi
+  _zshz_match $method $output_format
 
   local ret2=$?
 
