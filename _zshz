@@ -35,9 +35,32 @@
 # ZSH-z COMPLETIONS
 ############################################################
 
+# TODO: This routine currently reproduces z's feature of allowing spaces to be
+# used as wildcards in completions, so that
+#
+#   z us lo bi
+#
+# can expand to
+#
+#   z /usr/local/bin
+#
+# but it also reproduces z's buggy display on the commandline, viz.
+#
+#   z us lo /usr/local/bin
+#
+# Address.
 local completions
 
-completions=$(zshz --complete "$PREFIX")
+set -- $words
+while [[ $1 != 'zshz' ]]; do
+  shift
+done
+[[ $1 == 'zshz' ]] && shift
+while [[ $1 == -* ]]; do
+  shift
+done
+
+completions=$(zshz --complete "$*")
 [[ -z $completions ]] && return 1
 
 if [[ $ZSHZ_COMPLETION == 'legacy' ]]; then
@@ -46,7 +69,6 @@ else
   compadd -x 'Completing directory' -U -V zsh-z "${(f)completions}"
 fi
 
-# shellcheck disable=SC2034,SC2154
 compstate[insert]=menu
 
 return 0
