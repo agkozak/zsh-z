@@ -413,6 +413,8 @@ _zshz_output() {
 #   $2 Output format (completion, list, or [default] print)
 ############################################################
 _zshz_match() {
+  setopt LOCAL_OPTIONS EXTENDED_GLOB
+
   local method=$1 format=$2
 
   # Allow the user to specify the datafile name in $ZSHZ_DATA (default: ~/.z)
@@ -508,7 +510,6 @@ _zshz_match() {
 #   $* The command line arguments
 ############################################################
 zshz() {
-  setopt LOCAL_OPTIONS EXTENDED_GLOB
 
   (( ZSHZ_DEBUG )) && setopt WARN_CREATE_GLOBAL WARN_NESTED_VAR 2> /dev/null
 
