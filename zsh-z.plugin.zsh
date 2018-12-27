@@ -319,7 +319,7 @@ _zshz_remove_path() {
 # Arguments:
 #   $1 Name of associative array of matches and ranks
 ############################################################
-_zshz_common() {
+_zshz_find_common_root() {
   local -A common_matches
   local x short
 
@@ -367,7 +367,7 @@ _zshz_output() {
 
   output_matches=( ${(Pkv)match_array} )
 
-  _zshz_common $match_array
+  _zshz_find_common_root $match_array
   read -rz common
 
   case $format in
