@@ -274,6 +274,7 @@ _zshz_legacy_complete() {
 #   $1 Path to be removed
 ############################################################
 _zshz_remove_path() {
+  setopt LOCAL_OPTIONS EXTENDED_GLOB
 
   local datafile=${ZSHZ_DATA:-${_Z_DATA:-${HOME}/.z}}
 
@@ -353,9 +354,12 @@ _zshz_common() {
 # Arguments:
 #   $1 Name of an associative array of matches and ranks
 #   $2 The best match or best case-insensitive match
-#   $3 Whether to produce a completion or a list
+#   $3 Whether to produce a completion, a list, or a root or
+#        match
 ############################################################
 _zshz_output() {
+  setopt LOCAL_OPTIONS EXTENDED_GLOB
+
   local match_array=$1 match=$2 format=$3
   local common stack k x
   local -A output_matches
@@ -406,16 +410,20 @@ _zshz_output() {
 }
 
 ############################################################
-# _zshz_match
+# Match a pattern by rank, time, or a combination of the
+# two, and output the results as completions, a list, or a
+# best match.
 #
 # Arguments:
-#   $1 Matching method (rank, time, or [default] frecency)
-#   $2 Output format (completion, list, or [default] print)
+#   #1 Pattern to match
+#   $2 Matching method (rank, time, or [default] frecency)
+#   $3 Output format (completion, list, or [default] print
+#   to editing buffer stack)
 ############################################################
-_zshz_match() {
+_zshz_find_matches() {
   setopt LOCAL_OPTIONS EXTENDED_GLOB
 
-  local method=$1 format=$2
+  local fnd=$1 method=$2 format=$3
 
   # Allow the user to specify the datafile name in $ZSHZ_DATA (default: ~/.z)
   local datafile=${ZSHZ_DATA:-${_Z_DATA:-${HOME}/.z}}
@@ -468,13 +476,8 @@ _zshz_match() {
         ;;
     esac
 
-    # Pattern matching is different when the -c option is on
+    # Use spaces as wildcards
     local q=${fnd// ##/*}
-    if (( current )); then
-      q="$q*"
-    else
-      q="*$q*"
-    fi
 
     if [[ $path_field == ${~q} ]]; then
       matches[$path_field]=$rank
@@ -507,7 +510,7 @@ _zshz_match() {
 # The ZSH-z Command
 #
 # Arguments:
-#   $* The command line arguments
+#   $* Command options and arguments
 ############################################################
 zshz() {
 
@@ -535,7 +538,7 @@ zshz() {
     return
   fi
 
-  local opt output_format='datafile' method='frecency' fnd
+  local opt output_format method='frecency' fnd
 
   for opt in ${(k)opts}; do
     case $opt in
@@ -569,14 +572,17 @@ zshz() {
 
   [[ -n $fnd ]] && [[ $fnd != "$PWD " ]] || output_format='list'
 
-  # TODO: rupa/z's behavior of switching to directories that exist but are not
-  # in the directory may ultimately be desirable, but not when the -e or -l
-  # options are being used
   if [[ ${@: -1} == /* ]] && (( ! $+opts[-e] )) && (( ! $+opts[-l] )); then
     [[ -d ${@: -1} ]] && builtin cd ${@: -1} && return
   fi
 
-  _zshz_match $method $output_format
+  # With option -c, make sure query string matches beginning of matches;
+  # otherwise look for matches anywhere in paths
+  if (( $+ops[-c] )); then
+    _zshz_find_matches "$fnd*" $method $output_format
+  else
+    _zshz_find_matches "*$fnd*" $method $output_format
+  fi
 
   local ret2=$?
 
