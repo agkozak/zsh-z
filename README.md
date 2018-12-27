@@ -120,6 +120,7 @@ ZSH-z has environment variables (they all begin with `ZSHZ_`) that change its be
 * There is support for special characters (e.g. '[') in directory names.
 * If `z -l` only returns one match, a common root is not printed.
 * Exit status codes increasingly make sense.
+* Completions work with options `-c`, `-r`, and `-t`.
 
 
 ## Known Bugs
