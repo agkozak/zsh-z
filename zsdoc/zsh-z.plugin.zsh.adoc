@@ -20,11 +20,9 @@ FUNCTIONS
 
  zshz
  _zshz_add_path
- _zshz_common
  _zshz_find_common_root
  _zshz_find_matches
  _zshz_legacy_complete
- _zshz_match
  _zshz_output
  _zshz_remove_path
  _zshz_update_datafile
@@ -80,13 +78,7 @@ Has 81 line(s). Calls functions:
  |   `-- _zshz_output
  |       `-- _zshz_find_common_root
  |-- _zshz_legacy_complete
- |-- _zshz_match
- |   `-- _zshz_output
- |       `-- _zshz_common
- |-- _zshz_output
- |   `-- _zshz_common
  |-- _zshz_remove_path
- |-- _zshz_update_datafile
  `-- _zshz_usage
 
 Uses feature(s): _read_, _zparseopts_
@@ -128,24 +120,6 @@ ____
 Has 1 line(s). *Is a chpwd hook*. Doesn't call other functions.
 
 Not called by script or any function (may be e.g. a hook, a Zle widget, etc.).
-
-_zshz_common
-~~~~~~~~~~~~
-
-____
- 
- If matches share a common root, find it, and put it on the
- editing buffer stack for _zshz_output to use.
- 
- Arguments:
- $1 Name of associative array of matches and ranks
-____
-
-Has 20 line(s). Doesn't call other functions.
-
-Called by:
-
- _zshz_output
 
 _zshz_find_common_root
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -214,28 +188,6 @@ Called by:
 
  zshz
 
-_zshz_match
-~~~~~~~~~~~
-
-____
- 
- _zshz_match
- 
- Arguments:
- $1 Matching method (rank, time, or [default] frecency)
- $2 Output format (completion, list, or [default] print)
-____
-
-Has 70 line(s). Calls functions:
-
- _zshz_match
- `-- _zshz_output
-     `-- _zshz_common
-
-Called by:
-
- zshz
-
 _zshz_output
 ~~~~~~~~~~~~
 
@@ -259,7 +211,6 @@ ____
 Has 48 line(s). Calls functions:
 
  _zshz_output
- |-- _zshz_common
  `-- _zshz_find_common_root
 
 Uses feature(s): _read_
@@ -267,8 +218,6 @@ Uses feature(s): _read_
 Called by:
 
  _zshz_find_matches
- _zshz_match
- zshz
 
 _zshz_precmd
 ~~~~~~~~~~~~
@@ -290,13 +239,7 @@ Has 4 line(s). *Is a precmd hook*. Calls functions:
      |   `-- _zshz_output
      |       `-- _zshz_find_common_root
      |-- _zshz_legacy_complete
-     |-- _zshz_match
-     |   `-- _zshz_output
-     |       `-- _zshz_common
-     |-- _zshz_output
-     |   `-- _zshz_common
      |-- _zshz_remove_path
-     |-- _zshz_update_datafile
      `-- _zshz_usage
 
 Not called by script or any function (may be e.g. a hook, a Zle widget, etc.).
@@ -336,7 +279,6 @@ Has 40 line(s). Doesn't call other functions.
 Called by:
 
  _zshz_add_path
- zshz
 
 _zshz_usage
 ~~~~~~~~~~~
