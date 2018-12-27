@@ -51,16 +51,7 @@
 # Address.
 local completions
 
-set -- $words
-while [[ $1 != 'zshz' ]]; do
-  shift
-done
-[[ $1 == 'zshz' ]] && shift
-while [[ $1 == -* ]]; do
-  shift
-done
-
-completions=$(zshz --complete "$*")
+completions=$(zshz --complete ${(@)words:1})
 [[ -z $completions ]] && return 1
 
 if [[ $ZSHZ_COMPLETION == 'legacy' ]]; then
