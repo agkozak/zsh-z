@@ -514,7 +514,8 @@ _zshz_find_matches() {
 ############################################################
 zshz() {
 
-  (( ZSHZ_DEBUG )) && setopt WARN_CREATE_GLOBAL WARN_NESTED_VAR 2> /dev/null
+  (( ZSHZ_DEBUG )) && setopt LOCAL_OPTIONS WARN_CREATE_GLOBAL \
+    WARN_NESTED_VAR 2> /dev/null
 
   local -A opts
 
