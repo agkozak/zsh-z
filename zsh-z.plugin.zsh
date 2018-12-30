@@ -141,7 +141,7 @@ _zshz_add_path() {
     fi
 
     # =() process substitution serves as a tempfile
-    print -- "$(< =(_zshz_update_datafile "$*"))" >| "$datafile" || return
+    print -- "$(< =(_zshz_update_datafile "$*"))" >| "$datafile"
 
   else
 
@@ -298,7 +298,7 @@ _zshz_remove_path() {
 
   if (( ZSHZ[use_flock] )); then
     # =() process substitution serves as the tempfile
-    print -- "$(< =(print -l $lines))" >| $datafile || return
+    print -- "$(< =(print -l $lines))" >| $datafile
   else
     local tempfile="${datafile}.${RANDOM}"
     print -l -- $lines > "$tempfile"
