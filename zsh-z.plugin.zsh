@@ -121,6 +121,9 @@ _zshz_add_path() {
     esac
   done
 
+  # A temporary file that gets copied over the datafile if all goes well
+  local tempfile="${datafile}.${RANDOM}"
+
   # See https://github.com/rupa/z/pull/199/commits/ed6eeed9b70d27c1582e3dd050e72ebfe246341c
   if (( ZSHZ[use_flock] )); then
 
@@ -135,18 +138,16 @@ _zshz_add_path() {
       zsystem flock -f lockfd "$datafile" 2> /dev/null || return
     fi
 
+    _zshz_update_datafile "$*" >| "$tempfile"
+    [[ -s $tempfile ]] && command mv "$tempfile" "$datafile" \
+      || command rm -f "$tempfile"
+
     if [[ -n ${ZSHZ_OWNER:-${_Z_OWNER}} ]]; then
       chown ${ZSHZ_OWNER:-${_Z_OWNER}}:"$(id -ng ${ZSHZ_OWNER:_${_Z_OWNER}})" \
         "$datafile"
     fi
 
-    # =() process substitution serves as a tempfile
-    print -- "$(< =(_zshz_update_datafile "$*"))" >| "$datafile"
-
   else
-
-    # A temporary file that gets copied over the datafile if all goes well
-    local tempfile="${datafile}.${RANDOM}"
 
     _zshz_update_datafile "$*" >| "$tempfile"
     local ret=$?
@@ -296,15 +297,10 @@ _zshz_remove_path() {
     return 1  # The $PWD isn't in the datafile
   fi
 
-  if (( ZSHZ[use_flock] )); then
-    # =() process substitution serves as the tempfile
-    print -- "$(< =(print -l $lines))" >| $datafile
-  else
-    local tempfile="${datafile}.${RANDOM}"
-    print -l -- $lines > "$tempfile"
-    command mv -f "$tempfile" "$datafile" \
-      || command rm -f "$tempfile"
-  fi
+  local tempfile="${datafile}.${RANDOM}"
+  print -l -- $lines > "$tempfile"
+  command mv -f "$tempfile" "$datafile" \
+    || command rm -f "$tempfile"
 
   # In order to make z -x work, we have to disable zsh-z's adding
   # to the database until the user changes directory and the
