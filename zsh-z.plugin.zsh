@@ -139,7 +139,7 @@ _zshz_add_path() {
     fi
 
     _zshz_update_datafile "$*" >| "$tempfile"
-    [[ -s $tempfile ]] && command mv "$tempfile" "$datafile" \
+    command mv "$tempfile" "$datafile" \
       || command rm -f "$tempfile"
 
     if [[ -n ${ZSHZ_OWNER:-${_Z_OWNER}} ]]; then
