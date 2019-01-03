@@ -372,7 +372,7 @@ _zshz_output() {
       for k in ${(@k)output_matches}; do
         print -z -f "%.2f|%s" ${output_matches[$k]} $k
         read -rz stack
-        descending_list+=$stack
+        descending_list+=( $stack )
       done
       descending_list=( ${${(@On)descending_list}#*\|} )
       print -l $descending_list
@@ -383,7 +383,7 @@ _zshz_output() {
         if (( ${output_matches[$x]} )); then
           print -z -f "%-10.2f %s\n" ${output_matches[$x]} $x
           read -rz stack
-          output+=$stack
+          output+=( $stack )
         fi
       done
       if [[ -n $common ]]; then
