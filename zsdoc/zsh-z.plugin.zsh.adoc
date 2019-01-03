@@ -69,7 +69,7 @@ ____
  $* Command options and arguments
 ____
 
-Has 81 line(s). Calls functions:
+Has 82 line(s). Calls functions:
 
  zshz
  |-- _zshz_add_path
@@ -98,7 +98,7 @@ ____
  $1 Path to be added
 ____
 
-Has 39 line(s). Calls functions:
+Has 42 line(s). Calls functions:
 
  _zshz_add_path
  `-- _zshz_update_datafile
@@ -255,7 +255,7 @@ ____
  $1 Path to be removed
 ____
 
-Has 28 line(s). Doesn't call other functions.
+Has 24 line(s). Doesn't call other functions.
 
 Called by:
 
