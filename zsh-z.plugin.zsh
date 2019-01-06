@@ -87,8 +87,7 @@ With no ARGUMENT, list the directory history in ascending rank.
   print "ERROR: ZSH-z's datafile (${ZSHZ_DATA:-${_Z_DATA:-${HOME}/.z}}) is a directory." >&2
 }
 
-# Load zsh/datetime module, if necessary (only necessary on some old versions
-# of ZSH
+# Load zsh/datetime module, if necessary
 (( $+EPOCHSECONDS )) || zmodload zsh/datetime
 
 # Load zsh/system, if necessary
