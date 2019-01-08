@@ -321,8 +321,8 @@ _zshz_find_common_root() {
   common_matches=( ${(Pkv)1} )
 
   for x in ${(k)common_matches}; do
-    if (( ${common_matches[$x]} )); then
-      if [[ -z $short ]] || (( ${#x} < ${#short} )); then
+    if (( common_matches[$x] )); then
+      if [[ -z $short ]] || (( $#x < $#short )); then
         short=$x
       fi
     fi
@@ -331,7 +331,7 @@ _zshz_find_common_root() {
   [[ $short == '/' ]] && return
 
   for x in ${(k)common_matches}; do
-    (( ${common_matches[$x]} )) && [[ $x != $short* ]] && return
+    (( common_matches[$x] )) && [[ $x != $short* ]] && return
   done
 
   print -z -- $short
@@ -379,14 +379,14 @@ _zshz_output() {
 
     list)
       for x in ${(k)output_matches}; do
-        if (( ${output_matches[$x]} )); then
+        if (( output_matches[$x] )); then
           print -z -f "%-10.2f %s\n" ${output_matches[$x]} $x
           read -rz stack
           output+=( $stack )
         fi
       done
       if [[ -n $common ]]; then
-        (( ${#output} > 1 )) && printf "%-10s %s\n" 'common:' $common
+        (( $#output > 1 )) && printf "%-10s %s\n" 'common:' $common
       fi
       # Sort results and remove trailing ".00" or ",00" (depending on locale)
       for x in ${(@on)output};do
