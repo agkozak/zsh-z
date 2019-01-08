@@ -388,9 +388,9 @@ _zshz_output() {
       if [[ -n $common ]]; then
         (( ${#output} > 1 )) && printf "%-10s %s\n" 'common:' $common
       fi
-      # Sort results and remove trailing ".00"
+      # Sort results and remove trailing ".00" or ",00" (depending on locale)
       for x in ${(@on)output};do
-        print "${${x%${x##[[:digit:]]##\.[[:digit:]]##[[:blank:]]}}/\.00/   }${x##[[:digit:]]##\.[[:digit:]]##[[:blank:]]}"
+        print "${${x%${x##[[:digit:]]##[[:punct:]][[:digit:]]##[[:blank:]]}}/[[:punct:]]00/   }${x##[[:digit:]]##[[:punct:]][[:digit:]]##[[:blank:]]}"
       done
       ;;
 
