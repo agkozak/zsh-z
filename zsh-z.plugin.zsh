@@ -380,7 +380,8 @@ _zshz_output() {
     list)
       for x in ${(k)output_matches}; do
         if (( output_matches[$x] )); then
-          print -z -f "%-10.2f %s\n" ${output_matches[$x]} $x
+          # Always use period as decimal separator for compatibility with fzf-z
+          LC_ALL=C print -z -f "%-10.2f %s\n" ${output_matches[$x]} $x
           read -rz stack
           output+=( $stack )
         fi
