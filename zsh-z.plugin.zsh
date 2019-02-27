@@ -567,7 +567,9 @@ zshz() {
   done
   fnd="$*"
 
-  [[ -n $fnd ]] && [[ $fnd != "$PWD " ]] || output_format='list'
+  [[ -n $fnd ]] && [[ $fnd != "$PWD " ]] || {
+    [[ $output_format != 'completion' ]] && output_format='list'
+  }
 
   if [[ ${@: -1} == /* ]] && (( ! $+opts[-e] )) && (( ! $+opts[-l] )); then
     [[ -d ${@: -1} ]] && builtin cd ${@: -1} && return
