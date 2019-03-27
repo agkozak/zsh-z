@@ -532,7 +532,7 @@ zshz() {
   elif [[ -n ${(M)@:#-*} ]]; then
     print "Improper option(s) given."
     _zshz_usage
-    return
+    return 1
   fi
 
   local opt output_format method='frecency' fnd
