@@ -605,7 +605,7 @@ alias ${ZSHZ_CMD:-${_Z_CMD:-z}}='zshz 2>&1'
 # precmd and chpwd
 ############################################################
 
-if [[ -n ${ZSHZ_NO_RESOLVE_SYMLINKS:-${_Z_NO_RESOLVE_SYMLINKS}} ]]; then
+if (( ${ZSHZ_NO_RESOLVE_SYMLINKS:-${_Z_NO_RESOLVE_SYMLINKS}} )); then
   _zshz_precmd() {
     (( ! ZSHZ[directory_removed] )) && (zshz --add "${PWD:a}" &)
     # See https://github.com/rupa/z/pull/247/commits/081406117ea42ccb8d159f7630cfc7658db054b6
