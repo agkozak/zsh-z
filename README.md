@@ -86,7 +86,7 @@ to install `zsh-z`.
 
 Add the line
 
-    zplugin load agkozak/agkozak-zsh-prompt
+    zplugin load agkozak/zsh-z
 
 to your `.zshrc`.
 
