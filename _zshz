@@ -52,6 +52,10 @@
 #   z us lo /usr/local/bin
 #
 # Address.
+
+# Don't try to complete a string beginning with a hyphen
+[[ ${(@)words:1} == -* ]] && return 1
+
 local completions
 
 completions=$(zshz --complete ${(@)words:1})
