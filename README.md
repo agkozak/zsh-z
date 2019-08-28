@@ -16,7 +16,6 @@ ZSH-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
 - [Installation](#installation)
 - [Command Line Options](#command-line-options)
 - [Settings](#settings)
-- [Examples](#examples)
 - [Improvements and Fixes](#improvements-and-fixes)
 - [Known Bugs](#known-bugs)
 
