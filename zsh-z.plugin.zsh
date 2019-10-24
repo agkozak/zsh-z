@@ -460,15 +460,16 @@ _zshz_find_matches() {
       *)
         # Frecency routine
         (( dx = EPOCHSECONDS - time_field ))
-        if (( dx < 3600 )); then
-          (( rank = rank_field * 4 ))
-        elif (( dx < 86400 )); then
-          (( rank = rank_field * 2 ))
-        elif (( dx < 604800 )); then
-          (( rank = rank_field / 2. ))
-        else
-          (( rank = rank_field / 4. ))
-        fi
+        # if (( dx < 3600 )); then
+        #  (( rank = rank_field * 4 ))
+        # elif (( dx < 86400 )); then
+        #   (( rank = rank_field * 2 ))
+        # elif (( dx < 604800 )); then
+        #   (( rank = rank_field / 2. ))
+        # else
+        #   (( rank = rank_field / 4. ))
+        # fi
+        rank=$(( rank_field * (3.75/((0.0001 * dx + 1) + 0.25)) ))
         ;;
     esac
 
