@@ -25,5 +25,5 @@ DETAILS
 Script Body
 ~~~~~~~~~~~
 
-Has 18 line(s). No functions are called (may set up e.g. a hook, a Zle widget bound to a key, etc.).
+Has 20 line(s). No functions are called (may set up e.g. a hook, a Zle widget bound to a key, etc.).
 
