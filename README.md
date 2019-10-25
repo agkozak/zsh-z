@@ -116,7 +116,7 @@ ZSH-z has environment variables (they all begin with `ZSHZ_`) that change its be
 * ZSH-z works on Solaris.
 * ZSH-z uses the "new" `zshcompsys` completion system instead of the old `compctl` one.
 * There is no error message when the database file has not yet been created.
-* There is support for special characters (e.g. '[') in directory names.
+* There is support for special characters (e.g. `[`) in directory names.
 * If `z -l` only returns one match, a common root is not printed.
 * Exit status codes increasingly make sense.
 * Completions work with options `-c`, `-r`, and `-t`.
@@ -124,4 +124,3 @@ ZSH-z has environment variables (they all begin with `ZSHZ_`) that change its be
 
 ## Known Bugs
 * It is possible to run a completion on a string with spaces in it, e.g. `z us bi<TAB>` might take you to `/usr/local/bin`. This works, but as things stand, after the completion the command line reads `z us /usr/local/bin`. I am working on eliminating this glitch.
-* The database file can occasionally be lost in a race condition. I am having increasing success mitigating this behavior.
