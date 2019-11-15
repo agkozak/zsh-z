@@ -509,7 +509,7 @@ _zshz_find_matches() {
 #   $* Command options and arguments
 ############################################################
 zshz() {
-
+  emulate -L zsh
   (( ZSHZ_DEBUG )) && setopt LOCAL_OPTIONS WARN_CREATE_GLOBAL \
     WARN_NESTED_VAR 2> /dev/null
 
