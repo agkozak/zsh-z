@@ -27,3 +27,5 @@ Script Body
 
 Has 20 line(s). No functions are called (may set up e.g. a hook, a Zle widget bound to a key, etc.).
 
+Uses feature(s): _setopt_
+
