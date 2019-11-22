@@ -59,7 +59,7 @@ and add `zsh-z` to the line of your `.zshrc` that specifies `plugins=()`, e.g. `
 
 Execute the following command:
 
-    git clone https://github.com/agkozak/zshz.git ~/.zprezto-contrib/zsh-z
+    git clone https://github.com/agkozak/zsh-z.git ~/.zprezto-contrib/zsh-z
 
 Then edit your `~/.zpreztorc` file. Make sure the line that says
 
@@ -90,7 +90,7 @@ Add a backslash to the end of the last line add `'zsh-z'` to the list, e.g.
         'utility' \
         'completion' \
         'prompt' \
-        'zshz'
+        'zsh-z'
 
 Then relaunch `zsh`.
 
