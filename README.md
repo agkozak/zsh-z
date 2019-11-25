@@ -128,6 +128,8 @@ Add the line
 
 to your `.zshrc`.
 
+`zsh-z` supports `zplugin`'s `unload` feature; just run `zplugin unload agkozak/zshz` to restore the shell to its state before `zsh-z` was loaded.
+
 ## Command Line Options
 
 - `-c`    Only match subdirectories of the current directory

@@ -510,8 +510,7 @@ _zshz_find_matches() {
 ############################################################
 zshz() {
   emulate -L zsh
-  (( ZSHZ_DEBUG )) && setopt LOCAL_OPTIONS WARN_CREATE_GLOBAL \
-    WARN_NESTED_VAR 2> /dev/null
+  setopt LOCAL_OPTIONS WARN_CREATE_GLOBAL
 
   local -A opts
 
@@ -642,3 +641,59 @@ add-zsh-hook chpwd _zshz_chpwd
 # (See https://github.com/zdharma/Zsh-100-Commits-Club/blob/master/Zsh-Plugin-Standard.adoc)
 0="${${ZERO:-${0:#$ZSH_ARGZERO}}:-${(%):-%N}}"
 fpath=( ${0:A:h} $fpath )
+
+############################################################
+# Array of zsh-z functions
+############################################################
+typeset -ga ZSHZ_FUNCTIONS
+ZSHZ_FUNCTIONS=(
+                _zshz_usage
+                _zshz_add_path
+                _zshz_update_datafile
+                _zshz_legacy_complete
+                _zshz_remove_path
+                _zshz_find_common_root
+                _zshz_output
+                _zshz_find_matches
+                zshz
+                _zshz_precmd
+                _zshz_chpwd
+                _zshz
+              )
+
+############################################################
+# Enable WARN_NESTED_VAR for zsh-z chpwd_functions
+############################################################
+() {
+  if is-at-least 5.4.0; then
+    local x
+    for x in $ZSHZ_FUNCTIONS; do
+      functions -W $x
+    done
+  fi
+}
+
+############################################################
+# Unload function
+#
+# See https://github.com/zdharma/Zsh-100-Commits-Club/blob/master/Zsh-Plugin-Standard.adoc#unload-fun
+############################################################
+zsh-z_plugin_unload() {
+  emulate -L zsh
+
+  add-zsh-hook -D precmd _zshz_precmd
+  add-zsh-hook -d chpwd _zshz_chpwd
+
+  local x
+  for x in $ZSHZ_FUNCTIONS; do
+    whence -w $x &> /dev/null && unfunction $x
+  done
+
+  unset ZSHZ ZSHZ_FUNCTIONS
+
+  fpath=("${(@)fpath:#${0:A:h}}")
+
+  unalias ${ZSHZ_CMD:-${_Z_CMD:-z}}
+
+  unfunction $0
+}
