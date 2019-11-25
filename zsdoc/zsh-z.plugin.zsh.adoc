@@ -24,6 +24,7 @@ FUNCTIONS
  _zshz_find_matches
  _zshz_legacy_complete
  _zshz_output
+ zsh-z_plugin_unload
  _zshz_remove_path
  _zshz_update_datafile
  _zshz_usage
@@ -50,11 +51,43 @@ DETAILS
 Script Body
 ~~~~~~~~~~~
 
-Has 27 line(s). Calls functions:
+Has 50 line(s). Calls functions:
 
  Script-Body
  |-- add-zsh-hook
- `-- is-at-least
+ |-- is-at-least
+ |-- zshz
+ |   |-- _zshz_add_path
+ |   |   `-- _zshz_update_datafile
+ |   |-- _zshz_find_matches
+ |   |   `-- _zshz_output
+ |   |       `-- _zshz_find_common_root
+ |   |-- _zshz_legacy_complete
+ |   |-- _zshz_remove_path
+ |   `-- _zshz_usage
+ |-- _zshz_add_path
+ |   `-- _zshz_update_datafile
+ |-- _zshz_chpwd
+ |-- _zshz_find_common_root
+ |-- _zshz_find_matches
+ |   `-- _zshz_output
+ |       `-- _zshz_find_common_root
+ |-- _zshz_legacy_complete
+ |-- _zshz_output
+ |   `-- _zshz_find_common_root
+ |-- _zshz_precmd
+ |   `-- zshz
+ |       |-- _zshz_add_path
+ |       |   `-- _zshz_update_datafile
+ |       |-- _zshz_find_matches
+ |       |   `-- _zshz_output
+ |       |       `-- _zshz_find_common_root
+ |       |-- _zshz_legacy_complete
+ |       |-- _zshz_remove_path
+ |       `-- _zshz_usage
+ |-- _zshz_remove_path
+ |-- _zshz_update_datafile
+ `-- _zshz_usage
 
 Uses feature(s): _add-zsh-hook_, _alias_, _autoload_, _is-at-least_, _zmodload_
 
@@ -69,7 +102,7 @@ ____
  $* Command options and arguments
 ____
 
-Has 85 line(s). Calls functions:
+Has 84 line(s). Calls functions:
 
  zshz
  |-- _zshz_add_path
@@ -85,6 +118,7 @@ Uses feature(s): _read_, _setopt_, _zparseopts_
 
 Called by:
 
+ Script-Body
  _zshz_precmd
 
 _zshz_add_path
@@ -105,6 +139,7 @@ Has 42 line(s). Calls functions:
 
 Called by:
 
+ Script-Body
  zshz
 
 _zshz_chpwd
@@ -119,7 +154,9 @@ ____
 
 Has 1 line(s). *Is a chpwd hook*. Doesn't call other functions.
 
-Not called by script or any function (may be e.g. a hook, a Zle widget, etc.).
+Called by:
+
+ Script-Body
 
 _zshz_find_common_root
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -137,6 +174,7 @@ Has 20 line(s). Doesn't call other functions.
 
 Called by:
 
+ Script-Body
  _zshz_output
 
 _zshz_find_matches
@@ -165,6 +203,7 @@ Uses feature(s): _setopt_
 
 Called by:
 
+ Script-Body
  zshz
 
 _zshz_legacy_complete
@@ -190,6 +229,7 @@ Uses feature(s): _setopt_
 
 Called by:
 
+ Script-Body
  zshz
 
 _zshz_output
@@ -221,7 +261,27 @@ Uses feature(s): _read_, _setopt_
 
 Called by:
 
+ Script-Body
  _zshz_find_matches
+
+zsh-z_plugin_unload
+~~~~~~~~~~~~~~~~~~~
+
+____
+ 
+ Unload function
+ 
+ See https://github.com/zdharma/Zsh-100-Commits-Club/blob/master/Zsh-Plugin-Standard.adoc#unload-fun
+____
+
+Has 17 line(s). Calls functions:
+
+ zsh-z_plugin_unload
+ `-- add-zsh-hook
+
+Uses feature(s): _add-zsh-hook_, _unalias_, _unfunction_
+
+Not called by script or any function (may be e.g. a hook, a Zle widget, etc.).
 
 _zshz_precmd
 ~~~~~~~~~~~~
@@ -246,7 +306,9 @@ Has 4 line(s). *Is a precmd hook*. Calls functions:
      |-- _zshz_remove_path
      `-- _zshz_usage
 
-Not called by script or any function (may be e.g. a hook, a Zle widget, etc.).
+Called by:
+
+ Script-Body
 
 _zshz_remove_path
 ~~~~~~~~~~~~~~~~~
@@ -265,6 +327,7 @@ Uses feature(s): _setopt_
 
 Called by:
 
+ Script-Body
  zshz
 
 _zshz_update_datafile
@@ -284,6 +347,7 @@ Has 40 line(s). Doesn't call other functions.
 
 Called by:
 
+ Script-Body
  _zshz_add_path
 
 _zshz_usage
@@ -298,6 +362,7 @@ Has 12 line(s). Doesn't call other functions.
 
 Called by:
 
+ Script-Body
  zshz
 
 add-zsh-hook
@@ -324,6 +389,7 @@ Uses feature(s): _autoload_, _getopts_
 Called by:
 
  Script-Body
+ zsh-z_plugin_unload
 
 is-at-least
 ~~~~~~~~~~~
