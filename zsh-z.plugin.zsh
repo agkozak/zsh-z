@@ -639,15 +639,15 @@ add-zsh-hook chpwd _zshz_chpwd
 
 # Standarized $0 handling
 # (See https://github.com/zdharma/Zsh-100-Commits-Club/blob/master/Zsh-Plugin-Standard.adoc)
-0="${${ZERO:-${0:#$ZSH_ARGZERO}}:-${(%):-%N}}"
+0=${${ZERO:-${0:#$ZSH_ARGZERO}}:-${(%):-%N}}
+0=${${(M)0:#/*}:-$PWD/$0}
+
 fpath=( ${0:A:h} $fpath )
 
 ############################################################
-# Array of zsh-z functions
+# zsh-z functions
 ############################################################
-typeset -ga ZSHZ_FUNCTIONS
-ZSHZ_FUNCTIONS=(
-                _zshz_usage
+ZSHZ[FUNCTIONS]='_zshz_usage
                 _zshz_add_path
                 _zshz_update_datafile
                 _zshz_legacy_complete
@@ -658,8 +658,7 @@ ZSHZ_FUNCTIONS=(
                 zshz
                 _zshz_precmd
                 _zshz_chpwd
-                _zshz
-              )
+                _zshz'
 
 ############################################################
 # Enable WARN_NESTED_VAR for zsh-z chpwd_functions
@@ -667,7 +666,7 @@ ZSHZ_FUNCTIONS=(
 () {
   if is-at-least 5.4.0; then
     local x
-    for x in $ZSHZ_FUNCTIONS; do
+    for x in ${=ZSHZ[FUNCTIONS]}; do
       functions -W $x
     done
   fi
@@ -685,15 +684,15 @@ zsh-z_plugin_unload() {
   add-zsh-hook -d chpwd _zshz_chpwd
 
   local x
-  for x in $ZSHZ_FUNCTIONS; do
+  for x in ${=ZSHZ[FUNCTIONS]}; do
     whence -w $x &> /dev/null && unfunction $x
   done
 
-  unset ZSHZ ZSHZ_FUNCTIONS
+  unset ZSHZ
 
   fpath=("${(@)fpath:#${0:A:h}}")
 
-  unalias ${ZSHZ_CMD:-${_Z_CMD:-z}}
+  unalias ${ZSHZ_CMD:-${_Z_CMD:-z}} 2> /dev/null
 
   unfunction $0
 }
