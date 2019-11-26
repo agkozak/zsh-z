@@ -692,7 +692,8 @@ zsh-z_plugin_unload() {
 
   fpath=("${(@)fpath:#${0:A:h}}")
 
-  unalias ${ZSHZ_CMD:-${_Z_CMD:-z}}
+  alias ${ZSHZ_CMD:-${_Z_CMD:-z}} &> /dev/null \
+    && unalias ${ZSHZ_CMD:-${_Z_CMD:-z}}
 
   unfunction $0
 }
