@@ -97,7 +97,7 @@ whence -w zsystem &> /dev/null || zmodload zsh/system &> /dev/null
 typeset -gA ZSHZ
 
 # Determine whether zsystem flock is available
-zsystem supports flock &> /dev/null && ZSHZ[use_flock]=1
+zsystem supports flock &> /dev/null && ZSHZ[USE_FLOCK]=1
 
 ############################################################
 # Add a path to the datafile
@@ -124,7 +124,7 @@ _zshz_add_path() {
   local tempfile="${datafile}.${RANDOM}"
 
   # See https://github.com/rupa/z/pull/199/commits/ed6eeed9b70d27c1582e3dd050e72ebfe246341c
-  if (( ZSHZ[use_flock] )); then
+  if (( ZSHZ[USE_FLOCK] )); then
 
     # Make sure that the datafile exists for locking
     [[ -f $datafile ]] || touch "$datafile"
@@ -280,7 +280,7 @@ _zshz_remove_path() {
 
   # TODO: Take $ZSHZ_OWNER into account?
 
-  if (( ZSHZ[use_flock] )); then
+  if (( ZSHZ[USE_FLOCK] )); then
     [[ -f $datafile ]] || touch $datafile
     local lockfd
     zsystem flock -f lockfd $datafile 2> /dev/null || return
@@ -304,7 +304,7 @@ _zshz_remove_path() {
   # In order to make z -x work, we have to disable zsh-z's adding
   # to the database until the user changes directory and the
   # chpwd_functions are run
-  ZSHZ[directory_removed]=1
+  ZSHZ[DIRECTORY_REMOVED]=1
 }
 
 ############################################################
@@ -606,7 +606,7 @@ alias ${ZSHZ_CMD:-${_Z_CMD:-z}}='zshz 2>&1'
 
 if (( ${ZSHZ_NO_RESOLVE_SYMLINKS:-${_Z_NO_RESOLVE_SYMLINKS}} )); then
   _zshz_precmd() {
-    (( ! ZSHZ[directory_removed] )) && (zshz --add "${PWD:a}" &)
+    (( ! ZSHZ[DIRECTORY_REMOVED] )) && (zshz --add "${PWD:a}" &)
     # See https://github.com/rupa/z/pull/247/commits/081406117ea42ccb8d159f7630cfc7658db054b6
     : $RANDOM
   }
@@ -614,7 +614,7 @@ else
   # Add the $PWD to the datafile, unless $ZSHZ[directory removed] shows it to have been
   # recently removed with z -x
   _zshz_precmd() {
-    (( ! ZSHZ[directory_removed] )) && (zshz --add "${PWD:A}" &)
+    (( ! ZSHZ[DIRECTORY_REMOVED] )) && (zshz --add "${PWD:A}" &)
     : $RANDOM
   }
 fi
@@ -625,7 +625,7 @@ fi
 # left the directory.
 ############################################################
 _zshz_chpwd() {
-  ZSHZ[directory_removed]=0
+  ZSHZ[DIRECTORY_REMOVED]=0
 }
 
 autoload -U add-zsh-hook
