@@ -51,7 +51,7 @@ DETAILS
 Script Body
 ~~~~~~~~~~~
 
-Has 50 line(s). Calls functions:
+Has 49 line(s). Calls functions:
 
  Script-Body
  |-- add-zsh-hook
@@ -274,12 +274,12 @@ ____
  See https://github.com/zdharma/Zsh-100-Commits-Club/blob/master/Zsh-Plugin-Standard.adoc#unload-fun
 ____
 
-Has 17 line(s). Calls functions:
+Has 18 line(s). Calls functions:
 
  zsh-z_plugin_unload
  `-- add-zsh-hook
 
-Uses feature(s): _add-zsh-hook_, _unalias_, _unfunction_
+Uses feature(s): _add-zsh-hook_, _alias_, _unalias_, _unfunction_
 
 Not called by script or any function (may be e.g. a hook, a Zle widget, etc.).
 
