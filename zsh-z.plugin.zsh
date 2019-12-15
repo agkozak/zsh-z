@@ -52,6 +52,7 @@
 #     ZSHZ_CMD -> name of command (default: z)
 #     ZSHZ_COMPLETION -> completion method (default: 'frecent'; 'legacy' for alphabetic sorting)
 #     ZSHZ_DATA -> name of datafile (default: ~/.z)
+#     ZSHZ_MAX_SCORE -> maximum combined score the database entries can have before beginning to age (default: 9000)
 #     ZSHZ_NO_RESOLVE_SYMLINKS -> '1' prevents symlink resolution
 #     ZSHZ_EXCLUDE_DIRS -> array of directories to exclude from your database
 #     ZSHZ_OWNER -> your username (if you want use ZSH-z while using sudo -s) }}}
