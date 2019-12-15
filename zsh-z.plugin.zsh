@@ -97,7 +97,7 @@ whence -w zsystem &> /dev/null || zmodload zsh/system &> /dev/null
 typeset -gA ZSHZ
 
 # Determine whether zsystem flock is available
-zsystem supports flock &> /dev/null && ZSHZ[use_flock]=1
+zsystem supports flock &> /dev/null && ZSHZ[USE_FLOCK]=1
 
 ############################################################
 # Add a path to the datafile
@@ -124,7 +124,7 @@ _zshz_add_path() {
   local tempfile="${datafile}.${RANDOM}"
 
   # See https://github.com/rupa/z/pull/199/commits/ed6eeed9b70d27c1582e3dd050e72ebfe246341c
-  if (( ZSHZ[use_flock] )); then
+  if (( ZSHZ[USE_FLOCK] )); then
 
     # Make sure that the datafile exists for locking
     [[ -f $datafile ]] || touch "$datafile"
@@ -280,7 +280,7 @@ _zshz_remove_path() {
 
   # TODO: Take $ZSHZ_OWNER into account?
 
-  if (( ZSHZ[use_flock] )); then
+  if (( ZSHZ[USE_FLOCK] )); then
     [[ -f $datafile ]] || touch $datafile
     local lockfd
     zsystem flock -f lockfd $datafile 2> /dev/null || return
@@ -304,7 +304,7 @@ _zshz_remove_path() {
   # In order to make z -x work, we have to disable zsh-z's adding
   # to the database until the user changes directory and the
   # chpwd_functions are run
-  ZSHZ[directory_removed]=1
+  ZSHZ[DIRECTORY_REMOVED]=1
 }
 
 ############################################################
@@ -501,9 +501,8 @@ _zshz_find_matches() {
 #   $* Command options and arguments
 ############################################################
 zshz() {
-
-  (( ZSHZ_DEBUG )) && setopt LOCAL_OPTIONS WARN_CREATE_GLOBAL \
-    WARN_NESTED_VAR 2> /dev/null
+  emulate -L zsh
+  setopt LOCAL_OPTIONS WARN_CREATE_GLOBAL
 
   local -A opts
 
@@ -599,7 +598,7 @@ alias ${ZSHZ_CMD:-${_Z_CMD:-z}}='zshz 2>&1'
 
 if (( ${ZSHZ_NO_RESOLVE_SYMLINKS:-${_Z_NO_RESOLVE_SYMLINKS}} )); then
   _zshz_precmd() {
-    (( ! ZSHZ[directory_removed] )) && (zshz --add "${PWD:a}" &)
+    (( ! ZSHZ[DIRECTORY_REMOVED] )) && (zshz --add "${PWD:a}" &)
     # See https://github.com/rupa/z/pull/247/commits/081406117ea42ccb8d159f7630cfc7658db054b6
     : $RANDOM
   }
@@ -607,7 +606,7 @@ else
   # Add the $PWD to the datafile, unless $ZSHZ[directory removed] shows it to have been
   # recently removed with z -x
   _zshz_precmd() {
-    (( ! ZSHZ[directory_removed] )) && (zshz --add "${PWD:A}" &)
+    (( ! ZSHZ[DIRECTORY_REMOVED] )) && (zshz --add "${PWD:A}" &)
     : $RANDOM
   }
 fi
@@ -618,7 +617,7 @@ fi
 # left the directory.
 ############################################################
 _zshz_chpwd() {
-  ZSHZ[directory_removed]=0
+  ZSHZ[DIRECTORY_REMOVED]=0
 }
 
 autoload -U add-zsh-hook
@@ -632,5 +631,61 @@ add-zsh-hook chpwd _zshz_chpwd
 
 # Standarized $0 handling
 # (See https://github.com/zdharma/Zsh-100-Commits-Club/blob/master/Zsh-Plugin-Standard.adoc)
-0="${${ZERO:-${0:#$ZSH_ARGZERO}}:-${(%):-%N}}"
+0=${${ZERO:-${0:#$ZSH_ARGZERO}}:-${(%):-%N}}
+0=${${(M)0:#/*}:-$PWD/$0}
+
 fpath=( ${0:A:h} $fpath )
+
+############################################################
+# zsh-z functions
+############################################################
+ZSHZ[FUNCTIONS]='_zshz_usage
+                _zshz_add_path
+                _zshz_update_datafile
+                _zshz_legacy_complete
+                _zshz_remove_path
+                _zshz_find_common_root
+                _zshz_output
+                _zshz_find_matches
+                zshz
+                _zshz_precmd
+                _zshz_chpwd
+                _zshz'
+
+############################################################
+# Enable WARN_NESTED_VAR for zsh-z chpwd_functions
+############################################################
+() {
+  if is-at-least 5.4.0; then
+    local x
+    for x in ${=ZSHZ[FUNCTIONS]}; do
+      functions -W $x
+    done
+  fi
+}
+
+############################################################
+# Unload function
+#
+# See https://github.com/zdharma/Zsh-100-Commits-Club/blob/master/Zsh-Plugin-Standard.adoc#unload-fun
+############################################################
+zsh-z_plugin_unload() {
+  emulate -L zsh
+
+  add-zsh-hook -D precmd _zshz_precmd
+  add-zsh-hook -d chpwd _zshz_chpwd
+
+  local x
+  for x in ${=ZSHZ[FUNCTIONS]}; do
+    whence -w $x &> /dev/null && unfunction $x
+  done
+
+  unset ZSHZ
+
+  fpath=("${(@)fpath:#${0:A:h}}")
+
+  alias ${ZSHZ_CMD:-${_Z_CMD:-z}} &> /dev/null \
+    && unalias ${ZSHZ_CMD:-${_Z_CMD:-z}}
+
+  unfunction $0
+}

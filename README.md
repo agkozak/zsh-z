@@ -55,6 +55,45 @@ Execute the following command:
 
 and add `zsh-z` to the line of your `.zshrc` that specifies `plugins=()`, e.g. `plugins=( git zsh-z )`.
 
+### For [prezto](https://github.com/sorin-ionescu/prezto) users
+
+Execute the following command:
+
+    git clone https://github.com/agkozak/zsh-z.git ~/.zprezto-contrib/zsh-z
+
+Then edit your `~/.zpreztorc` file. Make sure the line that says
+
+    zstyle ':prezto:load' pmodule-dirs $HOME/.zprezto-contrib
+
+is uncommented. Then find the section that specifies which modules are to be loaded; it should look something like this:
+
+    zstyle ':prezto:load' pmodule \
+        'environment' \
+        'terminal' \
+        'editor' \
+        'history' \
+        'directory' \
+        'spectrum' \
+        'utility' \
+        'completion' \
+        'prompt'
+
+Add a backslash to the end of the last line add `'zsh-z'` to the list, e.g.
+
+    zstyle ':prezto:load' pmodule \
+        'environment' \
+        'terminal' \
+        'editor' \
+        'history' \
+        'directory' \
+        'spectrum' \
+        'utility' \
+        'completion' \
+        'prompt' \
+        'zsh-z'
+
+Then relaunch `zsh`.
+
 ### For [zgen](https://github.com/tarjoilija/zgen) users
 
 Add the line
@@ -88,6 +127,8 @@ Add the line
     zplugin load agkozak/zsh-z
 
 to your `.zshrc`.
+
+`zsh-z` supports `zplugin`'s `unload` feature; just run `zplugin unload agkozak/zshz` to restore the shell to its state before `zsh-z` was loaded.
 
 ## Command Line Options
 
