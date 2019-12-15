@@ -148,6 +148,7 @@ ZSH-z has environment variables (they all begin with `ZSHZ_`) that change its be
 * `ZSHZ_COMPLETION` can be `'frecent'` (default) or `'legacy'`, depending on whether you want your completion results sorted according to frecency or simply sorted alphabetically
 * `ZSHZ_DATA` changes the database file (default: `~/.z`)
 * `ZSHZ_EXCLUDE_DIRS` is an array of directories to keep out of the database (default: empty)
+* `ZSHZ_MAX_SCORE` is the maximum combined score the database entries can have before they begin to age and potentially drop out of the database (default: 9000)
 * `ZSHZ_NO_RESOLVE_SYMLINKS` prevents symlink resolution (default: `0`)
 * `ZSHZ_OWNER` allows usage when in `sudo -s` mode (default: empty)
 

@@ -214,7 +214,7 @@ _zshz_update_datafile() {
     fi
     (( count += rank_field ))
   done
-  if (( count > 9000 )); then
+  if (( count > ${ZSHZ_MAX_SCORE:-${_Z_MAX_SCORE:-9000}} )); then
     # Aging
     for x in ${(k)rank}; do
       print -- "$x|$(( 0.99 * rank[$x] ))|${time[$x]}"
