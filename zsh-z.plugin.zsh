@@ -92,7 +92,7 @@ With no ARGUMENT, list the directory history in ascending rank.
 (( $+EPOCHSECONDS )) || zmodload zsh/datetime
 
 # Load zsh/system, if necessary
-whence -w zsystem &> /dev/null || zmodload zsh/system &> /dev/null
+[[ ${modules[zsh/system]} == 'loaded' ]] || zmodload zsh/system &> /dev/null
 
 # Global associative array for internal use
 typeset -gA ZSHZ
@@ -678,7 +678,7 @@ zsh-z_plugin_unload() {
 
   local x
   for x in ${=ZSHZ[FUNCTIONS]}; do
-    whence -w $x &> /dev/null && unfunction $x
+    (( ${+functions[$x]} )) && unfunction $x
   done
 
   unset ZSHZ
