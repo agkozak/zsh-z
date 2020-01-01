@@ -52,7 +52,7 @@ DETAILS
 Script Body
 ~~~~~~~~~~~
 
-Has 49 line(s). Calls functions:
+Has 51 line(s). Calls functions:
 
  Script-Body
  |-- add-zsh-hook
