@@ -279,8 +279,6 @@ _zshz_remove_path() {
 
   local datafile=${ZSHZ_DATA:-${_Z_DATA:-${HOME}/.z}}
 
-  # TODO: Take $ZSHZ_OWNER into account?
-
   if (( ZSHZ[USE_FLOCK] )); then
     [[ -f $datafile ]] || touch $datafile
     local lockfd
@@ -301,6 +299,11 @@ _zshz_remove_path() {
   print -l -- $lines > "$tempfile"
   command mv -f "$tempfile" "$datafile" \
     || command rm -f "$tempfile"
+
+  if [[ -n ${ZSHZ_OWNER:-${_Z_OWNER}} ]]; then
+    chown ${ZSHZ_OWNER:-${_Z_OWNER}}:"$(id -ng ${ZSHZ_OWNER:_${_Z_OWNER}})" \
+      "$datafile"
+  fi
 
   # In order to make z -x work, we have to disable zsh-z's adding
   # to the database until the user changes directory and the
