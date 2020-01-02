@@ -95,8 +95,10 @@ With no ARGUMENT, list the directory history in ascending rank.
 [[ ${modules[zsh/system]} == 'loaded' ]] || zmodload zsh/system &> /dev/null
 
 # Load zsh/files, if necessary
-[[ ${builtins[zf_mv]} == 'defined' ]] && [[ ${builtins[zf_rm]} == 'defined' ]] \
-  || zmodload -F zsh/files b:zf_mv b:zf_rm
+[[ ${builtins[zf_chown]} == 'defined' ]] \
+  && [[ ${builtins[zf_mv]} == 'defined' ]] \
+  && [[ ${builtins[zf_rm]} == 'defined' ]] \
+  || zmodload -F zsh/files b:zf_chown b:zf_mv b:zf_rm
 
 # Global associative array for internal use
 typeset -gA ZSHZ
@@ -147,7 +149,7 @@ _zshz_add_path() {
       || zf_rm -f "$tempfile"
 
     if [[ -n ${ZSHZ_OWNER:-${_Z_OWNER}} ]]; then
-      chown ${ZSHZ_OWNER:-${_Z_OWNER}}:"$(id -ng ${ZSHZ_OWNER:_${_Z_OWNER}})" \
+      zf_chown ${ZSHZ_OWNER:-${_Z_OWNER}}:"$(id -ng ${ZSHZ_OWNER:_${_Z_OWNER}})" \
         "$datafile"
     fi
 
@@ -161,7 +163,7 @@ _zshz_add_path() {
       zf_rm -f "$tempfile"
     else
       if [[ -n ${ZSHZ_OWNER:-${_Z_OWNER}} ]]; then
-        chown "${ZSHZ_OWNER:-${_Z_OWNER}}":"$(id -ng "${ZSHZ_OWNER:-${_Z_OWNER}}")" \
+        zf_chown "${ZSHZ_OWNER:-${_Z_OWNER}}":"$(id -ng "${ZSHZ_OWNER:-${_Z_OWNER}}")" \
           "$tempfile"
       fi
       zf_mv -f "$tempfile" "$datafile" 2> /dev/null \
