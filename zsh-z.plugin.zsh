@@ -307,7 +307,7 @@ _zshz_remove_path() {
     || zf_rm -f "$tempfile"
 
   if [[ -n ${ZSHZ_OWNER:-${_Z_OWNER}} ]]; then
-    chown ${ZSHZ_OWNER:-${_Z_OWNER}}:"$(id -ng ${ZSHZ_OWNER:_${_Z_OWNER}})" \
+    zf_chown ${ZSHZ_OWNER:-${_Z_OWNER}}:"$(id -ng ${ZSHZ_OWNER:_${_Z_OWNER}})" \
       "$datafile"
   fi
 
