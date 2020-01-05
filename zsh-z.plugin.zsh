@@ -506,7 +506,7 @@ _zshz_find_matches() {
 ############################################################
 zshz() {
   emulate -L zsh
-  setopt LOCAL_OPTIONS WARN_CREATE_GLOBAL
+  (( ZSHZ_DEBUG )) && setopt LOCAL_OPTIONS WARN_CREATE_GLOBAL
 
   local -A opts
 
@@ -659,7 +659,7 @@ ZSHZ[FUNCTIONS]='_zshz_usage
 ############################################################
 # Enable WARN_NESTED_VAR for zsh-z chpwd_functions
 ############################################################
-() {
+(( ZSHZ_DEBUG )) && () {
   if is-at-least 5.4.0; then
     local x
     for x in ${=ZSHZ[FUNCTIONS]}; do

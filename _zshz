@@ -35,7 +35,8 @@
 # ZSH-z COMPLETIONS
 ############################################################
 emulate -L zsh
-setopt LOCAL_OPTIONS WARN_CREATE_GLOBAL WARN_NESTED_VAR 2> /dev/null
+(( ZSHZ_DEBUG )) && setopt LOCAL_OPTIONS WARN_CREATE_GLOBAL \
+  WARN_NESTED_VAR 2> /dev/null
 
 # TODO: This routine currently reproduces z's feature of allowing spaces to be
 # used as wildcards in completions, so that
