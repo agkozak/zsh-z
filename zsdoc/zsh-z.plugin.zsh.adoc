@@ -280,7 +280,7 @@ ____
  $1 Path to be removed
 ____
 
-Has 24 line(s). Doesn't call other functions.
+Has 29 line(s). Doesn't call other functions.
 
 Uses feature(s): _setopt_
 
