@@ -107,6 +107,16 @@ somewhere above the line that says `zgen save`. Then run
 
 to refresh your init script.
 
+### For [Zinit](https://github.com/zdharma/zinit) (formerly `zplugin`) users
+
+Add the line
+
+    zinit load agkozak/zsh-z
+
+to your `.zshrc`.
+
+`zsh-z` supports `zinit`'s `unload` feature; just run `zinit unload agkozak/zshz` to restore the shell to its state before `zsh-z` was loaded.
+
 ### For [zplug](https://github.com/zplug/zplug) users
 
 Add the line
@@ -119,16 +129,6 @@ somewhere above the line that says `zplug load`. Then run
     zplug load
 
 to install `zsh-z`.
-
-### For [zplugin](https://github.com/zdharma/zplugin) users
-
-Add the line
-
-    zplugin load agkozak/zsh-z
-
-to your `.zshrc`.
-
-`zsh-z` supports `zplugin`'s `unload` feature; just run `zplugin unload agkozak/zshz` to restore the shell to its state before `zsh-z` was loaded.
 
 ## Command Line Options
 
