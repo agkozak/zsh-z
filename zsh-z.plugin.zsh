@@ -331,17 +331,15 @@ _zshz_find_common_root() {
   common_matches=( ${(Pkv)1} )
 
   for x in ${(k)common_matches}; do
-    if (( common_matches[$x] )); then
-      if [[ -z $short ]] || (( $#x < $#short )); then
-        short=$x
-      fi
+    if [[ -z $short ]] || (( $#x < $#short )); then
+      short=$x
     fi
   done
 
   [[ $short == '/' ]] && return
 
   for x in ${(k)common_matches}; do
-    (( common_matches[$x] )) && [[ $x != $short* ]] && return
+    [[ $x != $short* ]] && return
   done
 
   print -z -- $short
