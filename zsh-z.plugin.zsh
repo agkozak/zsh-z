@@ -328,7 +328,7 @@ _zshz_find_common_root() {
   local -a common_matches
   local x short
 
-  common_matches=( ${(Pk)1} )
+  common_matches=( ${(Pk)1[@]} )
 
   for x in ${common_matches[@]}; do
     if [[ -z $short ]] || (( $#x < $#short )); then
