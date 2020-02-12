@@ -325,12 +325,12 @@ _zshz_remove_path() {
 #   $1 Name of associative array of matches and ranks
 ############################################################
 _zshz_find_common_root() {
-  local -A common_matches
+  local -a common_matches
   local x short
 
-  common_matches=( ${(Pkv)1} )
+  common_matches=( ${(Pk)1} )
 
-  for x in ${(k)common_matches}; do
+  for x in ${common_matches[@]}; do
     if [[ -z $short ]] || (( $#x < $#short )); then
       short=$x
     fi
@@ -338,7 +338,7 @@ _zshz_find_common_root() {
 
   [[ $short == '/' ]] && return
 
-  for x in ${(k)common_matches}; do
+  for x in ${common_matches[@]}; do
     [[ $x != $short* ]] && return
   done
 
