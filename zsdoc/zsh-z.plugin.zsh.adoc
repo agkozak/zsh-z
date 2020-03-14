@@ -135,7 +135,7 @@ ____
  $1 Name of associative array of matches and ranks
 ____
 
-Has 20 line(s). Doesn't call other functions.
+Has 18 line(s). Doesn't call other functions.
 
 Called by:
 
