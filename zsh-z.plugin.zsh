@@ -589,6 +589,10 @@ zshz() {
   local cd
   read -rz cd
 
+  while [[ $cd == *$fnd/* ]]; do
+    cd=${cd%/*}
+  done
+
   if (( ret2 == 0 )) && [[ -n $cd ]]; then
     if (( $+opts[-e] )); then               # echo
       print -- "$cd"
