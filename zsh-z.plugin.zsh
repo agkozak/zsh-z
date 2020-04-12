@@ -589,7 +589,7 @@ zshz() {
   local cd
   read -rz cd
 
-  while [[ $cd == *$fnd/* ]]; do
+  while [[ $cd == *$fnd*/* ]]; do
     cd=${cd%/*}
   done
 
