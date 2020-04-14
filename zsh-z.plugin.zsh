@@ -589,9 +589,14 @@ zshz() {
   local cd
   read -rz cd
 
-  while [[ $cd == *$fnd*/* ]]; do
-    cd=${cd%/*}
+  # If the user has typed z bar, and $cd is /foo/bar/bat, go to /foo/bar, not
+  # /foo/bar/bat, but never shorten the target path to the $HOME directory
+  local try_cd
+  try_cd=$cd
+  while [[ $try_cd == *$fnd*/* ]]; do
+    try_cd=${try_cd%/*}
   done
+  [[ $try_cd != $HOME ]] && cd=$try_cd
 
   if (( ret2 == 0 )) && [[ -n $cd ]]; then
     if (( $+opts[-e] )); then               # echo
