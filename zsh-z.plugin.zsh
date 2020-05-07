@@ -510,6 +510,7 @@ _zshz_find_matches() {
 ############################################################
 zshz() {
   emulate -L zsh
+  setopt LOCAL_OPTIONS EXTENDED_GLOB
   (( ZSHZ_DEBUG )) && setopt LOCAL_OPTIONS WARN_CREATE_GLOBAL
 
   local -A opts
@@ -589,14 +590,23 @@ zshz() {
   local cd
   read -rz cd
 
-  # If the user has typed z bar, and $cd is /foo/bar/bat, go to /foo/bar, not
-  # /foo/bar/bat, but never shorten the target path to the $HOME directory
-  local try_cd
-  try_cd=$cd
-  while [[ $try_cd == *$fnd*/* ]]; do
-    try_cd=${try_cd%/*}
-  done
-  [[ $try_cd != $HOME ]] && cd=$try_cd
+  # New experimental behavior
+  #
+  # If the best choice at this point is something like /foo/bar/foo/bar, and
+  # the search pattern is `bar', go to /foo/bar/foo/bar; but if the search
+  # pattern is `foo', go to /foo/bar/foo
+  if [[ -n $cd ]]; then
+    # In the search pattern, replace spaces with *
+    local q=${fnd// ##/*}
+    # Count the number of times the search pattern appears in the "best choice"
+    # that ZSH-z has come up with at this point
+    local times_q_occurs=$(( ( ${#cd} - ${#${cd//${~q}/}} ) / ${#${~q}} ))
+    # Try dropping directory elements from the right; stop when it changes the
+    # number of times the search pattern appears
+    until (( ( ( ${#cd:h} - ${#${${cd:h}//${~q}/}} ) / ${#${~q}} ) != times_q_occurs )); do
+      cd=${cd:h}
+    done
+  fi
 
   if (( ret2 == 0 )) && [[ -n $cd ]]; then
     if (( $+opts[-e] )); then               # echo
