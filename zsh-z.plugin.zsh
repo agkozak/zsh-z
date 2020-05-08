@@ -598,12 +598,11 @@ zshz() {
   if [[ -n $cd ]]; then
     # In the search pattern, replace spaces with *
     local q=${fnd// ##/*}
-    # Count the number of times the search pattern appears in the "best choice"
-    # that ZSH-z has come up with at this point
-    local times_q_occurs=$(( ( ${#cd} - ${#${cd//${~q}/}} ) / ${#${~q}} ))
-    # Try dropping directory elements from the right; stop when it changes the
-    # number of times the search pattern appears
-    until (( ( ( ${#cd:h} - ${#${${cd:h}//${~q}/}} ) / ${#${~q}} ) != times_q_occurs )); do
+    # Calculate the length of the best match with the search pattern removed from it
+    local cd_without_q=$(( ${#cd} - ${#${cd//${~q}/}} ))
+    # Try dropping directory elements from the right; stop when it affects how
+    # many times the search pattern appears
+    until (( ( ${#cd:h} - ${#${${cd:h}//${~q}/}} ) != cd_without_q )); do
       cd=${cd:h}
     done
   fi
