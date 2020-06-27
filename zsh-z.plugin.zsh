@@ -404,11 +404,11 @@ _zshz_output() {
       ;;
 
     *)
-      # if (( ! ZSHZ_UNCOMMON )) && [[ -n $common ]]; then
-      #   print -z -- $common
-      # else
+      if (( ! ZSHZ_UNCOMMON )) && [[ -n $common ]]; then
+        print -z -- $common
+      else
         print -z -- ${(P)match}
-      # fi
+      fi
       ;;
   esac
 }
@@ -594,34 +594,34 @@ zshz() {
 
   # New experimental "uncommon" behavior
   #
-  # If the best choice at this point is something like /foo/bar/foo/bar, and
-  # the search pattern is `bar', go to /foo/bar/foo/bar; but if the search
-  # pattern is `foo', go to /foo/bar/foo
-  # if (( ZSHZ_UNCOMMON )) && [[ -n $cd ]]; then
-  if [[ -n $cd ]]; then
+  # If the best choice at this point is something like /foo/bar/foo/bar, and the  # search pattern is `bar', go to /foo/bar/foo/bar; but if the search pattern
+  # is `foo', go to /foo/bar/foo
+  if (( ZSHZ_UNCOMMON )) && [[ -n $cd ]]; then
+    if [[ -n $cd ]]; then
 
-    # In the search pattern, replace spaces with *
-    local q=${fnd// ##/*}
+      # In the search pattern, replace spaces with *
+      local q=${fnd// ##/*}
 
-    # As long as the best match is not case-insensitive
-    if (( ! ZSHZ[CASE_INSENSITIVE] )); then
-      # Count the number of characters in $cd that $q matches
-      local q_chars=$(( ${#cd} - ${#${cd//${~q}/}} ))
-      # Try dropping directory elements from the right; stop when it affects how
-      # many times the search pattern appears
-      until (( ( ${#cd:h} - ${#${${cd:h}//${~q}/}} ) != q_chars )); do
-        cd=${cd:h}
-      done
+      # As long as the best match is not case-insensitive
+      if (( ! ZSHZ[CASE_INSENSITIVE] )); then
+        # Count the number of characters in $cd that $q matches
+        local q_chars=$(( ${#cd} - ${#${cd//${~q}/}} ))
+        # Try dropping directory elements from the right; stop when it affects
+        # how many times the search pattern appears
+        until (( ( ${#cd:h} - ${#${${cd:h}//${~q}/}} ) != q_chars )); do
+          cd=${cd:h}
+        done
 
-    # If the best match is case-insensitive
-    else
-      local q_chars=$(( ${#cd} - ${#${${cd:l}//${~${q:l}}/}} ))
-      until (( ( ${#cd:h} - ${#${${${cd:h}:l}//${~${q:l}}/}} ) != q_chars )); do
-        cd=${cd:h}
-      done
+      # If the best match is case-insensitive
+      else
+        local q_chars=$(( ${#cd} - ${#${${cd:l}//${~${q:l}}/}} ))
+        until (( ( ${#cd:h} - ${#${${${cd:h}:l}//${~${q:l}}/}} ) != q_chars )); do
+          cd=${cd:h}
+        done
+      fi
+
+      ZSHZ[CASE_INSENSITIVE]=0
     fi
-
-    ZSHZ[CASE_INSENSITIVE]=0
   fi
 
   if (( ret2 == 0 )) && [[ -n $cd ]]; then

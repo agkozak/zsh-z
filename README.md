@@ -168,6 +168,25 @@ ZSH-z has environment variables (they all begin with `ZSHZ_`) that change its be
 * `ZSHZ_NO_RESOLVE_SYMLINKS` prevents symlink resolution (default: `0`)
 * `ZSHZ_OWNER` allows usage when in `sudo -s` mode (default: empty)
 
+## `ZSHZ_UNCOMMON`
+
+A common complaint about the default behavior of `rupa/z` and `zsh-z` involves "common prefixes." If you type `z code` and the best matches, in increasing order, are
+
+    /home/me/code/foo
+    /home/me/code/bar
+    /home/me/code/bat
+
+`zsh-z` will see that all possible matches share a common prefix and will send you to that directory -- `/home/me/code` -- which is often a desirable result. But if the possible matches are
+
+    /home/me/.vscode/foo
+    /home/me/code/foo
+    /home/me/code/bar
+    /home/me/code/bat
+
+then there is no common prefix. In this case, `z code` will simply send you to the highest-ranking match, `/home/me/code/bat`.
+
+You may enable an alternate, experimental behavior by setting `ZSHZ_UNCOMMON=1`. If you do that, `zsh-z` will not jump to a common prefix, even if one exists. Instead, it chooses the highest-ranking match -- but it drops any subdirectories that do not include the search term. So if you type `z bat` and `/home/me/code/bat` is the best match, that is exactly where you will end up. If, however, you had typed `z code` and the best match was also `/home/me/code/bat`, you would have ended up in `/home/me/code` (because `code` was what you had searched for). This feature is still in development, and feedback is welcome.
+
 ## Improvements and Fixes
 
 * `z -x` works, with the help of `chpwd_functions`.
