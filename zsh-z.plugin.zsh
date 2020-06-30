@@ -188,7 +188,7 @@ _zshz_update_datafile() {
   local add_path=${(q)1}
 
   local -a lines existing_paths
-  local now=$EPOCHSECONDS line
+  local now=$EPOCHSECONDS line dir
   local datafile=${ZSHZ_DATA:-${_Z_DATA:-${HOME}/.z}}
   local path_field rank_field time_field count x
 
@@ -200,7 +200,13 @@ _zshz_update_datafile() {
 
   # Remove paths from database if they no longer exist
   for line in $lines; do
-    [[ -d ${line%%\|*} ]] && existing_paths+=( $line )
+    if [[ ! -d ${line%%\|*} ]]; then
+      for dir in $ZSHZ_KEEP_DIRS; do
+        [[ ${line%%\|*} == $dir/* ]] && existing_paths+=( $line )
+      done
+    else
+      existing_paths+=( $line )
+    fi
   done
   lines=( $existing_paths )
 
@@ -444,7 +450,7 @@ _zshz_find_matches() {
   [[ -f $datafile ]] || return
 
   local -a lines existing_paths
-  local line path_field rank_field time_field rank dx
+  local line dir path_field rank_field time_field rank dx
   local -A matches imatches
   local best_match ibest_match hi_rank=-9999999999 ihi_rank=-9999999999
 
@@ -453,7 +459,13 @@ _zshz_find_matches() {
 
   # Remove paths from database if they no longer exist
   for line in $lines; do
-    [[ -d ${line%%\|*} ]] && existing_paths+=( $line )
+    if [[ ! -d ${line%%\|*} ]]; then
+      for dir in $ZSHZ_KEEP_DIRS; do
+        [[ ${line%%\|*} == $dir/* ]] && existing_paths+=( $line )
+      done
+    else
+      existing_paths+=( $line )
+    fi
   done
   lines=( $existing_paths )
 
