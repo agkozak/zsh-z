@@ -201,7 +201,7 @@ _zshz_update_datafile() {
   # Remove paths from database if they no longer exist
   for line in $lines; do
     if [[ ! -d ${line%%\|*} ]]; then
-      for dir in $ZSHZ_KEEP_DIRS; do
+      for dir in ${ZSHZ_KEEP_DIRS[@]}; do
         if [[ ${line%%\|*} == ${dir}/* ]] \
           || [[ ${line%%\|*} == ${dir} ]] \
           || [[ $dir = / ]]; then
@@ -464,7 +464,7 @@ _zshz_find_matches() {
   # Remove paths from database if they no longer exist
   for line in $lines; do
     if [[ ! -d ${line%%\|*} ]]; then
-      for dir in $ZSHZ_KEEP_DIRS; do
+      for dir in ${ZSHZ_KEEP_DIRS[@]}; do
         if [[ ${line%%\|*} == ${dir}/* ]] \
           || [[ ${line%%\|*} == ${dir} ]] \
           || [[ $dir = / ]]; then
