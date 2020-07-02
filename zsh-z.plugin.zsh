@@ -203,7 +203,7 @@ _zshz_update_datafile() {
     if [[ ! -d ${line%%\|*} ]]; then
       for dir in ${ZSHZ_KEEP_DIRS[@]}; do
         if [[ ${line%%\|*} == ${dir}/* ]] \
-          || [[ ${line%%\|*} == ${dir} ]] \
+          || [[ ${line%%\|*} == $dir ]] \
           || [[ $dir = / ]]; then
           existing_paths+=( $line )
         fi
@@ -466,7 +466,7 @@ _zshz_find_matches() {
     if [[ ! -d ${line%%\|*} ]]; then
       for dir in ${ZSHZ_KEEP_DIRS[@]}; do
         if [[ ${line%%\|*} == ${dir}/* ]] \
-          || [[ ${line%%\|*} == ${dir} ]] \
+          || [[ ${line%%\|*} == $dir ]] \
           || [[ $dir = / ]]; then
           existing_paths+=( $line )
         fi
