@@ -52,9 +52,10 @@
 #     ZSHZ_CMD -> name of command (default: z)
 #     ZSHZ_COMPLETION -> completion method (default: 'frecent'; 'legacy' for alphabetic sorting)
 #     ZSHZ_DATA -> name of datafile (default: ~/.z)
+#     ZSHZ_EXCLUDE_DIRS -> array of directories to exclude from your database (default: empty)
+#     ZSHZ_KEEP_DIRS -> array of directories that should not be removed from the database, even if they are not currently available (default: empty)
 #     ZSHZ_MAX_SCORE -> maximum combined score the database entries can have before beginning to age (default: 9000)
 #     ZSHZ_NO_RESOLVE_SYMLINKS -> '1' prevents symlink resolution
-#     ZSHZ_EXCLUDE_DIRS -> array of directories to exclude from your database
 #     ZSHZ_OWNER -> your username (if you want use ZSH-z while using sudo -s) }}}
 #
 # vim: fdm=indent:ts=2:et:sts=2:sw=2:
