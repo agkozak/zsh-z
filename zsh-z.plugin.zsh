@@ -274,7 +274,7 @@ _zshz_legacy_complete() {
 
     # If the search string is all lowercase, the search will be case-insensitive
     if [[ $1 == "${1:l}" ]] && [[ ${path_field:l} == *${~1}* ]]; then
-        print -- $path_field
+      print -- $path_field
     # Otherwise, case-sensitive
     elif [[ $path_field == *${~1}* ]]; then
       print -- $path_field
