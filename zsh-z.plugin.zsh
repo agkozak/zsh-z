@@ -552,7 +552,7 @@ zshz() {
         fi
         output_format='completion'
         ;;
-      -c) set -- "$PWD $*" ;;
+      -c) [[ $* == ${PWD}/* ]] || set -- "$PWD $*" ;;
       -h|--help)
         _zshz_usage
         return

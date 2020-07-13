@@ -54,7 +54,7 @@ emulate -L zsh
 # Address.
 
 # Don't try to complete a string beginning with a hyphen
-[[ ${(@)words:1} == -* ]] && return 1
+# [[ ${(@)words:1} == -* ]] && return 1
 
 local completions
 
