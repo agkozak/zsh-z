@@ -71,7 +71,7 @@ ____
  $* Command options and arguments
 ____
 
-Has 84 line(s). Calls functions:
+Has 103 line(s). Calls functions:
 
  zshz
  |-- _zshz_add_path
@@ -157,7 +157,7 @@ ____
  to editing buffer stack)
 ____
 
-Has 57 line(s). Calls functions:
+Has 58 line(s). Calls functions:
 
  _zshz_find_matches
  `-- _zshz_output

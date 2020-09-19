@@ -530,7 +530,7 @@ zshz() {
 
   if [[ $1 == '--' ]]; then
     shift
-  elif [[ -n ${(M)@:#-*} ]]; then
+  elif [[ -n ${(M)@:#-*} ]] && [[ -z $compstate ]]; then
     print "Improper option(s) given."
     _zshz_usage
     return 1
@@ -552,7 +552,7 @@ zshz() {
         fi
         output_format='completion'
         ;;
-      -c) set -- "$PWD $*" ;;
+      -c) [[ $* == ${PWD}/* ]] || [[ $PWD == '/' ]] || set -- "$PWD $*" ;;
       -h|--help)
         _zshz_usage
         return
