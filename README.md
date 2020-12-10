@@ -22,6 +22,7 @@ ZSH-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
 - [Settings](#settings)
 - [`ZSHZ_UNCOMMON`](#zshz_uncommon)
 - [Improvements and Fixes](#improvements-and-fixes)
+- [Migrating from Other Tools](#migrating-from-other-tools)
 - [Known Bugs](#known-bugs)
 
 ## Installation
@@ -199,6 +200,11 @@ You may enable an alternate, experimental behavior by setting `ZSHZ_UNCOMMON=1`.
 * Exit status codes increasingly make sense.
 * Completions work with options `-c`, `-r`, and `-t`.
 
+## Migrating from Other Tools
+
+ZSH-z's database format is identical to that of `rupa/z`. You may switch freely between the two tools (I still use `rupa/z` for `bash`). `fasd` also uses that database format, but it stores it by default in `~/.fasd`, so you will have to `cp ~/.fasd ~/.z` if you want to use your old directory history.
+
+If you are coming to ZSH-z (or even to the original `rupa/z`, for that matter) from `autojump`, try using my [`jumpstart-z`](https://github.com/agkozak/jumpstart-z/blob/master/jumpstart-z) tool to convert your old database to the ZSH-z format.
 
 ## Known Bugs
 * It is possible to run a completion on a string with spaces in it, e.g. `z us bi<TAB>` might take you to `/usr/local/bin`. This works, but as things stand, after the completion the command line reads `z us /usr/local/bin`. This is also the behavior of `rupa/z`, but I keen on eventually eliminating this glitch.
