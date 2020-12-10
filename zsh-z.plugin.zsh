@@ -115,6 +115,8 @@ zsystem supports flock &> /dev/null && ZSHZ[USE_FLOCK]=1
 _zshz_add_path() {
 
   local datafile=${ZSHZ_DATA:-${_Z_DATA:-${HOME}/.z}}
+  # If datafile is a symlink, dereference it
+  [[ -h $datafile ]] && datafile=${datafile:A}
 
   # $HOME isn't worth matching
   [[ $* == "$HOME" ]] && return
@@ -284,6 +286,8 @@ _zshz_remove_path() {
   setopt LOCAL_OPTIONS EXTENDED_GLOB
 
   local datafile=${ZSHZ_DATA:-${_Z_DATA:-${HOME}/.z}}
+  # If datafile is a symlink, dereference it
+  [[ -h $datafile ]] && datafile=${datafile:A}
 
   if (( ZSHZ[USE_FLOCK] )); then
     [[ -f $datafile ]] || touch $datafile
