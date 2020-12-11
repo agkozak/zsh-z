@@ -479,7 +479,7 @@ _zshz_find_matches() {
     # Use spaces as wildcards
     local q=${fnd// ##/*}
 
-    if [[ $path_field == ${~q} ]]; then
+    if [[ $ZSHZ_CASE != 'ignore' && $path_field == ${~q} ]]; then
       matches[$path_field]=$rank
     elif [[ ${path_field:l} == ${~q:l} ]]; then
       imatches[$path_field]=$rank
