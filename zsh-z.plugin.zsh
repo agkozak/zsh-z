@@ -649,7 +649,7 @@ zshz() {
     if (( $+opts[-e] )); then               # echo
       print -- "$cd"
     else
-      builtin cd "$cd"
+      [[ -d $cd ]] && builtin cd "$cd"
     fi
   else
     return $ret2
