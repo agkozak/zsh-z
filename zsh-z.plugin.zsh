@@ -52,9 +52,10 @@
 #     ZSHZ_CMD -> name of command (default: z)
 #     ZSHZ_COMPLETION -> completion method (default: 'frecent'; 'legacy' for alphabetic sorting)
 #     ZSHZ_DATA -> name of datafile (default: ~/.z)
+#     ZSHZ_EXCLUDE_DIRS -> array of directories to exclude from your database (default: empty)
+#     ZSHZ_KEEP_DIRS -> array of directories that should not be removed from the database, even if they are not currently available (default: empty)
 #     ZSHZ_MAX_SCORE -> maximum combined score the database entries can have before beginning to age (default: 9000)
 #     ZSHZ_NO_RESOLVE_SYMLINKS -> '1' prevents symlink resolution
-#     ZSHZ_EXCLUDE_DIRS -> array of directories to exclude from your database
 #     ZSHZ_OWNER -> your username (if you want use ZSH-z while using sudo -s) }}}
 #
 # vim: fdm=indent:ts=2:et:sts=2:sw=2:
@@ -190,7 +191,7 @@ _zshz_update_datafile() {
   local add_path=${(q)1}
 
   local -a lines existing_paths
-  local now=$EPOCHSECONDS line
+  local now=$EPOCHSECONDS line dir
   local datafile=${ZSHZ_DATA:-${_Z_DATA:-${HOME}/.z}}
   local path_field rank_field time_field count x
 
@@ -202,7 +203,17 @@ _zshz_update_datafile() {
 
   # Remove paths from database if they no longer exist
   for line in $lines; do
-    [[ -d ${line%%\|*} ]] && existing_paths+=( $line )
+    if [[ ! -d ${line%%\|*} ]]; then
+      for dir in ${ZSHZ_KEEP_DIRS[@]}; do
+        if [[ ${line%%\|*} == ${dir}/* ||
+              ${line%%\|*} == $dir     ||
+              $dir = / ]]; then
+          existing_paths+=( $line )
+        fi
+      done
+    else
+      existing_paths+=( $line )
+    fi
   done
   lines=( $existing_paths )
 
@@ -265,7 +276,7 @@ _zshz_legacy_complete() {
 
     # If the search string is all lowercase, the search will be case-insensitive
     if [[ $1 == "${1:l}" ]] && [[ ${path_field:l} == *${~1}* ]]; then
-        print -- $path_field
+      print -- $path_field
     # Otherwise, case-sensitive
     elif [[ $path_field == *${~1}* ]]; then
       print -- $path_field
@@ -448,7 +459,7 @@ _zshz_find_matches() {
   [[ -f $datafile ]] || return
 
   local -a lines existing_paths
-  local line path_field rank_field time_field rank dx
+  local line dir path_field rank_field time_field rank dx
   local -A matches imatches
   local best_match ibest_match hi_rank=-9999999999 ihi_rank=-9999999999
 
@@ -457,7 +468,17 @@ _zshz_find_matches() {
 
   # Remove paths from database if they no longer exist
   for line in $lines; do
-    [[ -d ${line%%\|*} ]] && existing_paths+=( $line )
+    if [[ ! -d ${line%%\|*} ]]; then
+      for dir in ${ZSHZ_KEEP_DIRS[@]}; do
+        if [[ ${line%%\|*} == ${dir}/* ||
+              ${line%%\|*} == $dir     ||
+              $dir = / ]]; then
+          existing_paths+=( $line )
+        fi
+      done
+    else
+      existing_paths+=( $line )
+    fi
   done
   lines=( $existing_paths )
 
@@ -632,7 +653,7 @@ zshz() {
     if (( $+opts[-e] )); then               # echo
       print -- "$cd"
     else
-      builtin cd "$cd"
+      [[ -d $cd ]] && builtin cd "$cd"
     fi
   else
     return $ret2

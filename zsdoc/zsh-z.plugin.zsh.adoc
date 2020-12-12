@@ -40,7 +40,8 @@ ENVIRONMENT VARIABLES
 |ZSHZ_CMD|name of command (default: z)
 |ZSHZ_COMPLETION|completion method (default: 'frecent'; 'legacy' for alphabetic sorting)
 |ZSHZ_DATA|name of datafile (default: ~/.z)
-|ZSHZ_EXCLUDE_DIRS|array of directories to exclude from your database
+|ZSHZ_EXCLUDE_DIRS|array of directories to exclude from your database (default: empty)
+|ZSHZ_KEEP_DIRS|array of directories that should not be removed from the database, even if they are not currently available (default: empty)
 |ZSHZ_MAX_SCORE|maximum combined score the database entries can have before beginning to age (default: 9000)
 |ZSHZ_NO_RESOLVE_SYMLINKS|'1' prevents symlink resolution
 |ZSHZ_OWNER|your username (if you want use ZSH-z while using sudo -s) 
@@ -100,7 +101,7 @@ ____
  $1 Path to be added
 ____
 
-Has 42 line(s). Calls functions:
+Has 43 line(s). Calls functions:
 
  _zshz_add_path
  `-- _zshz_update_datafile
@@ -157,7 +158,7 @@ ____
  to editing buffer stack)
 ____
 
-Has 58 line(s). Calls functions:
+Has 68 line(s). Calls functions:
 
  _zshz_find_matches
  `-- _zshz_output
@@ -280,7 +281,7 @@ ____
  $1 Path to be removed
 ____
 
-Has 29 line(s). Doesn't call other functions.
+Has 30 line(s). Doesn't call other functions.
 
 Uses feature(s): _setopt_
 
@@ -301,7 +302,7 @@ ____
  $1 Path to be added to datafile
 ____
 
-Has 40 line(s). Doesn't call other functions.
+Has 50 line(s). Doesn't call other functions.
 
 Called by:
 
