@@ -158,7 +158,7 @@ ____
  to editing buffer stack)
 ____
 
-Has 68 line(s). Calls functions:
+Has 71 line(s). Calls functions:
 
  _zshz_find_matches
  `-- _zshz_output
