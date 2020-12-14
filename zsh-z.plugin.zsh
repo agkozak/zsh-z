@@ -85,9 +85,9 @@ With no ARGUMENT, list the directory history in ascending rank.
 }
 
 # If the datafile is a directory, print a warning
-[[ -d ${ZSHZ_DATA:-${_Z_DATA:-${HOME}/.z}} ]] && {
+if [[ -d ${ZSHZ_DATA:-${_Z_DATA:-${HOME}/.z}} ]]; then
   print "ERROR: ZSH-z's datafile (${ZSHZ_DATA:-${_Z_DATA:-${HOME}/.z}}) is a directory." >&2
-}
+fi
 
 # Load zsh/datetime module, if necessary
 (( $+EPOCHSECONDS )) || zmodload zsh/datetime
@@ -96,10 +96,10 @@ With no ARGUMENT, list the directory history in ascending rank.
 [[ ${modules[zsh/system]} == 'loaded' ]] || zmodload zsh/system &> /dev/null
 
 # Load zsh/files, if necessary
-[[ ${builtins[zf_chown]} == 'defined' ]] \
-  && [[ ${builtins[zf_mv]} == 'defined' ]] \
-  && [[ ${builtins[zf_rm]} == 'defined' ]] \
-  || zmodload -F zsh/files b:zf_chown b:zf_mv b:zf_rm
+[[ ${builtins[zf_chown]} == 'defined' ]] &&
+  [[ ${builtins[zf_mv]} == 'defined' ]] &&
+  [[ ${builtins[zf_rm]} == 'defined' ]] ||
+  zmodload -F zsh/files b:zf_chown b:zf_mv b:zf_rm
 
 # Global associative array for internal use
 typeset -gA ZSHZ
@@ -148,8 +148,7 @@ _zshz_add_path() {
     fi
 
     _zshz_update_datafile "$*" >| "$tempfile"
-    zf_mv "$tempfile" "$datafile" \
-      || zf_rm -f "$tempfile"
+    zf_mv "$tempfile" "$datafile" || zf_rm -f "$tempfile"
 
     if [[ -n ${ZSHZ_OWNER:-${_Z_OWNER}} ]]; then
       zf_chown ${ZSHZ_OWNER:-${_Z_OWNER}}:"$(id -ng ${ZSHZ_OWNER:_${_Z_OWNER}})" \
@@ -169,8 +168,7 @@ _zshz_add_path() {
         zf_chown "${ZSHZ_OWNER:-${_Z_OWNER}}":"$(id -ng "${ZSHZ_OWNER:-${_Z_OWNER}}")" \
           "$tempfile"
       fi
-      zf_mv -f "$tempfile" "$datafile" 2> /dev/null \
-        || zf_rm -f "$tempfile"
+      zf_mv -f "$tempfile" "$datafile" 2> /dev/null || zf_rm -f "$tempfile"
     fi
   fi
 }
@@ -318,8 +316,7 @@ _zshz_remove_path() {
 
   local tempfile="${datafile}.${RANDOM}"
   print -l -- $lines > "$tempfile"
-  zf_mv -f "$tempfile" "$datafile" \
-    || zf_rm -f "$tempfile"
+  zf_mv -f "$tempfile" "$datafile" || zf_rm -f "$tempfile"
 
   if [[ -n ${ZSHZ_OWNER:-${_Z_OWNER}} ]]; then
     zf_chown ${ZSHZ_OWNER:-${_Z_OWNER}}:"$(id -ng ${ZSHZ_OWNER:_${_Z_OWNER}})" \
@@ -451,8 +448,8 @@ _zshz_find_matches() {
   [[ -h $datafile ]] && datafile=${datafile:A}
 
   # Bail if we don't own the datafile and $ZSHZ_OWNER is not set
-  [[ -z ${ZSHZ_OWNER:-${_Z_OWNER}} ]] && [[ -f $datafile ]] \
-    && [[ ! -O $datafile ]] && return
+  [[ -z ${ZSHZ_OWNER:-${_Z_OWNER}} ]] && [[ -f $datafile ]] &&
+    [[ ! -O $datafile ]] && return
 
   # If there is no datafile yet
   # https://github.com/rupa/z/pull/256
@@ -517,12 +514,12 @@ _zshz_find_matches() {
       imatches[$path_field]=$rank
     fi
 
-    if (( matches[$path_field] )) \
-      && (( matches[$path_field] > hi_rank )); then
+    if (( matches[$path_field] )) &&
+      (( matches[$path_field] > hi_rank )); then
       best_match=$path_field
       hi_rank=${matches[$path_field]}
-    elif (( imatches[$path_field] )) \
-      && (( imatches[$path_field] > ihi_rank )); then
+    elif (( imatches[$path_field] )) &&
+      (( imatches[$path_field] > ihi_rank )); then
       ibest_match=$path_field
       ihi_rank=${imatches[$path_field]}
       ZSHZ[CASE_INSENSITIVE]=1
@@ -581,14 +578,14 @@ zshz() {
         return
         ;;
       --complete)
-        if [[ -s $datafile ]] \
-          && [[ ${ZSHZ_COMPLETION:-frecent} == 'legacy' ]]; then
+        if [[ -s $datafile ]] &&
+          [[ ${ZSHZ_COMPLETION:-frecent} == 'legacy' ]]; then
           _zshz_legacy_complete "$1"
           return
         fi
         output_format='completion'
         ;;
-      -c) [[ $* == ${PWD}/* ]] || [[ $PWD == '/' ]] || set -- "$PWD $*" ;;
+      -c) [[ $* == ${PWD}/* || $PWD == '/' ]] || set -- "$PWD $*" ;;
       -h|--help)
         _zshz_usage
         return
@@ -604,7 +601,7 @@ zshz() {
   done
   fnd="$*"
 
-  [[ -n $fnd ]] && [[ $fnd != "$PWD " ]] || {
+  [[ -n $fnd && $fnd != "$PWD " ]] || {
     [[ $output_format != 'completion' ]] && output_format='list'
   }
 
@@ -765,8 +762,8 @@ zsh-z_plugin_unload() {
 
   fpath=("${(@)fpath:#${0:A:h}}")
 
-  alias ${ZSHZ_CMD:-${_Z_CMD:-z}} &> /dev/null \
-    && unalias ${ZSHZ_CMD:-${_Z_CMD:-z}}
+  alias ${ZSHZ_CMD:-${_Z_CMD:-z}} &> /dev/null &&
+    unalias ${ZSHZ_CMD:-${_Z_CMD:-z}}
 
   unfunction $0
 }

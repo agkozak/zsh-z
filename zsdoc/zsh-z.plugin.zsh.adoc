@@ -101,7 +101,7 @@ ____
  $1 Path to be added
 ____
 
-Has 43 line(s). Calls functions:
+Has 41 line(s). Calls functions:
 
  _zshz_add_path
  `-- _zshz_update_datafile
@@ -281,7 +281,7 @@ ____
  $1 Path to be removed
 ____
 
-Has 30 line(s). Doesn't call other functions.
+Has 29 line(s). Doesn't call other functions.
 
 Uses feature(s): _setopt_
 
