@@ -17,13 +17,27 @@ There are other, smaller improvements which I try to document in [Improvements a
 ZSH-z is a drop-in replacement for `rupa/z` and will, by default, use the same database (`~/.z`), so you can go on using `rupa/z` when you launch `bash`.
 
 ## Table of Contents
+- [News](#news)
 - [Installation](#installation)
 - [Command Line Options](#command-line-options)
 - [Settings](#settings)
+- [Case Sensitivity](#case-sensitivity)
 - [`ZSHZ_UNCOMMON`](#zshz_uncommon)
 - [Improvements and Fixes](#improvements-and-fixes)
 - [Migrating from Other Tools](#migrating-from-other-tools)
 - [Known Bugs](#known-bugs)
+
+## News
+
+<details>
+    <summary>Here are the latest features and updates.</summary>
+
+- December 22, 2020
+  + `ZSHZ_CASE`: when set to `ignore`, pattern matching is case-insensitive; when set to `smart`, patterns are matched case-insensitively when they are all lowercase and case-sensitively when they have uppercase characters in them (a behavior very much like Vim's `smartcase` setting).
+  + `ZSHZ_KEEP_DIRS` is an array of directory names that should not be removed from the database, even if they are not currently available (useful when a drive is not always mounted).
+  + Symlinked datafiles were having their symlinks overwritten; this bug has been fixed.
+
+</details>
 
 ## Installation
 
@@ -170,6 +184,18 @@ ZSH-z has environment variables (they all begin with `ZSHZ_`) that change its be
 * `ZSHZ_MAX_SCORE` is the maximum combined score the database entries can have before they begin to age and potentially drop out of the database (default: 9000)
 * `ZSHZ_NO_RESOLVE_SYMLINKS` prevents symlink resolution (default: `0`)
 * `ZSHZ_OWNER` allows usage when in `sudo -s` mode (default: empty)
+
+## Case sensitivity
+
+The default behavior of ZSH-z is to try to find a case-sensitive match. If there is none, then ZSH-z tries to find a case-insensitive match.
+
+Some users prefer simple case-insensitivity; this behavior can be enabled by setting
+
+    ZSHZ_CASE=ignore
+
+If you like Vim's `smartcase` setting, where lowercase patterns are case-insensitive while patterns with any uppercase characters are treated case-sensitively, try setting
+
+    ZSHZ_CASE=smart
 
 ## `ZSHZ_UNCOMMON`
 
