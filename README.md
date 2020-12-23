@@ -234,4 +234,8 @@ ZSH-z's database format is identical to that of `rupa/z`. You may switch freely 
 If you are coming to ZSH-z (or even to the original `rupa/z`, for that matter) from `autojump`, try using my [`jumpstart-z`](https://github.com/agkozak/jumpstart-z/blob/master/jumpstart-z) tool to convert your old database to the ZSH-z format.
 
 ## Known Bugs
-* It is possible to run a completion on a string with spaces in it, e.g. `z us bi<TAB>` might take you to `/usr/local/bin`. This works, but as things stand, after the completion the command line reads `z us /usr/local/bin`. This is also the behavior of `rupa/z`, but I keen on eventually eliminating this glitch.
+It is possible to run a completion on a string with spaces in it, e.g. `z us bi<TAB>` might take you to `/usr/local/bin`. This works, but as things stand, after the completion the command line reads
+
+    z us /usr/local/bin.
+
+You get where you want to go, but the detritus on the command line is annoying. This is also a problem in `rupa/z`, but I am keen on eventually eliminating this glitch. Advice is welcome.
