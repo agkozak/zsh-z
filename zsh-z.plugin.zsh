@@ -56,7 +56,8 @@
 #     ZSHZ_KEEP_DIRS -> array of directories that should not be removed from the database, even if they are not currently available (default: empty)
 #     ZSHZ_MAX_SCORE -> maximum combined score the database entries can have before beginning to age (default: 9000)
 #     ZSHZ_NO_RESOLVE_SYMLINKS -> '1' prevents symlink resolution
-#     ZSHZ_OWNER -> your username (if you want use ZSH-z while using sudo -s) }}}
+#     ZSHZ_OWNER -> your username (if you want use ZSH-z while using sudo -s)
+#     ZSHZ_CASE -> if `ignore', pattern matching is case-insensitive; if `smart', pattern matching is case-insensitive only when the pattern is all lowercase }}}
 #
 # vim: fdm=indent:ts=2:et:sts=2:sw=2:
 
