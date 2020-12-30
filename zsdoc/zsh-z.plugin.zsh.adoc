@@ -60,7 +60,7 @@ Has 53 line(s). Calls functions:
  |-- add-zsh-hook
  `-- is-at-least
 
-Uses feature(s): _alias_, _autoload_, _zmodload_
+Uses feature(s): _add-zsh-hook_, _alias_, _autoload_, _is-at-least_, _zmodload_
 
 zshz
 ~~~~
@@ -73,7 +73,7 @@ ____
  $* Command options and arguments
 ____
 
-Has 103 line(s). Calls functions:
+Has 102 line(s). Calls functions:
 
  zshz
  |-- _zshz_add_path
@@ -85,7 +85,7 @@ Has 103 line(s). Calls functions:
  |-- _zshz_remove_path
  `-- _zshz_usage
 
-Uses feature(s): _read_, _zparseopts_
+Uses feature(s): _read_, _setopt_, _zparseopts_
 
 Called by:
 
@@ -159,11 +159,13 @@ ____
  to editing buffer stack)
 ____
 
-Has 71 line(s). Calls functions:
+Has 69 line(s). Calls functions:
 
  _zshz_find_matches
  `-- _zshz_output
      `-- _zshz_find_common_root
+
+Uses feature(s): _setopt_
 
 Called by:
 
@@ -187,6 +189,8 @@ ____
 ____
 
 Has 19 line(s). Doesn't call other functions.
+
+Uses feature(s): _setopt_
 
 Called by:
 
@@ -217,7 +221,7 @@ Has 48 line(s). Calls functions:
  _zshz_output
  `-- _zshz_find_common_root
 
-Uses feature(s): _read_
+Uses feature(s): _read_, _setopt_
 
 Called by:
 
@@ -238,7 +242,7 @@ Has 18 line(s). Calls functions:
  zsh-z_plugin_unload
  `-- add-zsh-hook
 
-Uses feature(s): _alias_, _unalias_, _unfunction_
+Uses feature(s): _add-zsh-hook_, _alias_, _unalias_, _unfunction_
 
 Not called by script or any function (may be e.g. a hook, a Zle widget, etc.).
 
@@ -280,6 +284,8 @@ ____
 
 Has 29 line(s). Doesn't call other functions.
 
+Uses feature(s): _setopt_
+
 Called by:
 
  zshz
@@ -320,6 +326,20 @@ Called by:
 add-zsh-hook
 ~~~~~~~~~~~~
 
+____
+ 
+ Add to HOOK the given FUNCTION.
+ HOOK is one of chpwd, precmd, preexec, periodic, zshaddhistory,
+ zshexit, zsh_directory_name (the _functions subscript is not required).
+ 
+ With -d, remove the function from the hook instead; delete the hook
+ variable if it is empty.
+ 
+ -D behaves like -d, but pattern characters are active in the
+ function name, so any matching function will be deleted from the hook.
+ 
+____
+
 Has 93 line(s). Doesn't call other functions.
 
 Uses feature(s): _autoload_, _getopts_
@@ -331,6 +351,20 @@ Called by:
 
 is-at-least
 ~~~~~~~~~~~
+
+____
+ 
+ 
+ Test whether $ZSH_VERSION (or some value of your choice, if a second argument
+ is provided) is greater than or equal to x.y.z-r (in argument one). In fact,
+ it'll accept any dot/dash-separated string of numbers as its second argument
+ and compare it to the dot/dash-separated first argument. Leading non-number
+ parts of a segment (such as the "zefram" in 3.1.2-zefram4) are not considered
+ when the comparison is done; only the numbers matter. Any left-out segments
+ in the first argument that are present in the version string compared are
+ considered as zeroes, eg 3 == 3.0 == 3.0.0 == 3.0.0.0 and so on.
+ 
+____
 
 Has 56 line(s). Doesn't call other functions.
 
