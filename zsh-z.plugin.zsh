@@ -97,9 +97,9 @@ fi
 [[ ${modules[zsh/system]} == 'loaded' ]] || zmodload zsh/system &> /dev/null
 
 # Load zsh/files, if necessary
-[[ ${builtins[zf_chown]} == 'defined' ]] &&
-  [[ ${builtins[zf_mv]} == 'defined' ]] &&
-  [[ ${builtins[zf_rm]} == 'defined' ]] ||
+[[ ${builtins[zf_chown]} == 'defined' &&
+   ${builtins[zf_mv]} == 'defined'    &&
+   ${builtins[zf_rm]} == 'defined'    ]] ||
   zmodload -F zsh/files b:zf_chown b:zf_mv b:zf_rm
 
 # Global associative array for internal use
@@ -274,7 +274,7 @@ _zshz_legacy_complete() {
     path_field=${line%%\|*}
 
     # If the search string is all lowercase, the search will be case-insensitive
-    if [[ $1 == "${1:l}" ]] && [[ ${path_field:l} == *${~1}* ]]; then
+    if [[ $1 == "${1:l}" && ${path_field:l} == *${~1}* ]]; then
       print -- $path_field
     # Otherwise, case-sensitive
     elif [[ $path_field == *${~1}* ]]; then
@@ -449,8 +449,8 @@ _zshz_find_matches() {
   [[ -h $datafile ]] && datafile=${datafile:A}
 
   # Bail if we don't own the datafile and $ZSHZ_OWNER is not set
-  [[ -z ${ZSHZ_OWNER:-${_Z_OWNER}} ]] && [[ -f $datafile ]] &&
-    [[ ! -O $datafile ]] && return
+  [[ -z ${ZSHZ_OWNER:-${_Z_OWNER}} && -f $datafile && ! -O $datafile ]] &&
+    return
 
   # If there is no datafile yet
   # https://github.com/rupa/z/pull/256
@@ -515,12 +515,10 @@ _zshz_find_matches() {
       imatches[$path_field]=$rank
     fi
 
-    if (( matches[$path_field] )) &&
-      (( matches[$path_field] > hi_rank )); then
+    if (( matches[$path_field] && matches[$path_field] > hi_rank )); then
       best_match=$path_field
       hi_rank=${matches[$path_field]}
-    elif (( imatches[$path_field] )) &&
-      (( imatches[$path_field] > ihi_rank )); then
+    elif (( imatches[$path_field] && imatches[$path_field] > ihi_rank )); then
       ibest_match=$path_field
       ihi_rank=${imatches[$path_field]}
       ZSHZ[CASE_INSENSITIVE]=1
@@ -528,7 +526,7 @@ _zshz_find_matches() {
   done
 
   # Return 1 when there are no matches
-  [[ -z $best_match ]] && [[ -z $ibest_match ]] && return 1
+  [[ -z $best_match && -z $ibest_match ]] && return 1
 
   if [[ -n $best_match ]]; then
     _zshz_output matches best_match $format
@@ -564,7 +562,7 @@ zshz() {
 
   if [[ $1 == '--' ]]; then
     shift
-  elif [[ -n ${(M)@:#-*} ]] && [[ -z $compstate ]]; then
+  elif [[ -n ${(M)@:#-*} && -z $compstate ]]; then
     print "Improper option(s) given."
     _zshz_usage
     return 1
@@ -579,8 +577,7 @@ zshz() {
         return
         ;;
       --complete)
-        if [[ -s $datafile ]] &&
-          [[ ${ZSHZ_COMPLETION:-frecent} == 'legacy' ]]; then
+        if [[ -s $datafile && ${ZSHZ_COMPLETION:-frecent} == 'legacy' ]]; then
           _zshz_legacy_complete "$1"
           return
         fi
@@ -606,7 +603,7 @@ zshz() {
     [[ $output_format != 'completion' ]] && output_format='list'
   }
 
-  if [[ ${@: -1} == /* ]] && (( ! $+opts[-e] )) && (( ! $+opts[-l] )); then
+  if [[ ${@: -1} == /* ]] && (( ! $+opts[-e] && ! $+opts[-l] )); then
     [[ -d ${@: -1} ]] && builtin cd ${@: -1} && return
   fi
 
