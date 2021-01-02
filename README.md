@@ -25,7 +25,7 @@ ZSH-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
 - [`ZSHZ_UNCOMMON`](#zshz_uncommon)
 - [Improvements and Fixes](#improvements-and-fixes)
 - [Migrating from Other Tools](#migrating-from-other-tools)
-- [`COMPLETE_ALIASES`](#setopt-complete_aliases)
+- [`COMPLETE_ALIASES`](#complete_aliases)
 - [Known Bugs](#known-bugs)
 
 ## News
