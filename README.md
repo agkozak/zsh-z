@@ -25,7 +25,7 @@ ZSH-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
 - [`ZSHZ_UNCOMMON`](#zshz_uncommon)
 - [Improvements and Fixes](#improvements-and-fixes)
 - [Migrating from Other Tools](#migrating-from-other-tools)
-- [`setopt COMPLETE_ALIASES`](#setopt-complete_aliases)
+- [`COMPLETE_ALIASES`](#setopt-complete_aliases)
 - [Known Bugs](#known-bugs)
 
 ## News
@@ -236,7 +236,7 @@ If you are coming to ZSH-z (or even to the original `rupa/z`, for that matter) f
 
 ## `COMPLETE_ALIASES`
 
-`z` is technically a ZSH alias; so would be any alternative you set up using `$ZSH_CMD` or `$_Z_CMD`. The ZSH option `COMPLETE_ALIASES` is rarely used, but if you do use it, it will break tab completion for your ZSH-z alias. You can get it working again, however, by adding under
+`z`, or any alternative you set up using `$ZSH_CMD` or `$_Z_CMD`, is an alias. `setopt COMPLETE_ALIASES` divorces the tab completion for aliases from the underlying commands they invoke, so if you enable `COMPLETE_ALIASES`, tab completion for ZSH-z will be broken. You can get it working again, however, by adding under
 
     setopt COMPLETE_ALIASES
 
