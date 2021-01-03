@@ -662,7 +662,11 @@ zshz() {
       [[ -d $cd ]] && builtin cd "$cd"
     fi
   else
-    return $ret2
+    if [[ -d $fnd ]]; then
+      builtin cd "$fnd"
+    else
+      return $ret2
+    fi
   fi
 }
 
