@@ -662,7 +662,8 @@ zshz() {
       [[ -d $cd ]] && builtin cd "$cd"
     fi
   else
-    # If $fnd is a valid relative path, cd to it
+    # If $fnd is a valid relative path, and options -e and -l are not in use,
+    # cd to $fnd
     if ! (( $+opts[-e] || $+opts[-l] )) && [[ -d $fnd ]]; then
       builtin cd "$fnd"
     else
@@ -765,8 +766,7 @@ zsh-z_plugin_unload() {
 
   fpath=("${(@)fpath:#${0:A:h}}")
 
-  alias ${ZSHZ_CMD:-${_Z_CMD:-z}} &> /dev/null &&
-    unalias ${ZSHZ_CMD:-${_Z_CMD:-z}}
+  (( $+aliases[$ZSHZ_CMD:-${_Z_CMD:-z}] )) && unalias ${ZSHZ_CMD:-${_Z_CMD:-z}}
 
   unfunction $0
 }
