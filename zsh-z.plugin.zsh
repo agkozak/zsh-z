@@ -662,7 +662,7 @@ zshz() {
       [[ -d $cd ]] && builtin cd "$cd"
     fi
   else
-    if [[ -z ${(k)opts:#--} && -d $fnd ]]; then
+    if ! (( $+opts[-e] || $+opts[-l] )) && [[ -d $fnd ]]; then
       builtin cd "$fnd"
     else
       return $ret2
