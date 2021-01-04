@@ -662,6 +662,7 @@ zshz() {
       [[ -d $cd ]] && builtin cd "$cd"
     fi
   else
+    # If $fnd is a valid relative path, cd to it
     if ! (( $+opts[-e] || $+opts[-l] )) && [[ -d $fnd ]]; then
       builtin cd "$fnd"
     else
