@@ -237,7 +237,7 @@ ____
  See https://github.com/zdharma/Zsh-100-Commits-Club/blob/master/Zsh-Plugin-Standard.adoc#unload-fun
 ____
 
-Has 18 line(s). Calls functions:
+Has 17 line(s). Calls functions:
 
  zsh-z_plugin_unload
  `-- add-zsh-hook
