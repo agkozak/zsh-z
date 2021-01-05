@@ -568,7 +568,7 @@ zshz() {
     return 1
   fi
 
-  local opt output_format method='frecency' fnd
+  local opt output_format method='frecency' fnd prefix
 
   for opt in ${(k)opts}; do
     case $opt in
@@ -583,7 +583,7 @@ zshz() {
         fi
         output_format='completion'
         ;;
-      -c) [[ $* == ${PWD}/* || $PWD == '/' ]] || set -- "$PWD $*" ;;
+      -c) [[ $* == ${PWD}/* || $PWD == '/' ]] || prefix="$PWD " ;;
       -h|--help)
         _zshz_usage
         return
@@ -597,7 +597,8 @@ zshz() {
         ;;
     esac
   done
-  fnd="$*"
+  req="$*"
+  fnd="$prefix$*"
 
   [[ -n $fnd && $fnd != "$PWD " ]] || {
     [[ $output_format != 'completion' ]] && output_format='list'
@@ -662,8 +663,8 @@ zshz() {
       [[ -d $cd ]] && builtin cd "$cd"
     fi
   else
-    if [[ -d $fnd ]]; then
-      builtin cd "$fnd"
+    if [[ -z $output_format && -d $req ]]; then
+      cd "$req"
     else
       return $ret2
     fi
