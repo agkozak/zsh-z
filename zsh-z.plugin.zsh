@@ -568,7 +568,7 @@ zshz() {
     return 1
   fi
 
-  local opt output_format method='frecency' fnd prefix
+  local opt output_format method='frecency' fnd prefix req
 
   for opt in ${(k)opts}; do
     case $opt in
@@ -664,7 +664,7 @@ zshz() {
     fi
   else
     if [[ -z $output_format && -d $req ]]; then
-      cd "$req"
+      builtin cd "$req"
     else
       return $ret2
     fi
