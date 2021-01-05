@@ -73,7 +73,7 @@ ____
  $* Command options and arguments
 ____
 
-Has 102 line(s). Calls functions:
+Has 107 line(s). Calls functions:
 
  zshz
  |-- _zshz_add_path
