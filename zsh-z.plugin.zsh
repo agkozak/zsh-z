@@ -568,7 +568,7 @@ zshz() {
     return 1
   fi
 
-  local opt output_format method='frecency' fnd
+  local opt output_format method='frecency' fnd prefix req
 
   for opt in ${(k)opts}; do
     case $opt in
@@ -583,7 +583,7 @@ zshz() {
         fi
         output_format='completion'
         ;;
-      -c) [[ $* == ${PWD}/* || $PWD == '/' ]] || set -- "$PWD $*" ;;
+      -c) [[ $* == ${PWD}/* || $PWD == '/' ]] || prefix="$PWD " ;;
       -h|--help)
         _zshz_usage
         return
@@ -597,7 +597,8 @@ zshz() {
         ;;
     esac
   done
-  fnd="$*"
+  req="$*"
+  fnd="$prefix$*"
 
   [[ -n $fnd && $fnd != "$PWD " ]] || {
     [[ $output_format != 'completion' ]] && output_format='list'
@@ -662,10 +663,9 @@ zshz() {
       [[ -d $cd ]] && builtin cd "$cd"
     fi
   else
-    # If $fnd is a valid relative path, and options -e and -l are not in use,
-    # cd to $fnd
-    if ! (( $+opts[-e] || $+opts[-l] )) && [[ -d $fnd ]]; then
-      builtin cd "$fnd"
+    # if $req is a valid path, cd to it
+    if ! (( $+opts[-e] || $+opts[-l] )) && [[ -d $req ]]; then
+      builtin cd "$req"
     else
       return $ret2
     fi
