@@ -663,7 +663,8 @@ zshz() {
       [[ -d $cd ]] && builtin cd "$cd"
     fi
   else
-    if [[ -z $output_format && -d $req ]]; then
+    # if $req is a valid path, cd to it
+    if ! (( $+opts[-e] || $+opts[-l] )) && [[ -d $req ]]; then
       builtin cd "$req"
     else
       return $ret2
