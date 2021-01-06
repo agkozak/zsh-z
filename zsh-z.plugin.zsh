@@ -125,8 +125,13 @@ zshz() {
 
   # Allow the user to specify the datafile name in $ZSHZ_DATA (default: ~/.z)
   local datafile=${ZSHZ_DATA:-${_Z_DATA:-${HOME}/.z}}
+
   # If datafile is a symlink, dereference it
   [[ -h $datafile ]] && datafile=${datafile:A}
+
+  # Make sure that the datafile exist before attempting to read it or lock it
+  # for writing
+  [[ -f $datafile ]] || touch "$datafile"
 
   # Load the datafile into an array and parse it
   local lines=( ${(f)"$(< $datafile)"} )
@@ -166,8 +171,6 @@ zshz() {
     # See https://github.com/rupa/z/pull/199/commits/ed6eeed9b70d27c1582e3dd050e72ebfe246341c
     if (( ZSHZ[USE_FLOCK] )); then
 
-      # Make sure that the datafile exists for locking
-      [[ -f $datafile ]] || touch "$datafile"
       local lockfd
 
       # Grab exclusive lock (released when function exits)
