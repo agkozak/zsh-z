@@ -30,20 +30,20 @@
 # ZSH-z maintains a jump-list of the directories you actually use.
 #
 # INSTALL:
-#     * put something like this in your .zshrc:
-#         source /path/to/zsh-z.plugin.zsh
-#     * cd around for a while to build up the database
+#   * put something like this in your .zshrc:
+#       source /path/to/zsh-z.plugin.zsh
+#   * cd around for a while to build up the database
 #
 # USAGE:
-#     * z foo     # cd to the most frecent directory matching foo
-#     * z foo bar # cd to the most frecent directory matching both foo and bar
-#                     (e.g. /foo/bat/bar/quux)
-#     * z -r foo  # cd to the highest ranked directory matching foo
-#     * z -t foo  # cd to most recently accessed directory matching foo
-#     * z -l foo  # List matches instead of changing directories
-#     * z -e foo  # Echo the best match without changing directories
-#     * z -c foo  # Restrict matches to subdirectories of PWD
-#     * z -x foo  # Remove the PWD from the database
+#   * z foo     # cd to the most frecent directory matching foo
+#   * z foo bar # cd to the most frecent directory matching both foo and bar
+#                   (e.g. /foo/bat/bar/quux)
+#   * z -r foo  # cd to the highest ranked directory matching foo
+#   * z -t foo  # cd to most recently accessed directory matching foo
+#   * z -l foo  # List matches instead of changing directories
+#   * z -e foo  # Echo the best match without changing directories
+#   * z -c foo  # Restrict matches to subdirectories of PWD
+#   * z -x foo  # Remove the PWD from the database
 #
 # ENVIRONMENT VARIABLES:
 #
