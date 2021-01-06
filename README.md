@@ -33,6 +33,8 @@ ZSH-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
 <details>
     <summary>Here are the latest features and updates.</summary>
 
+- January 6, 2021
+  + I have corrected the frecency routine so that it matches `rupa/z`'s math, but for the present, ZSH-z will continue to display ranks as 1/10000th of what they are in `rupa/z` -- [they had to multiply theirs by 10000](https://github.com/rupa/z/commit/f1f113d9bae9effaef6b1e15853b5eeb445e0712) to work around `bash`'s inadequacies at dealing with decimal fractions.
 - January 5, 2021
   + If you try `z foo`, and `foo` is not in the database but `${PWD}/foo` is a valid directory, ZSH-z will `cd` to it.
 - December 22, 2020
