@@ -460,14 +460,13 @@ zshz() {
       list)
         for x in ${(k)output_matches}; do
           if (( output_matches[$x] )); then
-            # Always use period as decimal separator for compatibility with fzf-z
-            LC_ALL=C _zshz_printv -f "%-10.2f %s\n" ${output_matches[$x]} $x
+            _zshz_printv -f "%-10.0f %s\n" ${output_matches[$x]} $x
             output+=( ${(f)REPLY} )
             REPLY=''
           fi
         done
         if [[ -n $common ]]; then
-          (( $#output > 1 )) && printf "%-10s %s\n" 'common:' $common
+          (( $#output > 1 )) && printf "%-10.0f %s\n" 'common:' $common
         fi
         # Sort results and remove trailing ".00"
         for x in ${(@on)output};do
@@ -543,7 +542,7 @@ zshz() {
         *)
           # Frecency routine
           (( dx = EPOCHSECONDS - time_field ))
-          rank=$(( rank_field * (3.75/((0.0001 * dx + 1) + 0.25)) ))
+          rank=$(( 10000 * rank_field * (3.75/((0.0001 * dx + 1) + 0.25)) ))
           ;;
       esac
 
