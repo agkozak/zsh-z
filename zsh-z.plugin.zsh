@@ -532,7 +532,7 @@ _zshz_find_matches() {
       *)
         # Frecency routine
         (( dx = EPOCHSECONDS - time_field ))
-        rank=$(( rank_field * (3.75/(0.0001 * dx + 1) + 0.25) ))
+        rank=$(( rank_field * (3.75/((0.0001 * dx + 1) + 0.25)) ))
         ;;
     esac
 
