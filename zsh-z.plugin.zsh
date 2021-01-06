@@ -1,9 +1,8 @@
-# synopsis {{{
+################################################################################
 # ZSH-z - jump around with ZSH - A native ZSH version of z without awk, sort,
 # date, or sed
 #
 # https://github.com/agkozak/zsh-z
-# }}}
 #
 # Copyright (c) 2018-2021 Alexandros Kozak
 #
@@ -48,18 +47,22 @@
 #
 # ENVIRONMENT VARIABLES:
 #
-# env-vars {{{
-#     ZSHZ_CMD -> name of command (default: z)
-#     ZSHZ_COMPLETION -> completion method (default: 'frecent'; 'legacy' for alphabetic sorting)
-#     ZSHZ_DATA -> name of datafile (default: ~/.z)
-#     ZSHZ_EXCLUDE_DIRS -> array of directories to exclude from your database (default: empty)
-#     ZSHZ_KEEP_DIRS -> array of directories that should not be removed from the database, even if they are not currently available (default: empty)
-#     ZSHZ_MAX_SCORE -> maximum combined score the database entries can have before beginning to age (default: 9000)
-#     ZSHZ_NO_RESOLVE_SYMLINKS -> '1' prevents symlink resolution
-#     ZSHZ_OWNER -> your username (if you want use ZSH-z while using sudo -s)
-#     ZSHZ_CASE -> if `ignore', pattern matching is case-insensitive; if `smart', pattern matching is case-insensitive only when the pattern is all lowercase }}}
-#
-# vim: fdm=indent:ts=2:et:sts=2:sw=2:
+#   ZSHZ_CASE -> if `ignore', pattern matching is case-insensitive; if `smart',
+#     pattern matching is case-insensitive only when the pattern is all
+#     lowercase
+#   ZSHZ_CMD -> name of command (default: z)
+#   ZSHZ_COMPLETION -> completion method (default: 'frecent'; 'legacy' for
+#     alphabetic sorting)
+#   ZSHZ_DATA -> name of datafile (default: ~/.z)
+#   ZSHZ_EXCLUDE_DIRS -> array of directories to exclude from your database
+#     (default: empty)
+#   ZSHZ_KEEP_DIRS -> array of directories that should not be removed from the
+#     database, even if they are not currently available (default: empty)
+#   ZSHZ_MAX_SCORE -> maximum combined score the database entries can have
+#     before beginning to age (default: 9000)
+#   ZSHZ_NO_RESOLVE_SYMLINKS -> '1' prevents symlink resolution
+#   ZSHZ_OWNER -> your username (if you want use ZSH-z while using sudo -s)
+################################################################################
 
 autoload -U is-at-least
 
@@ -69,6 +72,9 @@ fi
 
 ############################################################
 # The help message
+#
+# Globals:
+#   ZSHZ_CMD
 ############################################################
 _zshz_usage() {
   print "Usage: ${ZSHZ_CMD:-${_Z_CMD:-z}} [OPTION]... [ARGUMENT]
@@ -114,6 +120,17 @@ is-at-least 5.3.0 && ZSHZ[PRINTV]=1
 ############################################################
 # The ZSH-z Command
 #
+# Globals:
+#   ZSHZ
+#   ZSHZ_CASE
+#   ZSHZ_COMPLETION
+#   ZSHZ_DATA
+#   ZSHZ_DEBUG
+#   ZSHZ_EXCLUDE_DIRS
+#   ZSHZ_KEEP_DIRS
+#   ZSHZ_MAX_SCORE
+#   ZSHZ_OWNER
+#
 # Arguments:
 #   $* Command options and arguments
 ############################################################
@@ -141,6 +158,8 @@ zshz() {
   #
   # Globals:
   #   ZSHZ
+  #   ZSHZ_EXCLUDE_DIRS
+  #   ZSHZ_OWNER
   #
   # Arguments:
   #   $1 Which action to perform (--add/--remove)
@@ -226,6 +245,10 @@ zshz() {
   # Read the curent datafile contents, update them, "age" them
   # when the total rank gets high enough, and print the new
   # contents to STDOUT.
+  #
+  # Globals:
+  #   ZSHZ_KEEP_DIRS
+  #   ZSHZ_MAX_SCORE
   #
   # Arguments:
   #   $1 Path to be added to datafile
@@ -459,6 +482,12 @@ zshz() {
   # combination of the two, and output the results as
   # completions, a list, or a best match.
   #
+  # Globals:
+  #   ZSHZ
+  #   ZSHZ_CASE
+  #   ZSHZ_KEEP_DIRS
+  #   ZSHZ_OWNER
+  #
   # Arguments:
   #   #1 Pattern to match
   #   $2 Matching method (rank, time, or [default] frecency)
@@ -684,7 +713,11 @@ zshz() {
 alias ${ZSHZ_CMD:-${_Z_CMD:-z}}='zshz 2>&1'
 
 ############################################################
-# precmd and chpwd
+# precmd - add path to datafile unless `z -x' has just been
+#   run
+#
+# Globals:
+#   ZSHZ
 ############################################################
 
 if (( ${ZSHZ_NO_RESOLVE_SYMLINKS:-${_Z_NO_RESOLVE_SYMLINKS}} )); then
@@ -703,9 +736,14 @@ else
 fi
 
 ############################################################
-# When the $PWD is removed from the datafile with z -x,
+# chpwd
+#
+# When the $PWD is removed from the datafile with `z -x',
 # ZSH-z refrains from adding it again until the user has
 # left the directory.
+#
+# Globals:
+#   ZSHZ
 ############################################################
 _zshz_chpwd() {
   ZSHZ[DIRECTORY_REMOVED]=0
@@ -744,7 +782,8 @@ ZSHZ[FUNCTIONS]='_zshz_usage
                 _zshz'
 
 ############################################################
-# Enable WARN_NESTED_VAR for zsh-z chpwd_functions
+# Enable WARN_NESTED_VAR for functions listed in
+#   ZSHZ[FUNCTIONS]
 ############################################################
 (( ZSHZ_DEBUG )) && () {
   if is-at-least 5.4.0; then
@@ -759,6 +798,10 @@ ZSHZ[FUNCTIONS]='_zshz_usage
 # Unload function
 #
 # See https://github.com/zdharma/Zsh-100-Commits-Club/blob/master/Zsh-Plugin-Standard.adoc#unload-fun
+#
+# Globals:
+#   ZSHZ
+#   ZSHZ_CMD
 ############################################################
 zsh-z_plugin_unload() {
   emulate -L zsh
@@ -779,3 +822,5 @@ zsh-z_plugin_unload() {
 
   unfunction $0
 }
+
+# vim: fdm=indent:ts=2:et:sts=2:sw=2:
