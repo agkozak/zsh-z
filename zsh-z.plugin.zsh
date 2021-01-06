@@ -105,11 +105,17 @@ fi
 # Global associative array for internal use
 typeset -gA ZSHZ
 
+# Does the shell have `print -v'?
+is-at-least 5.3.0 && ZSHZ[PRINTV]=1
+
 # Determine whether zsystem flock is available
 zsystem supports flock &> /dev/null && ZSHZ[USE_FLOCK]=1
 
 ############################################################
 # Add a path to the datafile
+#
+# Globals:
+#   ZSHZ
 #
 # Arguments:
 #   $1 Path to be added
@@ -289,6 +295,9 @@ _zshz_legacy_complete() {
 ############################################################
 # Remove path from datafile
 #
+# Globals:
+#   ZSHZ
+#
 # Arguments:
 #   $1 Path to be removed
 ############################################################
@@ -331,8 +340,38 @@ _zshz_remove_path() {
 }
 
 ############################################################
-# If matches share a common root, find it, and put it on the
-# editing buffer stack for _zshz_output to use.
+# `print` or `printf` to ZSHZ[REPLY]
+#
+# Variable assignment through command substitution, of the
+# form
+#
+#   foo=$( bar )
+#
+# requires forking a subshell; on Cygwin/MSYS2/WSL1 that can
+# be surprisingly slow. ZSH-z avoids doing that by printing
+# values to the global ZSHZ[REPLY]. Since ZSH v5.3.0 that
+# has been possible with `print -v'; for earlier versions of
+# the shell, the values are placed on the editing buffer
+# stack and then `read' into ZSHZ[REPLY].
+#
+# Globals:
+#   ZSHZ
+#
+# Arguments:
+#   Options and parameters for `print'
+############################################################
+_zshz_printv() {
+  if (( ZSHZ[PRINTV] )); then
+    builtin print -v 'ZSHZ[REPLY]' $@
+  else
+    builtin print -z $@
+    builtin read -rz 'ZSHZ[REPLY]'
+  fi
+}
+
+############################################################
+# If matches share a common root, find it, and put it in
+# ZSHZ[REPLY] for _zshz_output to use.
 #
 # Arguments:
 #   $1 Name of associative array of matches and ranks
@@ -355,17 +394,19 @@ _zshz_find_common_root() {
     [[ $x != $short* ]] && return
   done
 
-  print -z -- $short
+  _zshz_printv -- $short
 }
 
 ############################################################
-# Fetch the common root path from the editing buffer stack.
-# Then either
+# Calculate a common root, if there is one. Then do one of
+# the following:
 #
 #   1) Print a list of completions in frecent order;
 #   2) List them (z -l) to STDOUT; or
-#   3) Put a common root or best match onto the editing
-#     buffer stack.
+#   3) Put a common root or best match into ZSHZ[REPLY].
+#
+# Globals:
+#   ZSHZ
 #
 # Arguments:
 #   $1 Name of an associative array of matches and ranks
@@ -377,22 +418,22 @@ _zshz_output() {
   setopt LOCAL_OPTIONS EXTENDED_GLOB
 
   local match_array=$1 match=$2 format=$3
-  local common stack k x
+  local common k x
   local -A output_matches
   local -a descending_list output
 
   output_matches=( ${(Pkv)match_array} )
 
   _zshz_find_common_root $match_array
-  read -rz common
+  common=${ZSHZ[REPLY]}
 
   case $format in
 
     completion)
       for k in ${(@k)output_matches}; do
-        print -z -f "%.2f|%s" ${output_matches[$k]} $k
-        read -rz stack
-        descending_list+=( $stack )
+        _zshz_printv -f "%.2f|%s" ${output_matches[$k]} $k
+        descending_list+=( ${(f)ZSHZ[REPLY]} )
+        ZSHZ[REPLY]=''
       done
       descending_list=( ${${(@On)descending_list}#*\|} )
       print -l $descending_list
@@ -402,9 +443,9 @@ _zshz_output() {
       for x in ${(k)output_matches}; do
         if (( output_matches[$x] )); then
           # Always use period as decimal separator for compatibility with fzf-z
-          LC_ALL=C print -z -f "%-10.2f %s\n" ${output_matches[$x]} $x
-          read -rz stack
-          output+=( $stack )
+          LC_ALL=C _zshz_printv -f "%-10.2f %s\n" ${output_matches[$x]} $x
+          output+=( ${(f)ZSHZ[REPLY]} )
+          ZSHZ[REPLY]=''
         fi
       done
       if [[ -n $common ]]; then
@@ -418,9 +459,9 @@ _zshz_output() {
 
     *)
       if (( ! ZSHZ_UNCOMMON )) && [[ -n $common ]]; then
-        print -z -- $common
+        _zshz_printv -- $common
       else
-        print -z -- ${(P)match}
+        _zshz_printv -- ${(P)match}
       fi
       ;;
   esac
@@ -434,8 +475,8 @@ _zshz_output() {
 # Arguments:
 #   #1 Pattern to match
 #   $2 Matching method (rank, time, or [default] frecency)
-#   $3 Output format (completion, list, or [default] print
-#   to editing buffer stack)
+#   $3 Output format (completion, list, or [default] store
+#     in ZSHZ[REPLY]
 ############################################################
 _zshz_find_matches() {
   setopt LOCAL_OPTIONS EXTENDED_GLOB
@@ -621,8 +662,7 @@ zshz() {
   local ret2=$?
 
   local cd
-  read -rz cd
-
+  cd=${ZSHZ[REPLY]}
 
   # New experimental "uncommon" behavior
   #
@@ -726,6 +766,7 @@ ZSHZ[FUNCTIONS]='_zshz_usage
                 _zshz_update_datafile
                 _zshz_legacy_complete
                 _zshz_remove_path
+                _zshz_printv
                 _zshz_find_common_root
                 _zshz_output
                 _zshz_find_matches
