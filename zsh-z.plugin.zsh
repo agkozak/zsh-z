@@ -62,6 +62,8 @@
 #     before beginning to age (default: 9000)
 #   ZSHZ_NO_RESOLVE_SYMLINKS -> '1' prevents symlink resolution
 #   ZSHZ_OWNER -> your username (if you want use ZSH-z while using sudo -s)
+#   ZSHZ_UNCOMMON -> if 1, do not jump to "common directories," but rather drop
+#     subdirectories based on what the search string was (default: 0)
 ################################################################################
 
 autoload -U is-at-least
@@ -140,8 +142,10 @@ zshz() {
   setopt LOCAL_OPTIONS EXTENDED_GLOB
   (( ZSHZ_DEBUG )) && setopt LOCAL_OPTIONS WARN_CREATE_GLOBAL
 
+  local REPLY
+
   # Allow the user to specify the datafile name in $ZSHZ_DATA (default: ~/.z)
-  local datafile=${ZSHZ_DATA:-${_Z_DATA:-${HOME}/.z}}
+  local datafile=${${ZSHZ_DATA:-${_Z_DATA:-${HOME}/.z}}:A}
 
   # If datafile is a symlink, dereference it
   [[ -h $datafile ]] && datafile=${datafile:A}
@@ -149,6 +153,10 @@ zshz() {
   # Make sure that the datafile exists before attempting to read it or lock it
   # for writing
   [[ -f $datafile ]] || touch "$datafile"
+
+  # Bail if we don't own the datafile and $ZSHZ_OWNER is not set
+  [[ -z ${ZSHZ_OWNER:-${_Z_OWNER}} && -f $datafile && ! -O $datafile ]] &&
+    return
 
   # Load the datafile into an array and parse it
   local lines=( ${(f)"$(< $datafile)"} )
@@ -350,7 +358,7 @@ zshz() {
   }
 
   ############################################################
-  # `print` or `printf` to ZSHZ[REPLY]
+  # `print` or `printf` to REPLY
   #
   # Variable assignment through command substitution, of the
   # form
@@ -359,10 +367,10 @@ zshz() {
   #
   # requires forking a subshell; on Cygwin/MSYS2/WSL1 that can
   # be surprisingly slow. ZSH-z avoids doing that by printing
-  # values to the global ZSHZ[REPLY]. Since ZSH v5.3.0 that
-  # has been possible with `print -v'; for earlier versions of
-  # the shell, the values are placed on the editing buffer
-  # stack and then `read' into ZSHZ[REPLY].
+  # values to the variable REPLY. Since ZSH v5.3.0 that has
+  # been possible with `print -v'; for earlier versions of the
+  # shell, the values are placed on the editing buffer stack
+  # and then `read' into REPLY.
   #
   # Globals:
   #   ZSHZ
@@ -372,16 +380,16 @@ zshz() {
   ############################################################
   _zshz_printv() {
     if (( ZSHZ[PRINTV] )); then
-      builtin print -v 'ZSHZ[REPLY]' $@
+      builtin print -v REPLY $@
     else
       builtin print -z $@
-      builtin read -rz 'ZSHZ[REPLY]'
+      builtin read -rz REPLY
     fi
   }
 
   ############################################################
   # If matches share a common root, find it, and put it in
-  # ZSHZ[REPLY] for _zshz_output to use.
+  # REPLY for _zshz_output to use.
   #
   # Arguments:
   #   $1 Name of associative array of matches and ranks
@@ -413,10 +421,10 @@ zshz() {
   #
   #   1) Print a list of completions in frecent order;
   #   2) List them (z -l) to STDOUT; or
-  #   3) Put a common root or best match into ZSHZ[REPLY].
+  #   3) Put a common root or best match into REPLY
   #
   # Globals:
-  #   ZSHZ
+  #   ZSHZ_UNCOMMON
   #
   # Arguments:
   #   $1 Name of an associative array of matches and ranks
@@ -435,15 +443,15 @@ zshz() {
     output_matches=( ${(Pkv)match_array} )
 
     _zshz_find_common_root $match_array
-    common=${ZSHZ[REPLY]}
+    common=$REPLY
 
     case $format in
 
       completion)
         for k in ${(@k)output_matches}; do
           _zshz_printv -f "%.2f|%s" ${output_matches[$k]} $k
-          descending_list+=( ${(f)ZSHZ[REPLY]} )
-          ZSHZ[REPLY]=''
+          descending_list+=( ${(f)REPLY} )
+          REPLY=''
         done
         descending_list=( ${${(@On)descending_list}#*\|} )
         print -l $descending_list
@@ -454,8 +462,8 @@ zshz() {
           if (( output_matches[$x] )); then
             # Always use period as decimal separator for compatibility with fzf-z
             LC_ALL=C _zshz_printv -f "%-10.2f %s\n" ${output_matches[$x]} $x
-            output+=( ${(f)ZSHZ[REPLY]} )
-            ZSHZ[REPLY]=''
+            output+=( ${(f)REPLY} )
+            REPLY=''
           fi
         done
         if [[ -n $common ]]; then
@@ -492,16 +500,12 @@ zshz() {
   #   #1 Pattern to match
   #   $2 Matching method (rank, time, or [default] frecency)
   #   $3 Output format (completion, list, or [default] store
-  #     in ZSHZ[REPLY]
+  #     in REPLY
   ############################################################
   _zshz_find_matches() {
     setopt LOCAL_OPTIONS EXTENDED_GLOB
 
     local fnd=$1 method=$2 format=$3
-
-    # Bail if we don't own the datafile and $ZSHZ_OWNER is not set
-    [[ -z ${ZSHZ_OWNER:-${_Z_OWNER}} && -f $datafile && ! -O $datafile ]] &&
-      return
 
     # If there is no datafile yet
     # https://github.com/rupa/z/pull/256
@@ -660,7 +664,7 @@ zshz() {
   local ret2=$?
 
   local cd
-  cd=${ZSHZ[REPLY]}
+  cd=$REPLY
 
   # New experimental "uncommon" behavior
   #
