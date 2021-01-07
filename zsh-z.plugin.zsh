@@ -556,10 +556,12 @@ _zshz_find_matches() {
       imatches[$path_field]=$rank
     fi
 
-    if (( matches[$path_field] && matches[$path_field] > hi_rank )); then
+    if [[ -n ${matches[$path_field]} ]] &&
+       (( matches[$path_field] > hi_rank )); then
       best_match=$path_field
       hi_rank=${matches[$path_field]}
-    elif (( imatches[$path_field] && imatches[$path_field] > ihi_rank )); then
+    elif [[ ${imatches[$path_field]} ]] &&
+         (( imatches[$path_field] > ihi_rank )); then
       ibest_match=$path_field
       ihi_rank=${imatches[$path_field]}
       ZSHZ[CASE_INSENSITIVE]=1
