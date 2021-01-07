@@ -201,6 +201,7 @@ zshz() {
 
       # Grab exclusive lock (released when function exits)
       zsystem flock -f lockfd "$datafile" 2> /dev/null || return
+
     fi
 
     case $action in
