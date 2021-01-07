@@ -466,9 +466,9 @@ zshz() {
         if [[ -n $common ]]; then
           (( $#output > 1 )) && printf "%-10s %s\n" 'common:' $common
         fi
-        # Sort results and remove trailing ".00"
+        # Sort results
         for x in ${(@on)output};do
-          print "${${x%${x##[[:digit:]]##[[:punct:]][[:digit:]]##[[:blank:]]}}/[[:punct:]]00/   }${x##[[:digit:]]##[[:punct:]][[:digit:]]##[[:blank:]]}"
+          print $x
         done
         ;;
 
