@@ -168,7 +168,7 @@ ____
  in ZSHZ[REPLY]
 ____
 
-Has 69 line(s). Calls functions:
+Has 71 line(s). Calls functions:
 
  _zshz_find_matches
  `-- _zshz_output
