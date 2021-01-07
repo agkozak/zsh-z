@@ -468,7 +468,10 @@ zshz() {
         fi
         # Sort results
         for x in ${(@on)output};do
-          print $x
+          # Still using period as decimal separator for compatibility with fzf-z
+          LC_ALL=C printf '%-10.2f' $(( ${x%%[[:blank:]]*} / 10000. ))
+          print "/${x#*/}"
+          # print $x
         done
         ;;
 
