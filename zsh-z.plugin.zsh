@@ -460,13 +460,13 @@ zshz() {
       list)
         for x in ${(k)output_matches}; do
           if (( output_matches[$x] )); then
-            _zshz_printv -f "%-10.0f %s\n" ${output_matches[$x]} $x
+            _zshz_printv -f "%-10d %s\n" ${output_matches[$x]} $x
             output+=( ${(f)REPLY} )
             REPLY=''
           fi
         done
         if [[ -n $common ]]; then
-          (( $#output > 1 )) && printf "%-10.0f %s\n" 'common:' $common
+          (( $#output > 1 )) && printf "%-10s %s\n" 'common:' $common
         fi
         # Sort results and remove trailing ".00"
         for x in ${(@on)output};do
