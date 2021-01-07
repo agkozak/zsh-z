@@ -93,11 +93,6 @@ With no ARGUMENT, list the directory history in ascending rank.
   -x    Remove the current directory from the database" >&2
 }
 
-# If the datafile is a directory, print a warning
-if [[ -d ${ZSHZ_DATA:-${_Z_DATA:-${HOME}/.z}} ]]; then
-  print "ERROR: ZSH-z's datafile (${ZSHZ_DATA:-${_Z_DATA:-${HOME}/.z}}) is a directory." >&2
-fi
-
 # Load zsh/datetime module, if necessary
 (( $+EPOCHSECONDS )) || zmodload zsh/datetime
 
@@ -147,6 +142,12 @@ zshz() {
   # Allow the user to specify the datafile name in $ZSHZ_DATA (default: ~/.z)
   # If the datafile is a symlink, it gets dereferenced
   local datafile=${${ZSHZ_DATA:-${_Z_DATA:-${HOME}/.z}}:A}
+
+  # If the datafile is a directory, print a warning and exit
+  if [[ -d $datafile ]]; then
+    print "ERROR: ZSH-z's datafile (${datafile}) is a directory." >&2
+    exit
+  fi
 
   # Make sure that the datafile exists before attempting to read it or lock it
   # for writing
