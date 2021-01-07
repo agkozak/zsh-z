@@ -522,10 +522,6 @@ zshz() {
 
     local fnd=$1 method=$2 format=$3
 
-    # If there is no datafile yet
-    # https://github.com/rupa/z/pull/256
-    [[ -f $datafile ]] || return
-
     local -a existing_paths
     local line dir path_field rank_field time_field rank dx
     local -A matches imatches
