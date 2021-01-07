@@ -145,10 +145,8 @@ zshz() {
   local REPLY
 
   # Allow the user to specify the datafile name in $ZSHZ_DATA (default: ~/.z)
+  # If the datafile is a symlink, it gets dereferenced
   local datafile=${${ZSHZ_DATA:-${_Z_DATA:-${HOME}/.z}}:A}
-
-  # If datafile is a symlink, dereference it
-  [[ -h $datafile ]] && datafile=${datafile:A}
 
   # Make sure that the datafile exists before attempting to read it or lock it
   # for writing
