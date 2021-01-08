@@ -134,7 +134,6 @@ is-at-least 5.3.0 && ZSHZ[PRINTV]=1
 zshz() {
 
   emulate -L zsh
-  setopt LOCAL_OPTIONS EXTENDED_GLOB
   (( ZSHZ_DEBUG )) && setopt LOCAL_OPTIONS WARN_CREATE_GLOBAL
 
   local REPLY
@@ -173,8 +172,6 @@ zshz() {
   #   $2 The path to add or remove
   ############################################################
   _zshz_add_or_remove_path() {
-    setopt LOCAL_OPTIONS EXTENDED_GLOB
-
     local action=${1}
     shift
 
@@ -262,6 +259,7 @@ zshz() {
   #   $1 Path to be added to datafile
   ############################################################
   _zshz_update_datafile() {
+
     local -A rank time
 
     # Characters special to the shell (such as '[]') are quoted with backslashes
@@ -333,12 +331,11 @@ zshz() {
   #   $1 The string to be completed
   ############################################################
   _zshz_legacy_complete() {
-    setopt LOCAL_OPTIONS EXTENDED_GLOB
 
     local line path_field
 
     # Replace spaces in the search string with asterisks for globbing
-    1=${1// ##/*}
+    1=${1//[[:space:]]/*}
 
     for line in $lines; do
 
@@ -433,7 +430,7 @@ zshz() {
   #        match
   ############################################################
   _zshz_output() {
-    setopt LOCAL_OPTIONS EXTENDED_GLOB
+    setopt LOCAL_OPTIONS
 
     local match_array=$1 match=$2 format=$3
     local common k x
@@ -518,7 +515,7 @@ zshz() {
   #     in REPLY
   ############################################################
   _zshz_find_matches() {
-    setopt LOCAL_OPTIONS EXTENDED_GLOB
+    setopt LOCAL_OPTIONS NO_EXTENDED_GLOB
 
     local fnd=$1 method=$2 format=$3
 
@@ -559,7 +556,7 @@ zshz() {
       esac
 
       # Use spaces as wildcards
-      local q=${fnd// ##/*}
+      local q=${fnd//[[:space:]]/\*}
 
       # If $ZSHZ_CASE is 'ignore', be case-insensitive.
       #
@@ -568,7 +565,6 @@ zshz() {
       #
       # Otherwise, the default behavior of ZSH-z is to match case-sensitively if
       # possible, then to fall back on a case-insensitive match if possible.
-
       if [[ $ZSHZ_CASE == 'smart' && ${1:l} == $1 &&
             ${path_field:l} == ${~q:l} ]]; then
         imatches[$path_field]=$rank
@@ -687,7 +683,7 @@ zshz() {
     if [[ -n $cd ]]; then
 
       # In the search pattern, replace spaces with *
-      local q=${fnd// ##/*}
+      local q=${fnd//[[:space:]]/\*}
 
       # As long as the best match is not case-insensitive
       if (( ! ZSHZ[CASE_INSENSITIVE] )); then
