@@ -430,7 +430,6 @@ zshz() {
   #        match
   ############################################################
   _zshz_output() {
-    setopt LOCAL_OPTIONS
 
     local match_array=$1 match=$2 format=$3
     local common k x
