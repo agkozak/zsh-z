@@ -280,7 +280,7 @@ zshz() {
         for dir in ${ZSHZ_KEEP_DIRS[@]}; do
           if [[ ${line%%\|*} == ${dir}/* ||
                 ${line%%\|*} == $dir     ||
-                $dir = / ]]; then
+                $dir == '/' ]]; then
             existing_paths+=( $line )
           fi
         done
