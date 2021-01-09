@@ -398,7 +398,7 @@ zshz() {
     common_matches=( ${(Pk)1[@]} )
 
     for x in ${common_matches[@]}; do
-      if [[ -z $short ]] || (( $#x < $#short )); then
+      if [[ -z $short ]] || (( $#x < $#short )) || [[ $x != ${short}/* ]]; then
         short=$x
       fi
     done

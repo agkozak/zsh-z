@@ -235,6 +235,7 @@ You may enable an alternate, experimental behavior by setting `ZSHZ_UNCOMMON=1`.
 * If `z -l` only returns one match, a common root is not printed.
 * Exit status codes increasingly make sense.
 * Completions work with options `-c`, `-r`, and `-t`.
+* If `~/foo` and `~/foob` are matches, `~/foo` is *not* the common root. Only a common parent directory can be a common root.
 
 ## Migrating from Other Tools
 
