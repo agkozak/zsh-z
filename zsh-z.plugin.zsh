@@ -826,7 +826,7 @@ zsh-z_plugin_unload() {
 
   unset ZSHZ
 
-  fpath=("${(@)fpath:#${0:A:h}}")
+  fpath=( "${(@)fpath:#${0:A:h}}" )
 
   (( $+aliases[$ZSHZ_CMD:-${_Z_CMD:-z}] )) && unalias ${ZSHZ_CMD:-${_Z_CMD:-z}}
 
