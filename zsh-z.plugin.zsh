@@ -170,7 +170,7 @@ zshz() {
   #
   # Arguments:
   #   $1 Which action to perform (--add/--remove)
-  #   $2 The path to add or remove
+  #   $2 The path to add
   ############################################################
   _zshz_add_or_remove_path() {
     local action=${1}
@@ -396,7 +396,7 @@ zshz() {
     local -a common_matches
     local x short
 
-    common_matches=( ${(Pk)1[@]} )
+    common_matches=( ${(@Pk)1} )
 
     for x in ${(@)common_matches}; do
       if [[ -z $short ]] || (( $#x < $#short )) || [[ $x != ${short}/* ]]; then
@@ -442,7 +442,7 @@ zshz() {
     case $format in
 
       completion)
-        for k in ${(Pk)match_array[@]}; do
+        for k in ${(@Pk)match_array}; do
           _zshz_printv -f "%.2f|%s" ${${(P)match_array}[$k]} $k
           descending_list+=( ${(f)REPLY} )
           REPLY=''
