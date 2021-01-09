@@ -277,7 +277,7 @@ zshz() {
     # Remove paths from database if they no longer exist
     for line in $lines; do
       if [[ ! -d ${line%%\|*} ]]; then
-        for dir in ${ZSHZ_KEEP_DIRS[@]}; do
+        for dir in ${(@)ZSHZ_KEEP_DIRS}; do
           if [[ ${line%%\|*} == ${dir}/* ||
                 ${line%%\|*} == $dir     ||
                 $dir == '/' ]]; then
@@ -398,7 +398,7 @@ zshz() {
 
     common_matches=( ${(Pk)1[@]} )
 
-    for x in ${common_matches[@]}; do
+    for x in ${(@)common_matches}; do
       if [[ -z $short ]] || (( $#x < $#short )) || [[ $x != ${short}/* ]]; then
         short=$x
       fi
@@ -406,7 +406,7 @@ zshz() {
 
     [[ $short == '/' ]] && return
 
-    for x in ${common_matches[@]}; do
+    for x in ${(@)common_matches}; do
       [[ $x != $short* ]] && return
     done
 
@@ -452,7 +452,7 @@ zshz() {
         ;;
 
       list)
-        for x in ${(Pk)match_array[@]}; do
+        for x in ${(@Pk)match_array}; do
           if (( ${${(P)match_array}[$x]} )); then
             _zshz_printv -f "%-10d %s\n" ${${(P)match_array}[$x]} $x
             output+=( ${(f)REPLY} )
@@ -524,7 +524,7 @@ zshz() {
     # Remove paths from database if they no longer exist
     for line in $lines; do
       if [[ ! -d ${line%%\|*} ]]; then
-        for dir in ${ZSHZ_KEEP_DIRS[@]}; do
+        for dir in ${(@)ZSHZ_KEEP_DIRS}; do
           if [[ ${line%%\|*} == ${dir}/* ||
                 ${line%%\|*} == $dir     ||
                 $dir = / ]]; then
