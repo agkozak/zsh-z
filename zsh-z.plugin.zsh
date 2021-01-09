@@ -641,7 +641,7 @@ zshz() {
       -r) method='rank' ;;
       -t) method='time' ;;
       -x)
-        _zshz_add_or_remove_path --remove "$*"
+        _zshz_add_or_remove_path --remove
         return
         ;;
     esac
