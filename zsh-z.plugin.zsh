@@ -459,7 +459,7 @@ zshz() {
           fi
         done
         if [[ -n $common ]]; then
-          (( $#output > 1 )) && printf "%-10s %s\n" 'common:' $common
+          (( $#output > 1 )) && printf "%-10s%s\n" 'common:' $common
         fi
         # -lt
         if (( $+opts[-t] )); then
