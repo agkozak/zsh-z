@@ -773,7 +773,7 @@ add-zsh-hook chpwd _zshz_chpwd
 0=${${ZERO:-${0:#$ZSH_ARGZERO}}:-${(%):-%N}}
 0=${${(M)0:#/*}:-$PWD/$0}
 
-fpath=( ${0:A:h} $fpath )
+(( ${fpath[(ie)${0:A:h}]} <= ${#fpath} )) || fpath=( "${0:A:h}" "${fpath[@]}" )
 
 ############################################################
 # zsh-z functions
