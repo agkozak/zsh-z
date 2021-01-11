@@ -221,21 +221,22 @@ zshz() {
         ;;
     esac
 
+    local owner
+    owner=${ZSHZ_OWNER:-${_Z_OWNER}}
+
     if (( ZSHZ[USE_FLOCK] )); then
       zf_mv "$tempfile" "$datafile" || zf_rm -f "$tempfile"
 
-      if [[ -n ${ZSHZ_OWNER:-${_Z_OWNER}} ]]; then
-        zf_chown ${ZSHZ_OWNER:-${_Z_OWNER}}:"$(id -ng ${ZSHZ_OWNER:_${_Z_OWNER}})" \
-          "$datafile"
+      if [[ -n $owner ]]; then
+        zf_chown ${owner}:"$(id -ng ${owner})" "$datafile"
       fi
     else
       # Avoid clobbering the datafile in a race condition
       if (( ret != 0 )) && [[ -f $datafile ]]; then
         zf_rm -f "$tempfile"
       else
-        if [[ -n ${ZSHZ_OWNER:-${_Z_OWNER}} ]]; then
-          zf_chown "${ZSHZ_OWNER:-${_Z_OWNER}}":"$(id -ng "${ZSHZ_OWNER:-${_Z_OWNER}}")" \
-            "$tempfile"
+        if [[ -n $owner ]]; then
+          zf_chown "${owner}":"$(id -ng "${owner}")" "$tempfile"
         fi
         zf_mv -f "$tempfile" "$datafile" 2> /dev/null || zf_rm -f "$tempfile"
       fi
