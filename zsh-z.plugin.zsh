@@ -111,7 +111,7 @@ typeset -gA ZSHZ
 # Determine if zsystem flock is available
 zsystem supports flock &> /dev/null && ZSHZ[USE_FLOCK]=1
 
-# Determine if `print -v` is supported
+# Determine if `print -v' is supported
 is-at-least 5.3.0 && ZSHZ[PRINTV]=1
 
 ############################################################
@@ -357,7 +357,7 @@ zshz() {
   }
 
   ############################################################
-  # `print` or `printf` to REPLY
+  # `print' or `printf' to REPLY
   #
   # Variable assignment through command substitution, of the
   # form
