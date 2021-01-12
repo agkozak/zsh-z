@@ -90,7 +90,7 @@ With no ARGUMENT, list the directory history in ascending rank.
   -l    List all matches without going to them
   -r    Match by rank
   -t    Match by recent access
-  -x    Remove the current directory from the database" >&2
+  -x    Remove the current directory from the database" | fold -s >&2
 }
 
 # Load zsh/datetime module, if necessary
