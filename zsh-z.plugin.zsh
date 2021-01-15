@@ -436,6 +436,9 @@ zshz() {
     local match_array=$1 match=$2 format=$3
     local common k x
     local -a descending_list output
+    local -A output_matches
+
+    output_matches=( ${(Pkv)match_array} )
 
     _zshz_find_common_root $match_array
     common=$REPLY
@@ -443,8 +446,8 @@ zshz() {
     case $format in
 
       completion)
-        for k in ${(@Pk)match_array}; do
-          _zshz_printv -f "%.2f|%s" ${${(P)match_array}[$k]} $k
+        for k in ${(@k)output_matches}; do
+          _zshz_printv -f "%.2f|%s" ${output_matches[$k]} $k
           descending_list+=( ${(f)REPLY} )
           REPLY=''
         done
@@ -453,9 +456,9 @@ zshz() {
         ;;
 
       list)
-        for x in ${(@Pk)match_array}; do
-          if (( ${${(P)match_array}[$x]} )); then
-            _zshz_printv -f "%-10d %s\n" ${${(P)match_array}[$x]} $x
+        for x in ${(k)output_matches}; do
+          if (( ${output_matches[$x]} )); then
+            _zshz_printv -f "%-10d %s\n" ${output_matches[$x]} $x
             output+=( ${(f)REPLY} )
             REPLY=''
           fi
@@ -478,7 +481,7 @@ zshz() {
           for x in ${(@on)output}; do
             # Still using period as decimal separator for compatibility with fzf-z
             LC_ALL=C _zshz_printv -f '%-10.2f' $(( ${x%%[[:blank:]]*} / 10000. ))
-            print -- "${REPLY/[[:punct:]]00/   }/${x#*/}"
+            printf '%-10s%s\n' "${REPLY/[[:punct:]]00/   }" "/${x#*/}"
             REPLY=''
             # print $x  # for rupa/z-like behavior
           done
