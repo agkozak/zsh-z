@@ -35,6 +35,7 @@ ZSH-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
 
 - January 14, 2021
   + The `z -h` help text now breaks at spaces.
+  + `z -l` was not working for ZSH version < 5.
 - January 11, 2021
   + Major refactoring of the code.
   + `z -lr` and `z -lt` work as expected.
