@@ -158,7 +158,7 @@ zshz() {
     return
 
   # Load the datafile into an array and parse it
-  local lines=( ${(f)"$(< $datafile)"} )
+  lines=( ${(f)"$(< $datafile)"} )
 
   ############################################################
   # Add a path to or remove one from the datafile
