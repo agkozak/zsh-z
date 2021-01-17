@@ -133,6 +133,7 @@ is-at-least 5.3.0 && ZSHZ[PRINTV]=1
 ############################################################
 zshz() {
 
+  # Don't use `emulate -L zsh' - it breaks PUSHD_IGNORE_DUPS
   setopt LOCAL_OPTIONS NO_KSH_ARRAYS NO_SH_WORD_SPLIT
   (( ZSHZ_DEBUG )) && setopt LOCAL_OPTIONS WARN_CREATE_GLOBAL
 
