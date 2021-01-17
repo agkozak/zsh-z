@@ -33,6 +33,8 @@ ZSH-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
 <details>
     <summary>Here are the latest features and updates.</summary>
 
+- January 17, 2021
+  + Made sure that the `PUSHD_IGNORE_DUPS` option is respected.
 - January 14, 2021
   + The `z -h` help text now breaks at spaces.
   + `z -l` was not working for ZSH version < 5.
