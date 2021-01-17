@@ -98,8 +98,8 @@ With no ARGUMENT, list the directory history in ascending rank.
 
 # Load zsh/files, if necessary
 [[ ${builtins[zf_chown]} == 'defined' &&
-   ${builtins[zf_mv]} == 'defined'    &&
-   ${builtins[zf_rm]} == 'defined'    ]] ||
+   ${builtins[zf_mv]}    == 'defined' &&
+   ${builtins[zf_rm]}    == 'defined' ]] ||
   zmodload -F zsh/files b:zf_chown b:zf_mv b:zf_rm
 
 # Load zsh/system, if necessary
