@@ -133,7 +133,7 @@ is-at-least 5.3.0 && ZSHZ[PRINTV]=1
 ############################################################
 zshz() {
 
-  emulate -L zsh
+  setopt LOCAL_OPTIONS NO_KSH_ARRAYS NO_SH_WORD_SPLIT
   (( ZSHZ_DEBUG )) && setopt LOCAL_OPTIONS WARN_CREATE_GLOBAL
 
   local REPLY
