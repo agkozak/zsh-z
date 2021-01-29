@@ -784,17 +784,17 @@ add-zsh-hook chpwd _zshz_chpwd
 # zsh-z functions
 ############################################################
 ZSHZ[FUNCTIONS]='_zshz_usage
-                _zshz_add_or_remove_path
-                _zshz_update_datafile
-                _zshz_legacy_complete
-                _zshz_printv
-                _zshz_find_common_root
-                _zshz_output
-                _zshz_find_matches
-                zshz
-                _zshz_precmd
-                _zshz_chpwd
-                _zshz'
+                 _zshz_add_or_remove_path
+                 _zshz_update_datafile
+                 _zshz_legacy_complete
+                 _zshz_printv
+                 _zshz_find_common_root
+                 _zshz_output
+                 _zshz_find_matches
+                 zshz
+                 _zshz_precmd
+                 _zshz_chpwd
+                 _zshz'
 
 ############################################################
 # Enable WARN_NESTED_VAR for functions listed in
