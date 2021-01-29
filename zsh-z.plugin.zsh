@@ -734,21 +734,28 @@ alias ${ZSHZ_CMD:-${_Z_CMD:-z}}='zshz 2>&1'
 # Globals:
 #   ZSHZ
 ############################################################
+_zshz_precmd() {
+  # Do not add PWD to datafile if `z -x' has just been run
+  (( ZSHZ[DIRECTORY_REMOVED] )) && return
 
-if (( ${ZSHZ_NO_RESOLVE_SYMLINKS:-${_Z_NO_RESOLVE_SYMLINKS}} )); then
-  _zshz_precmd() {
-    (( ! ZSHZ[DIRECTORY_REMOVED] )) && (zshz --add "${PWD:a}" &)
-    # See https://github.com/rupa/z/pull/247/commits/081406117ea42ccb8d159f7630cfc7658db054b6
-    : $RANDOM
-  }
-else
-  # Add the $PWD to the datafile, unless $ZSHZ[directory removed] shows it to have been
-  # recently removed with z -x
-  _zshz_precmd() {
-    (( ! ZSHZ[DIRECTORY_REMOVED] )) && (zshz --add "${PWD:A}" &)
-    : $RANDOM
-  }
-fi
+  # It appears that forking a subshell is so slow in Windows that it is better
+  # just to add the PWD to the datafile in the foreground
+  if [[ $OSTYPE == (cygwin|msys) ]]; then
+    if (( ${ZSHZ_NO_RESOLVE_SYMLINKS:-${_Z_NO_RESOLVE_SYMLINKS}} )); then
+      zshz --add "${PWD:a}"
+    else
+      zshz --add "${PWD:A}"
+    fi
+  else
+    if (( ${ZSHZ_NO_RESOLVE_SYMLINKS:-${_Z_NO_RESOLVE_SYMLINKS}} )); then
+      (zshz --add "${PWD:a}" &)
+    else
+      (zshz --add "${PWD:A}" &)
+    fi
+  fi
+  # See https://github.com/rupa/z/pull/247/commits/081406117ea42ccb8d159f7630cfc7658db054b6
+  : $RANDOM
+}
 
 ############################################################
 # chpwd
