@@ -753,6 +753,7 @@ _zshz_precmd() {
   else
       (zshz --add "$dir" &)
   fi
+
   # See https://github.com/rupa/z/pull/247/commits/081406117ea42ccb8d159f7630cfc7658db054b6
   : $RANDOM
 }
