@@ -735,8 +735,9 @@ alias ${ZSHZ_CMD:-${_Z_CMD:-z}}='zshz 2>&1'
 #   ZSHZ
 ############################################################
 _zshz_precmd() {
-  # Do not add PWD to datafile if `z -x' has just been run
-  (( ZSHZ[DIRECTORY_REMOVED] )) && return
+  # Do not add PWD to datafile when in HOME directory, or
+  # if `z -x' has just been run
+  [[ $PWD == "$HOME" ]] || (( ZSHZ[DIRECTORY_REMOVED] )) && return
 
   local dir
   if (( ${ZSHZ_NO_RESOLVE_SYMLINKS:-${_Z_NO_RESOLVE_SYMLINKS}} )); then
