@@ -178,14 +178,17 @@ zshz() {
     shift
 
     if [[ $action == '--add' ]]; then
-    # Don't add $HOME
+
+      # TODO: The following tasks are now handled by _agkozak_precmd. Dead code?
+
+      # Don't add $HOME
       [[ $* == $HOME ]] && return
 
       # Don't track directory trees excluded in ZSHZ_EXCLUDE_DIRS
       local exclude
       for exclude in ${(@)ZSHZ_EXCLUDE_DIRS:-${(@)_Z_EXCLUDE_DIRS}}; do
         case $* in
-          $exclude*) return ;;
+          ${exclude}|${exclude}/*) return ;;
         esac
       done
     fi
@@ -745,6 +748,14 @@ _zshz_precmd() {
   else
     dir="${PWD:A}"
   fi
+
+  # Don't track directory trees excluded in ZSHZ_EXCLUDE_DIRS
+  local exclude
+  for exclude in ${(@)ZSHZ_EXCLUDE_DIRS:-${(@)_Z_EXCLUDE_DIRS}}; do
+    case $dir in
+      ${exclude}|${exclude}/*) return ;;
+    esac
+  done
 
   # It appears that forking a subshell is so slow in Windows that it is better
   # just to add the PWD to the datafile in the foreground
