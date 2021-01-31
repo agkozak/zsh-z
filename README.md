@@ -33,8 +33,8 @@ ZSH-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
 <details>
     <summary>Here are the latest features and updates.</summary>
 
-- Unreleased
-  + ZSH-z is fast enough that, on MSYS2 and Cygwin, it is faster to run it in the foreground than to fork a subshell for it, so that is what is now done.
+- January 31, 2021
+  + ZSH-z is now efficient enough that, on MSYS2 and Cygwin, it is faster to run it in the foreground than it is to fork a subshell for it.“
   + `_zshz_precmd` simply returns if `PWD` is `HOME` or in `ZSH_EXCLUDE_DIRS`, rather than waiting for `zshz` to do that.
 - January 17, 2021
   + Made sure that the `PUSHD_IGNORE_DUPS` option is respected.
