@@ -483,11 +483,7 @@ zshz() {
         # -l
         else
           for x in ${(@on)output}; do
-            # Still using period as decimal separator for compatibility with fzf-z
-            LC_ALL=C _zshz_printv -f '%-10.2f' $(( ${x%%[[:blank:]]*} / 10000. ))
-            printf '%-10s%s\n' "${REPLY/[[:punct:]]00/   }" "/${x#*/}"
-            REPLY=''
-            # print $x  # for rupa/z-like behavior
+            print $x
           done
         fi
         ;;
