@@ -521,7 +521,7 @@ zshz() {
     local fnd=$1 method=$2 format=$3
 
     local -a existing_paths
-    local line dir path_field rank_field time_field rank dx
+    local line dir path_field rank_field time_field rank dx escaped_path_field
     local -A matches imatches
     local best_match ibest_match hi_rank=-9999999999 ihi_rank=-9999999999
 
