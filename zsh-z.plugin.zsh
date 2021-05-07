@@ -575,14 +575,18 @@ zshz() {
         imatches[$path_field]=$rank
       fi
 
-      if (( matches[$path_field] )) &&
-         (( matches[$path_field] > hi_rank )); then
+      # Escape characters that would cause "invalid subscript" errors
+      # when accessing the associative array.
+      escaped_path_field=${(b)path_field}
+
+      if (( matches[$escaped_path_field] )) &&
+         (( matches[$escaped_path_field] > hi_rank )); then
         best_match=$path_field
-        hi_rank=${matches[$path_field]}
-      elif (( imatches[$path_field] )) &&
-           (( imatches[$path_field] > ihi_rank )); then
+        hi_rank=${matches[$escaped_path_field]}
+      elif (( imatches[$escaped_path_field] )) &&
+           (( imatches[$escaped_path_field] > ihi_rank )); then
         ibest_match=$path_field
-        ihi_rank=${imatches[$path_field]}
+        ihi_rank=${imatches[$escaped_path_field]}
         ZSHZ[CASE_INSENSITIVE]=1
       fi
     done
