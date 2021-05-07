@@ -32,6 +32,7 @@ ZSH-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
 
 <details>
     <summary>Here are the latest features and updates.</summary>
+
 - May 7, 2021
   + Setting `ZSHZ_ECHO=1` will cause ZSH-z to display the new path when changing directories.
   + Better escaping of path names to deal paths containing the characters ``\`()[]``.
