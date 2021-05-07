@@ -32,7 +32,9 @@ ZSH-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
 
 <details>
     <summary>Here are the latest features and updates.</summary>
-
+- May 7, 2021
+  + Setting `ZSHZ_ECHO=1` will cause ZSH-z to display the new path when changing directories.
+  + Better escaping of path names to deal paths containing the characters ``\`()[]``.
 - February 15, 2021
   + Ranks are displayed the way `rupa/z` now displays them, i.e. as large integers. This should help ZSH-z to integrate with other tools.
 - January 31, 2021
@@ -199,6 +201,7 @@ ZSH-z has environment variables (they all begin with `ZSHZ_`) that change its be
 * `ZSHZ_CMD` changes the command name (default: `z`)
 * `ZSHZ_COMPLETION` can be `'frecent'` (default) or `'legacy'`, depending on whether you want your completion results sorted according to frecency or simply sorted alphabetically
 * `ZSHZ_DATA` changes the database file (default: `~/.z`)
+* `ZSHZ_ECHO` displays the new path name when changing directories (default: `0`)
 * `ZSHZ_EXCLUDE_DIRS` is an array of directories to keep out of the database (default: empty)
 * `ZSHZ_KEEP_DIRS` is an array of directories that should not be removed from the database, even if they are not currently available (useful when a drive is not always mounted) (default: empty)
 * `ZSHZ_MAX_SCORE` is the maximum combined score the database entries can have before they begin to age and potentially drop out of the database (default: 9000)

@@ -662,6 +662,7 @@ zshz() {
   }
 
   if [[ ${@: -1} == /* ]] && (( ! $+opts[-e] && ! $+opts[-l] )); then
+    # cd if possible; echo the new path if $ZSHZ_ECHO == 1
     [[ -d ${@: -1} ]] && builtin cd ${@: -1} &&
       (( $+ZSHZ_ECHO )) && print $PWD && return
   fi
@@ -717,10 +718,11 @@ zshz() {
     if (( $+opts[-e] )); then               # echo
       print -- "$cd"
     else
+      # cd if possible; echo the new path if $ZSHZ_ECHO == 1
       [[ -d $cd ]] && builtin cd "$cd" && (( $+ZSHZ_ECHO )) && print $PWD
     fi
   else
-    # if $req is a valid path, cd to it
+    # if $req is a valid path, cd to it; echo the new path if $ZSHZ_ECHO == 1
     if ! (( $+opts[-e] || $+opts[-l] )) && [[ -d $req ]]; then
       builtin cd "$req" && (( $+ZSHZ_ECHO )) && print $PWD
     else
