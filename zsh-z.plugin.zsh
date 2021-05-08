@@ -671,7 +671,7 @@ zshz() {
   # the home directory as a tilde.
   #########################################################
   _zshz_echo() {
-    if (( $+ZSHZ_ECHO )); then
+    if (( $ZSHZ_ECHO )); then
       if (( $ZSHZ_TILDE )); then
         print ${PWD/#${HOME}/\~}
       else
