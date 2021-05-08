@@ -460,9 +460,13 @@ zshz() {
         ;;
 
       list)
+        local path_to_display
         for x in ${(k)output_matches}; do
           if (( ${output_matches[$x]} )); then
-            _zshz_printv -f "%-10d %s\n" ${output_matches[$x]} $x
+            path_to_display=$x
+            (( $+ZSHZ_TILDE )) &&
+              path_to_display=${path_to_display/#${HOME}/\~}
+            _zshz_printv -f "%-10d %s\n" ${output_matches[$x]} $path_to_display
             output+=( ${(f)REPLY} )
             REPLY=''
           fi
@@ -661,10 +665,24 @@ zshz() {
     [[ $output_format != 'completion' ]] && output_format='list'
   }
 
+  #########################################################
+  # If $ZSHZ_ECHO == 1, display paths as you jump to them.
+  # If it is also the case that $ZSHZ_TILDE == 1, display
+  # the home directory as a tilde.
+  #########################################################
+  _zshz_echo() {
+    if (( $+ZSHZ_ECHO )); then
+      if (( $+ZSHZ_TILDE )); then
+        print ${PWD/#${HOME}/\~}
+      else
+        print $PWD
+      fi
+    fi
+  }
+
   if [[ ${@: -1} == /* ]] && (( ! $+opts[-e] && ! $+opts[-l] )); then
     # cd if possible; echo the new path if $ZSHZ_ECHO == 1
-    [[ -d ${@: -1} ]] && builtin cd ${@: -1} &&
-      (( $+ZSHZ_ECHO )) && print $PWD && return
+    [[ -d ${@: -1} ]] && builtin cd ${@: -1} && _zshz_echo && return
   fi
 
   # With option -c, make sure query string matches beginning of matches;
@@ -716,15 +734,16 @@ zshz() {
 
   if (( ret2 == 0 )) && [[ -n $cd ]]; then
     if (( $+opts[-e] )); then               # echo
+      (( $+ZSHZ_TILDE )) && cd=${cd/#${HOME}/\~}
       print -- "$cd"
     else
       # cd if possible; echo the new path if $ZSHZ_ECHO == 1
-      [[ -d $cd ]] && builtin cd "$cd" && (( $+ZSHZ_ECHO )) && print $PWD
+      [[ -d $cd ]] && builtin cd "$cd" && _zshz_echo
     fi
   else
     # if $req is a valid path, cd to it; echo the new path if $ZSHZ_ECHO == 1
     if ! (( $+opts[-e] || $+opts[-l] )) && [[ -d $req ]]; then
-      builtin cd "$req" && (( $+ZSHZ_ECHO )) && print $PWD
+      builtin cd "$req" && _zshz_echo
     else
       return $ret2
     fi
