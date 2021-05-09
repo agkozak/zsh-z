@@ -229,7 +229,7 @@ zshz() {
     owner=${ZSHZ_OWNER:-${_Z_OWNER}}
 
     if (( ZSHZ[USE_FLOCK] )); then
-      zf_mv "$tempfile" "$datafile" || zf_rm -f "$tempfile"
+      zf_mv "$tempfile" "$datafile" 2> /dev/null || zf_rm -f "$tempfile"
 
       if [[ -n $owner ]]; then
         zf_chown ${owner}:"$(id -ng ${owner})" "$datafile"
