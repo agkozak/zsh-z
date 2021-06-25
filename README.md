@@ -34,7 +34,7 @@ ZSH-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
     <summary>Here are the latest features and updates.</summary>
 
 - May 7, 2021
-  + Setting `ZSHZ_ECHO=1` will cause ZSH-z to display the new path when changing directories.
+  + Setting `ZSHZ_ECHO=1` will cause ZSH-z to display the new path when you change directories.
   + Better escaping of path names to deal paths containing the characters ``\`()[]``.
 - February 15, 2021
   + Ranks are displayed the way `rupa/z` now displays them, i.e. as large integers. This should help ZSH-z to integrate with other tools.
@@ -172,6 +172,14 @@ to your `.zshrc`.
 
 `zsh-z` supports `zinit`'s `unload` feature; just run `zinit unload agkozak/zshz` to restore the shell to its state before `zsh-z` was loaded.
 
+### For [Znap](https://github.com/marlonrichert/zsh-snap) users
+
+Add the line
+
+    znap source agkozak/zsh-z
+
+somewhere below the line where you `source` Znap itself.
+
 ### For [zplug](https://github.com/zplug/zplug) users
 
 Add the line
@@ -208,6 +216,7 @@ ZSH-z has environment variables (they all begin with `ZSHZ_`) that change its be
 * `ZSHZ_MAX_SCORE` is the maximum combined score the database entries can have before they begin to age and potentially drop out of the database (default: 9000)
 * `ZSHZ_NO_RESOLVE_SYMLINKS` prevents symlink resolution (default: `0`)
 * `ZSHZ_OWNER` allows usage when in `sudo -s` mode (default: empty)
+* `ZSHZ_TILDE` displays the name of the `HOME` directory as a `~` (default: `0`)
 
 ## Case sensitivity
 
