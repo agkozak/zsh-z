@@ -464,7 +464,7 @@ zshz() {
         for x in ${(k)output_matches}; do
           if (( ${output_matches[$x]} )); then
             path_to_display=$x
-            (( $ZSHZ_TILDE )) &&
+            (( ZSHZ_TILDE )) &&
               path_to_display=${path_to_display/#${HOME}/\~}
             _zshz_printv -f "%-10d %s\n" ${output_matches[$x]} $path_to_display
             output+=( ${(f)REPLY} )
@@ -671,8 +671,8 @@ zshz() {
   # the home directory as a tilde.
   #########################################################
   _zshz_echo() {
-    if (( $ZSHZ_ECHO )); then
-      if (( $ZSHZ_TILDE )); then
+    if (( ZSHZ_ECHO )); then
+      if (( ZSHZ_TILDE )); then
         print ${PWD/#${HOME}/\~}
       else
         print $PWD
@@ -734,7 +734,7 @@ zshz() {
 
   if (( ret2 == 0 )) && [[ -n $cd ]]; then
     if (( $+opts[-e] )); then               # echo
-      (( $ZSHZ_TILDE )) && cd=${cd/#${HOME}/\~}
+      (( ZSHZ_TILDE )) && cd=${cd/#${HOME}/\~}
       print -- "$cd"
     else
       # cd if possible; echo the new path if $ZSHZ_ECHO == 1
