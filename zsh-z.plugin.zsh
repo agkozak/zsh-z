@@ -571,11 +571,11 @@ zshz() {
       # Otherwise, the default behavior of ZSH-z is to match case-sensitively if
       # possible, then to fall back on a case-insensitive match if possible.
       if [[ $ZSHZ_CASE == 'smart' && ${1:l} == $1 &&
-            ${path_field:l} == ${~q:l} ]]; then
+            "${path_field:l}/" == ${~q:l} ]]; then
         imatches[$path_field]=$rank
-      elif [[ $ZSHZ_CASE != 'ignore' && $path_field == ${~q} ]]; then
+      elif [[ $ZSHZ_CASE != 'ignore' && "${path_field}/" == ${~q} ]]; then
         matches[$path_field]=$rank
-      elif [[ $ZSHZ_CASE != 'smart' && ${path_field:l} == ${~q:l} ]]; then
+      elif [[ $ZSHZ_CASE != 'smart' && "${path_field:l}/" == ${~q:l} ]]; then
         imatches[$path_field]=$rank
       fi
 
