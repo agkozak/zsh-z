@@ -108,6 +108,10 @@ With no ARGUMENT, list the directory history in ascending rank.
 # Global associative array for internal use
 typeset -gA ZSHZ
 
+# Make sure ZSHZ_EXCLUDE_DIRS has been declared so that other scripts can
+# simply append to it
+(( ${+ZSHZ_EXCLUDE_DIRS} )) || typeset -ga ZSHZ_EXCLUDE_DIRS
+
 # Determine if zsystem flock is available
 zsystem supports flock &> /dev/null && ZSHZ[USE_FLOCK]=1
 
