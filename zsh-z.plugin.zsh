@@ -476,7 +476,8 @@ zshz() {
           fi
         done
         if [[ -n $common ]]; then
-          (( $#output > 1 )) && printf "%-10s%s\n" 'common:' $common
+          (( ZSHZ_TILDE )) && common=${common/#${HOME}/\~}
+          (( $#output > 1 )) && printf "%-10s %s\n" 'common:' $common
         fi
         # -lt
         if (( $+opts[-t] )); then
