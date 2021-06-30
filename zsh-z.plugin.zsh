@@ -568,6 +568,12 @@ zshz() {
       # Use spaces as wildcards
       local q=${fnd//[[:space:]]/\*}
 
+      # If $ZSHZ_TRAILING_SLASH is set, use path_field with a trailing slash for matching.
+      local path_field_normalized=$path_field
+      if (( ZSHZ_TRAILING_SLASH )); then
+        path_field_normalized=${path_field%/}/
+      fi
+
       # If $ZSHZ_CASE is 'ignore', be case-insensitive.
       #
       # If it's 'smart', be case-insensitive unless the string to be matched
@@ -576,11 +582,11 @@ zshz() {
       # Otherwise, the default behavior of ZSH-z is to match case-sensitively if
       # possible, then to fall back on a case-insensitive match if possible.
       if [[ $ZSHZ_CASE == 'smart' && ${1:l} == $1 &&
-            ${path_field:l} == ${~q:l} ]]; then
+            ${path_field_normalized:l} == ${~q:l} ]]; then
         imatches[$path_field]=$rank
-      elif [[ $ZSHZ_CASE != 'ignore' && $path_field == ${~q} ]]; then
+      elif [[ $ZSHZ_CASE != 'ignore' && $path_field_normalized == ${~q} ]]; then
         matches[$path_field]=$rank
-      elif [[ $ZSHZ_CASE != 'smart' && ${path_field:l} == ${~q:l} ]]; then
+      elif [[ $ZSHZ_CASE != 'smart' && ${path_field_normalized:l} == ${~q:l} ]]; then
         imatches[$path_field]=$rank
       fi
 
@@ -714,6 +720,7 @@ zshz() {
 
       # In the search pattern, replace spaces with *
       local q=${fnd//[[:space:]]/\*}
+      q=${q%/} # Trailing slash has to be removed
 
       # As long as the best match is not case-insensitive
       if (( ! ZSHZ[CASE_INSENSITIVE] )); then
