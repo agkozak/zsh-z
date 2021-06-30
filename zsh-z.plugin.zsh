@@ -351,6 +351,7 @@ zshz() {
 
       path_field=${line%%\|*}
 
+      path_field_normalized=$path_field
       if (( ZSHZ_TRAILING_SLASH )); then
         path_field_normalized=${path_field%/}/
       fi
