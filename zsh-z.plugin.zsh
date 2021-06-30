@@ -342,7 +342,7 @@ zshz() {
   ############################################################
   _zshz_legacy_complete() {
 
-    local line path_field
+    local line path_field path_field_normalized
 
     # Replace spaces in the search string with asterisks for globbing
     1=${1//[[:space:]]/*}
@@ -351,11 +351,15 @@ zshz() {
 
       path_field=${line%%\|*}
 
+      if (( ZSHZ_TRAILING_SLASH )); then
+        path_field_normalized=${path_field%/}/
+      fi
+
       # If the search string is all lowercase, the search will be case-insensitive
-      if [[ $1 == "${1:l}" && ${path_field:l} == *${~1}* ]]; then
+      if [[ $1 == "${1:l}" && ${path_field_normalized:l} == *${~1}* ]]; then
         print -- $path_field
       # Otherwise, case-sensitive
-      elif [[ $path_field == *${~1}* ]]; then
+      elif [[ $path_field_normalized == *${~1}* ]]; then
         print -- $path_field
       fi
 
