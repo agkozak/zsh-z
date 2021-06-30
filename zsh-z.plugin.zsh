@@ -715,6 +715,7 @@ zshz() {
 
       # In the search pattern, replace spaces with *
       local q=${fnd//[[:space:]]/\*}
+      q=${q%/} # Trailing slash has to be removed
 
       # As long as the best match is not case-insensitive
       if (( ! ZSHZ[CASE_INSENSITIVE] )); then
