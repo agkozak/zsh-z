@@ -6,7 +6,7 @@
 
 ![ZSH-z demo](img/demo.gif)
 
-ZSH-z is a command line tool that allows you to jump quickly to directories that you have visited frequently in the past, or recently -- but most often a combination of the two (a concept known as ["frecency"](https://en.wikipedia.org/wiki/Frecency)). It works by keeping track of when you go to directories and how much time you spend in them. It is then in the position to guess where you want to go when you type a partial string, e.g. `z src` might take you to `~/src/zsh`. `z zsh` might also get you there, and `z c/z` might prove to be even more specific -- it all depends on your habits and how much time you have been using ZSH-z to build up a database. After using ZSH-z for a little while, you will get to where you want to be by typing considerably less than you would need if you were using `cd`.
+ZSH-z is a command line tool that allows you to jump quickly to directories that you have visited frequently in the past, or recently -- but most often a combination of the two (a concept known as ["frecency"](https://en.wikipedia.org/wiki/Frecency)). It works by keeping track of when you go to directories and how much time you spend in them. It is then in the position to guess where you want to go when you type a partial string, e.g., `z src` might take you to `~/src/zsh`. `z zsh` might also get you there, and `z c/z` might prove to be even more specific -- it all depends on your habits and how much time you have been using ZSH-z to build up a database. After using ZSH-z for a little while, you will get to where you want to be by typing considerably less than you would need if you were using `cd`.
 
 ZSH-z is a native ZSH port of [rupa/z](https://github.com/rupa/z), a tool written for `bash` and ZSH that uses embedded `awk` scripts to do the heavy lifting. It was quite possibly my most used command line tool for a couple of years. I decided to translate it, `awk` parts and all, into pure ZSH script, to see if by eliminating calls to external tools (`awk`, `sort`, `date`, `sed`, `mv`, `rm`, and `chown`) and reducing forking through subshells I could make it faster. The performance increase is impressive, particularly on systems where forking is slow, such as Cygwin, MSYS2, and WSL. I have found that, in those environments, switching directories using ZSH-z can be over 100% faster than it is using `rupa/z`.
 
@@ -33,32 +33,36 @@ ZSH-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
 <details>
     <summary>Here are the latest features and updates.</summary>
 
+- July 10, 2021
+    + Setting `ZSHZ_TRAILING_SLASH=1` makes it so that a search pattern ending in `/` can match the end of a path; e.g. `z foo/` can match `/path/to/foo`.
+- June 25, 2021
+    + Setting `ZSHZ_TILDE=1` displays the `HOME` directory as `~`.
 - May 7, 2021
-  + Setting `ZSHZ_ECHO=1` will cause ZSH-z to display the new path when you change directories.
-  + Better escaping of path names to deal paths containing the characters ``\`()[]``.
+    + Setting `ZSHZ_ECHO=1` will cause ZSH-z to display the new path when you change directories.
+    + Better escaping of path names to deal paths containing the characters ``\`()[]``.
 - February 15, 2021
-  + Ranks are displayed the way `rupa/z` now displays them, i.e. as large integers. This should help ZSH-z to integrate with other tools.
+    + Ranks are displayed the way `rupa/z` now displays them, i.e. as large integers. This should help ZSH-z to integrate with other tools.
 - January 31, 2021
-  + ZSH-z is now efficient enough that, on MSYS2 and Cygwin, it is faster to run it in the foreground than it is to fork a subshell for it.
-  + `_zshz_precmd` simply returns if `PWD` is `HOME` or in `ZSH_EXCLUDE_DIRS`, rather than waiting for `zshz` to do that.
+    + ZSH-z is now efficient enough that, on MSYS2 and Cygwin, it is faster to run it in the foreground than it is to fork a subshell for it.
+    + `_zshz_precmd` simply returns if `PWD` is `HOME` or in `ZSH_EXCLUDE_DIRS`, rather than waiting for `zshz` to do that.
 - January 17, 2021
-  + Made sure that the `PUSHD_IGNORE_DUPS` option is respected.
+    + Made sure that the `PUSHD_IGNORE_DUPS` option is respected.
 - January 14, 2021
-  + The `z -h` help text now breaks at spaces.
-  + `z -l` was not working for ZSH version < 5.
+    + The `z -h` help text now breaks at spaces.
+    + `z -l` was not working for ZSH version < 5.
 - January 11, 2021
-  + Major refactoring of the code.
-  + `z -lr` and `z -lt` work as expected.
-  + `EXTENDED_GLOB` has been disabled within the plugin to accomodate old-fashioned Windows directories with names such as `Progra~1`.
-  + Removed `zshelldoc` documentation.
+    + Major refactoring of the code.
+    + `z -lr` and `z -lt` work as expected.
+    + `EXTENDED_GLOB` has been disabled within the plugin to accomodate old-fashioned Windows directories with names such as `Progra~1`.
+    + Removed `zshelldoc` documentation.
 - January 6, 2021
-  + I have corrected the frecency routine so that it matches `rupa/z`'s math, but for the present, ZSH-z will continue to display ranks as 1/10000th of what they are in `rupa/z` -- [they had to multiply theirs by 10000](https://github.com/rupa/z/commit/f1f113d9bae9effaef6b1e15853b5eeb445e0712) to work around `bash`'s inadequacies at dealing with decimal fractions.
+    + I have corrected the frecency routine so that it matches `rupa/z`'s math, but for the present, ZSH-z will continue to display ranks as 1/10000th of what they are in `rupa/z` -- [they had to multiply theirs by 10000](https://github.com/rupa/z/commit/f1f113d9bae9effaef6b1e15853b5eeb445e0712) to work around `bash`'s inadequacies at dealing with decimal fractions.
 - January 5, 2021
-  + If you try `z foo`, and `foo` is not in the database but `${PWD}/foo` is a valid directory, ZSH-z will `cd` to it.
+    + If you try `z foo`, and `foo` is not in the database but `${PWD}/foo` is a valid directory, ZSH-z will `cd` to it.
 - December 22, 2020
-  + `ZSHZ_CASE`: when set to `ignore`, pattern matching is case-insensitive; when set to `smart`, patterns are matched case-insensitively when they are all lowercase and case-sensitively when they have uppercase characters in them (a behavior very much like Vim's `smartcase` setting).
-  + `ZSHZ_KEEP_DIRS` is an array of directory names that should not be removed from the database, even if they are not currently available (useful when a drive is not always mounted).
-  + Symlinked datafiles were having their symlinks overwritten; this bug has been fixed.
+    + `ZSHZ_CASE`: when set to `ignore`, pattern matching is case-insensitive; when set to `smart`, patterns are matched case-insensitively when they are all lowercase and case-sensitively when they have uppercase characters in them (a behavior very much like Vim's `smartcase` setting).
+    + `ZSHZ_KEEP_DIRS` is an array of directory names that should not be removed from the database, even if they are not currently available (useful when a drive is not always mounted).
+    + Symlinked datafiles were having their symlinks overwritten; this bug has been fixed.
 
 </details>
 
@@ -96,7 +100,7 @@ Execute the following command:
 
     git clone https://github.com/agkozak/zsh-z $ZSH_CUSTOM/plugins/zsh-z
 
-and add `zsh-z` to the line of your `.zshrc` that specifies `plugins=()`, e.g. `plugins=( git zsh-z )`.
+and add `zsh-z` to the line of your `.zshrc` that specifies `plugins=()`, e.g., `plugins=( git zsh-z )`.
 
 ### For [prezto](https://github.com/sorin-ionescu/prezto) users
 
@@ -121,7 +125,7 @@ is uncommented. Then find the section that specifies which modules are to be loa
         'completion' \
         'prompt'
 
-Add a backslash to the end of the last line add `'zsh-z'` to the list, e.g.
+Add a backslash to the end of the last line add `'zsh-z'` to the list, e.g.,
 
     zstyle ':prezto:load' pmodule \
         'environment' \
@@ -217,6 +221,8 @@ ZSH-z has environment variables (they all begin with `ZSHZ_`) that change its be
 * `ZSHZ_NO_RESOLVE_SYMLINKS` prevents symlink resolution (default: `0`)
 * `ZSHZ_OWNER` allows usage when in `sudo -s` mode (default: empty)
 * `ZSHZ_TILDE` displays the name of the `HOME` directory as a `~` (default: `0`)
+* `ZSHZ_TRAILING_SLASH` makes it so that a search pattern ending in `/` can match the final element in a path; e.g., `z foo/` can match `/path/to/foo` (default: `0`)
+* `ZSHZ_UNCOMMON` changes the logic used to calculate the directory jumped to; [see below](#zshz_uncommon`) (default: `0`)
 
 ## Case sensitivity
 
@@ -255,7 +261,7 @@ You may enable an alternate, experimental behavior by setting `ZSHZ_UNCOMMON=1`.
 * ZSH-z works on Solaris.
 * ZSH-z uses the "new" `zshcompsys` completion system instead of the old `compctl` one.
 * There is no error message when the database file has not yet been created.
-* There is support for special characters (e.g. `[`) in directory names.
+* There is support for special characters (e.g., `[`) in directory names.
 * If `z -l` only returns one match, a common root is not printed.
 * Exit status codes increasingly make sense.
 * Completions work with options `-c`, `-r`, and `-t`.
@@ -280,7 +286,7 @@ the line
 That will re-bind `z` or the command of your choice to the underlying ZSH-z function.
 
 ## Known Bugs
-It is possible to run a completion on a string with spaces in it, e.g. `z us bi<TAB>` might take you to `/usr/local/bin`. This works, but as things stand, after the completion the command line reads
+It is possible to run a completion on a string with spaces in it, e.g., `z us bi<TAB>` might take you to `/usr/local/bin`. This works, but as things stand, after the completion the command line reads
 
     z us /usr/local/bin.
 
