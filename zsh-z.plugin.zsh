@@ -138,7 +138,7 @@ is-at-least 5.3.0 && ZSHZ[PRINTV]=1
 zshz() {
 
   # Don't use `emulate -L zsh' - it breaks PUSHD_IGNORE_DUPS
-  setopt LOCAL_OPTIONS NO_KSH_ARRAYS NO_SH_WORD_SPLIT
+  setopt LOCAL_OPTIONS NO_KSH_ARRAYS NO_SH_WORD_SPLIT EXTENDED_GLOB
   (( ZSHZ_DEBUG )) && setopt LOCAL_OPTIONS WARN_CREATE_GLOBAL
 
   local REPLY
@@ -164,6 +164,8 @@ zshz() {
 
   # Load the datafile into an array and parse it
   lines=( ${(f)"$(< $datafile)"} )
+  # Discard entries that are incomplete or incorrectly formatted
+  lines=( ${(M)lines:#/*\|[[:digit:]]##[.,]#[[:digit:]]#\|[[:digit:]]##} )
 
   ############################################################
   # Add a path to or remove one from the datafile
