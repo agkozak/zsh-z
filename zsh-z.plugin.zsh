@@ -599,7 +599,12 @@ zshz() {
 
       # Escape characters that would cause "invalid subscript" errors
       # when accessing the associative array.
-      escaped_path_field=${(b)path_field}
+      escaped_path_field=${path_field//'\'/'\\'}
+      escaped_path_field=${escaped_path_field//'`'//'\`'}
+      escaped_path_field=${escaped_path_field//'('/'\('}
+      escaped_path_field=${escaped_path_field//')'/'\)'}
+      escaped_path_field=${escaped_path_field//'['/'\['}
+      escaped_path_field=${escaped_path_field//']'/'\]'}
 
       if (( matches[$escaped_path_field] )) &&
          (( matches[$escaped_path_field] > hi_rank )); then
