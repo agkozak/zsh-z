@@ -33,6 +33,9 @@ ZSH-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
 <details>
     <summary>Here are the latest features and updates.</summary>
 
+- July 27, 2021
+    + Internal escaping of path names now works with older versions of ZSH.
+    + ZSH-z now detects and discards any incomplete or incorrectly formattted database entries.
 - July 10, 2021
     + Setting `ZSHZ_TRAILING_SLASH=1` makes it so that a search pattern ending in `/` can match the end of a path; e.g. `z foo/` can match `/path/to/foo`.
 - June 25, 2021
