@@ -393,12 +393,14 @@ zshz() {
   #   Options and parameters for `print'
   ############################################################
   _zshz_printv() {
-    if (( ZSHZ[PRINTV] )); then
-      builtin print -v REPLY $@
-    else
+    # Attempt at fixing CJK character problem
+
+    # if (( ZSHZ[PRINTV] )); then
+    #   builtin print -v REPLY $@
+    # else
       builtin print -z $@
       builtin read -rz REPLY
-    fi
+    # fi
   }
 
   ############################################################
