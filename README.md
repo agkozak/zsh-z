@@ -33,6 +33,8 @@ ZSH-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
 <details>
     <summary>Here are the latest features and updates.</summary>
 
+- July 29, 2021
+    + Temporarily disabling use of `print -v`, which seems to be mangling CJK multibyte strings.
 - July 27, 2021
     + Internal escaping of path names now works with older versions of ZSH.
     + ZSH-z now detects and discards any incomplete or incorrectly formattted database entries.

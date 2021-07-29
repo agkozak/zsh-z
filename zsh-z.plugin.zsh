@@ -393,7 +393,9 @@ zshz() {
   #   Options and parameters for `print'
   ############################################################
   _zshz_printv() {
-    # Attempt at fixing CJK character problem
+    # TODO: `print -v' seems to be mangling CJK multibyte strings. I shall
+    # continue to research this matter; in the meantime, `print -z'/`read -rz'
+    # works perfectly.
 
     # if (( ZSHZ[PRINTV] )); then
     #   builtin print -v REPLY $@
