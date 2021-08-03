@@ -604,7 +604,7 @@ zshz() {
       # Escape characters that would cause "invalid subscript" errors
       # when accessing the associative array.
       escaped_path_field=${path_field//'\'/'\\'}
-      escaped_path_field=${escaped_path_field//'`'//'\`'}
+      escaped_path_field=${escaped_path_field//'`'/'\`'}
       escaped_path_field=${escaped_path_field//'('/'\('}
       escaped_path_field=${escaped_path_field//')'/'\)'}
       escaped_path_field=${escaped_path_field//'['/'\['}
