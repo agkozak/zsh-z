@@ -519,9 +519,9 @@ zshz() {
   }
 
   ############################################################
-  # Load the datafile, and match a pattern by rank, time, or a
-  # combination of the two, and output the results as
-  # completions, a list, or a best match.
+  # Match a pattern by rank, time, or a combination of the
+  # two, and output the results as completions, a list, or a
+  # best match.
   #
   # Globals:
   #   ZSHZ
