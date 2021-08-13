@@ -35,6 +35,7 @@ ZSH-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
 
 - August 13, 2021
     + Fixed the explanation string printed during completion so that it may be formatted with `zstyle`.
+    + ZSH-z now declares `ZSHZ_EXCLUDE_DIRS` as an array with unique elements so that you do not have to.
 - July 29, 2021
     + Temporarily disabling use of `print -v`, which seems to be mangling CJK multibyte strings.
 - July 27, 2021
