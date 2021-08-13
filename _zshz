@@ -35,7 +35,7 @@
 ############################################################
 emulate -L zsh
 (( ZSHZ_DEBUG )) &&
-  setopt LOCAL_OPTIONS WARN_CREATE_GLOBAL WARN_NESTED_VAR 2> /dev/null
+  setopt LOCAL_OPTIONS WARN_CREATE_GLOBAL NO_WARN_NESTED_VAR 2> /dev/null
 
 # TODO: This routine currently reproduces z's feature of allowing spaces to be
 # used as wildcards in completions, so that
@@ -52,15 +52,17 @@ emulate -L zsh
 #
 # Address.
 
-local completions
+local completions expl
 
 completions=$(zshz --complete ${(@)words:1})
 [[ -z $completions ]] && return 1
 
+_description completions expl 'directories'
+
 if [[ $ZSHZ_COMPLETION == 'legacy' ]]; then
-  compadd -x 'Completing directory' -U "${(f)completions}"
+  compadd "${expl[@]}" -U -- "${(f)completions}"
 else
-  compadd -x 'Completing directory' -U -V zsh-z "${(f)completions}"
+  compadd "${expl[@]}" -U -V zsh-z -- "${(f)completions[@]}"
 fi
 
 compstate[insert]=menu
