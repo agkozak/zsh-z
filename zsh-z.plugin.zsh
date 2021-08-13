@@ -393,16 +393,26 @@ zshz() {
   #   Options and parameters for `print'
   ############################################################
   _zshz_printv() {
-    # TODO: `print -v' seems to be mangling CJK multibyte strings. I shall
-    # continue to research this matter; in the meantime, `print -z'/`read -rz'
-    # works perfectly.
+    # NOTE: For a long time, ZSH's `print -v' had a tendency
+    # to mangle multibyte strings:
+    #
+    #   https://www.zsh.org/mla/workers/2020/msg00307.html
+    #
+    # The bug was fixed in late 2020:
+    #
+    #   https://github.com/zsh-users/zsh/commit/b6ba74cd4eaec2b6cb515748cf1b74a19133d4a4#diff-32bbef18e126b837c87b06f11bfc61fafdaa0ed99fcb009ec53f4767e246b129
+    #
+    # In order to support shells with the bug, we must use a form of `printf`,
+    # which does not exhibit the undesired behavior. See
+    #
+    #   https://www.zsh.org/mla/workers/2020/msg00308.html
 
-    # if (( ZSHZ[PRINTV] )); then
-    #   builtin print -v REPLY $@
-    # else
+    if (( ZSHZ[PRINTV] )); then
+      builtin print -v REPLY -f %s $@
+    else
       builtin print -z $@
       builtin read -rz REPLY
-    # fi
+    fi
   }
 
   ############################################################
