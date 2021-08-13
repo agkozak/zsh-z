@@ -33,6 +33,8 @@ ZSH-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
 <details>
     <summary>Here are the latest features and updates.</summary>
 
+- August 13, 2021
+    + Fixed the explanation string printed during completion so that it may be formatted with `zstyle`.
 - July 29, 2021
     + Temporarily disabling use of `print -v`, which seems to be mangling CJK multibyte strings.
 - July 27, 2021
