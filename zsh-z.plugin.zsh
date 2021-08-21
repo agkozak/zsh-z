@@ -218,15 +218,23 @@ zshz() {
         local ret=$?
         ;;
       --remove)
+        local xdir  # Directory to be removed
+
+        if (( ${ZSHZ_NO_RESOLVE_SYMLINKS:-${_Z_NO_RESOLVE_SYMLINKS}} )); then
+          xdir=${PWD:a}
+        else
+          xdir=${PWD:A}
+        fi
+
         local -a lines_to_keep
         if (( ${+opts[-R]} )); then
           # All of the lines that don't match the directory to be deleted
-          lines_to_keep=( ${lines:#${PWD}\|*} )
+          lines_to_keep=( ${lines:#${xdir}\|*} )
           # Or its subdirectories
-          lines_to_keep=( ${lines_to_keep:#${PWD}/**} )
+          lines_to_keep=( ${lines_to_keep:#${xdir}/**} )
         else
           # All of the lines that don't match the directory to be deleted
-          lines_to_keep=( ${lines:#${PWD}\|*} )
+          lines_to_keep=( ${lines:#${xdir}\|*} )
         fi
         if [[ $lines != "$lines_to_keep" ]]; then
           lines=( $lines_to_keep )
