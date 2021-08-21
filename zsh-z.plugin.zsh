@@ -43,7 +43,8 @@
 #   * z -l foo  # List matches instead of changing directories
 #   * z -e foo  # Echo the best match without changing directories
 #   * z -c foo  # Restrict matches to subdirectories of PWD
-#   * z -x foo  # Remove the PWD from the database
+#   * z -x      # Remove PWD from the database
+#   * z -xR     # Remove PWD and its subdirectories from the database
 #
 # ENVIRONMENT VARIABLES:
 #
@@ -90,7 +91,8 @@ With no ARGUMENT, list the directory history in ascending rank.
   -l    List all matches without going to them
   -r    Match by rank
   -t    Match by recent access
-  -x    Remove the current directory from the database" | fold -s >&2
+  -x    Remove the current directory from the database
+  -xR   Remove the current directory from the database recursively" | fold -s >&2
 }
 
 # Load zsh/datetime module, if necessary
