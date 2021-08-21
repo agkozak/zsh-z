@@ -219,8 +219,15 @@ zshz() {
         ;;
       --remove)
         local -a lines_to_keep
-        # All of the lines that don't match the directory to be deleted
-        lines_to_keep=( ${lines:#${PWD}\|*} )
+        if (( ${+opts[-R]} )); then
+          # All of the lines that don't match the directory to be deleted
+          lines_to_keep=( ${lines:#${PWD}\|*} )
+          # Or its subdirectories
+          lines_to_keep=( ${lines_to_keep:#${PWD}/**} )
+        else
+          # All of the lines that don't match the directory to be deleted
+          lines_to_keep=( ${lines:#${PWD}\|*} )
+        fi
         if [[ $lines != "$lines_to_keep" ]]; then
           lines=( $lines_to_keep )
         else
@@ -645,6 +652,7 @@ zshz() {
     -help \
     l \
     r \
+    R \
     t \
     x
 
