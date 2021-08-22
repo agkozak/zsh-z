@@ -214,6 +214,7 @@ to install `zsh-z`.
 - `-r`    Match by rank (i.e. how much time you spend in directories)
 - `-t`    Time -- match by how recently you have been to directories
 - `-x`    Remove the current directory from the database
+- `-xR`   Remove the current directory and its subdirectories from the database
 
 # Settings
 
