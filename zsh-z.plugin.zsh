@@ -35,16 +35,17 @@
 #   * cd around for a while to build up the database
 #
 # USAGE:
-#   * z foo     # cd to the most frecent directory matching foo
-#   * z foo bar # cd to the most frecent directory matching both foo and bar
+#   * z foo       cd to the most frecent directory matching foo
+#   * z foo bar   cd to the most frecent directory matching both foo and bar
 #                   (e.g. /foo/bat/bar/quux)
-#   * z -r foo  # cd to the highest ranked directory matching foo
-#   * z -t foo  # cd to most recently accessed directory matching foo
-#   * z -l foo  # List matches instead of changing directories
-#   * z -e foo  # Echo the best match without changing directories
-#   * z -c foo  # Restrict matches to subdirectories of PWD
-#   * z -x      # Remove PWD from the database
-#   * z -xR     # Remove PWD and its subdirectories from the database
+#   * z -r foo    cd to the highest ranked directory matching foo
+#   * z -t foo    cd to most recently accessed directory matching foo
+#   * z -l foo    List matches instead of changing directories
+#   * z -e foo    Echo the best match without changing directories
+#   * z -c foo    Restrict matches to subdirectories of PWD
+#   * z -x        Remove a directory (default: PWD) from the database
+#   * z -xR       Remove a directory (default: PWD) and its subdirectories from
+#                   the database
 #
 # ENVIRONMENT VARIABLES:
 #
@@ -91,8 +92,9 @@ With no ARGUMENT, list the directory history in ascending rank.
   -l    List all matches without going to them
   -r    Match by rank
   -t    Match by recent access
-  -x    Remove the current directory from the database
-  -xR   Remove the current directory and its subdirectories from the database" | fold -s >&2
+  -x    Remove a directory from the database (by default, the current directory)
+  -xR   Remove a directory and its subdirectories from the datbase (by default, the current directory)" |
+    fold -s -w $COLUMNS >&2
 }
 
 # Load zsh/datetime module, if necessary
@@ -223,9 +225,11 @@ zshz() {
         local xdir  # Directory to be removed
 
         if (( ${ZSHZ_NO_RESOLVE_SYMLINKS:-${_Z_NO_RESOLVE_SYMLINKS}} )); then
-          xdir=${PWD:a}
+#          [[ -d ${*:a} ]] && xdir=${*:a} || xdir=${PWD:a}
+          [[ -d ${${*:-${PWD}}:a} ]] && xdir=${${*:-${PWD}}:a}
         else
-          xdir=${PWD:A}
+          [[ -d ${${*:-${PWD}}:A} ]] && xdir=${${*:-${PWD}}:a}
+#          [[ -d ${*:A} ]] && xdir=${*:a} || xdir=${PWD:A}
         fi
 
         local -a lines_to_keep
@@ -708,7 +712,7 @@ zshz() {
       -r) method='rank' ;;
       -t) method='time' ;;
       -x)
-        _zshz_add_or_remove_path --remove
+        _zshz_add_or_remove_path --remove $*
         return
         ;;
     esac

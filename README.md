@@ -33,6 +33,9 @@ ZSH-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
 <details>
     <summary>Here are the latest features and updates.</summary>
 
+- Unreleased
+    + `z -xR` will now remove a directory *and its subdirectories* from the database.
+    + `z -x` and `z -xr` can now take an argument; without one, `PWD` is assumed.
 - August 27, 2021
     + Using `print -v ... -f` instead of `print -v` to work around longstanding bug in ZSH involving `print -v` and multibyte strings.
 - August 13, 2021
@@ -215,8 +218,8 @@ to install `zsh-z`.
 - `-l`    List all matches without going to them
 - `-r`    Match by rank (i.e. how much time you spend in directories)
 - `-t`    Time -- match by how recently you have been to directories
-- `-x`    Remove the current directory from the database
-- `-xR`   Remove the current directory and its subdirectories from the database
+- `-x`    Remove a directory (by default, the current directory) from the database
+- `-xR`   Remove a directory (by default, the current directory) and its subdirectories from the database
 
 # Settings
 
@@ -277,6 +280,7 @@ You may enable an alternate, experimental behavior by setting `ZSHZ_UNCOMMON=1`.
 * Exit status codes increasingly make sense.
 * Completions work with options `-c`, `-r`, and `-t`.
 * If `~/foo` and `~/foob` are matches, `~/foo` is *not* the common root. Only a common parent directory can be a common root.
+* `z -x` and the new, recursive `z -xR` can take an argument so that you can remove directories other than `PWD` from the database.
 
 ## Migrating from Other Tools
 
