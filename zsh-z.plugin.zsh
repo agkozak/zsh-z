@@ -237,7 +237,7 @@ zshz() {
           # All of the lines that don't match the directory to be deleted
           lines_to_keep=( ${lines:#${xdir}\|*} )
           # Or its subdirectories
-          lines_to_keep=( ${lines_to_keep:#${xdir}/**} )
+          lines_to_keep=( ${lines_to_keep:#${xdir%/}/**} )
         else
           # All of the lines that don't match the directory to be deleted
           lines_to_keep=( ${lines:#${xdir}\|*} )
