@@ -234,6 +234,10 @@ zshz() {
 
         local -a lines_to_keep
         if (( ${+opts[-R]} )); then
+          # Prompt user before deleting entire database
+          if [[ $xdir == '/' ]] && ! read -q "?Delete entire ZSH-z database? "; then
+            print && return 1
+          fi
           # All of the lines that don't match the directory to be deleted
           lines_to_keep=( ${lines:#${xdir}\|*} )
           # Or its subdirectories
