@@ -93,7 +93,7 @@ With no ARGUMENT, list the directory history in ascending rank.
   -r    Match by rank
   -t    Match by recent access
   -x    Remove a directory from the database (by default, the current directory)
-  -xR   Remove a directory and its subdirectories from the datbase (by default, the current directory)" |
+  -xR   Remove a directory and its subdirectories from the database (by default, the current directory)" |
     fold -s -w $COLUMNS >&2
 }
 
