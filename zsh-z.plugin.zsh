@@ -938,6 +938,7 @@ zsh-z_plugin_unload() {
 
   fpath=( "${(@)fpath:#${0:A:h}}" )
 
+  # TODO: The following does not work.
   (( $+aliases[$ZSHZ_CMD:-${_Z_CMD:-z}] )) && unalias ${ZSHZ_CMD:-${_Z_CMD:-z}}
 
   unfunction $0
