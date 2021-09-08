@@ -33,6 +33,8 @@ ZSH-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
 <details>
     <summary>Here are the latest features and updates.</summary>
 
+- September 7, 2021
+    + Fixed the unload function so that it removes the `$ZSHZ_CMD` alias (default: `z`).
 - August 27, 2021
     + Using `print -v ... -f` instead of `print -v` to work around longstanding bug in ZSH involving `print -v` and multibyte strings.
 - August 13, 2021
