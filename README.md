@@ -35,7 +35,9 @@ ZSH-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
 
 - Unreleased
     + `z -xR` will now remove a directory *and its subdirectories* from the database.
-    + `z -x` and `z -xr` can now take an argument; without one, `PWD` is assumed.
+    + `z -x` and `z -xR` can now take an argument; without one, `PWD` is assumed.
+- September 7, 2021
+    + Fixed the unload function so that it removes the `$ZSHZ_CMD` alias (default: `z`).
 - August 27, 2021
     + Using `print -v ... -f` instead of `print -v` to work around longstanding bug in ZSH involving `print -v` and multibyte strings.
 - August 13, 2021
