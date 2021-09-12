@@ -156,6 +156,14 @@ Add a backslash to the end of the last line add `'zsh-z'` to the list, e.g.,
 
 Then relaunch `zsh`.
 
+### For [zcomet](https://github.com/agkozak/zcomet) users
+        
+Simply add
+
+    zcomet load agkozak/zsh-z
+
+to your `.zshrc` (below where you source `zcomet.zsh` and above where you load `compinit`).
+
 ### For [zgen](https://github.com/tarjoilija/zgen) users
 
 Add the line
