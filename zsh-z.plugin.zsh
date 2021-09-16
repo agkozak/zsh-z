@@ -343,7 +343,9 @@ zshz() {
       fi
       (( count += rank_field ))
     done
-    if (( count > ${ZSHZ_MAX_SCORE:-${_Z_MAX_SCORE:-9000}} )); then
+    # Set ZSHZ_MAX_SCORE=0 to disable aging
+    if (( ${ZSHZ_MAX_SCORE:-9000} )) &&
+       (( count > ${ZSHZ_MAX_SCORE:-${_Z_MAX_SCORE:-9000}} )); then
       # Aging
       for x in ${(k)rank}; do
         print -- "$x|$(( 0.99 * rank[$x] ))|${time[$x]}"
