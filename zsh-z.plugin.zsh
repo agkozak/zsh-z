@@ -335,7 +335,7 @@ zshz() {
       (( rank_field < 1 )) && continue
 
       if [[ $path_field == "$1" ]]; then
-        rank[$path_field]=$(( rank_field + 1 ))
+        (( rank[$path_field]++ ))
         time[$path_field]=$now
       else
         rank[$path_field]=$rank_field
