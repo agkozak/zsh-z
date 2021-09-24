@@ -33,7 +33,7 @@ ZSH-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
 <details>
     <summary>Here are the latest features and updates.</summary>
 
-- Unreleased
+- September 23, 2021
     + `z -xR` will now remove a directory *and its subdirectories* from the database.
     + `z -x` and `z -xR` can now take an argument; without one, `PWD` is assumed.
 - September 7, 2021
