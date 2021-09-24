@@ -162,7 +162,7 @@ Simply add
 
     zcomet load agkozak/zsh-z
 
-to your `.zshrc` (below where you source `zcomet.zsh` and above where you load `compinit`).
+to your `.zshrc` (below where you source `zcomet.zsh` and above where you run `zcomet compinit`).
 
 ### For [zgen](https://github.com/tarjoilija/zgen) users
 
