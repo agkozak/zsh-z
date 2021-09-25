@@ -33,7 +33,7 @@ Zsh-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
 <details>
     <summary>Here are the latest features and updates.</summary>
 
-- Unreleased
+- September 25, 2021
     + Orthographical change: "Zsh," not "ZSH."
 - September 23, 2021
     + `z -xR` will now remove a directory *and its subdirectories* from the database.
