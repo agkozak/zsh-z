@@ -1,6 +1,6 @@
 #compdef zshz ${ZSHZ_CMD:-${_Z_CMD:-z}}
 #
-# ZSH-z - jump around with ZSH - A native ZSH version of z without awk, sort,
+# Zsh-z - jump around with Zsh - A native Zsh version of z without awk, sort,
 # date, or sed
 #
 # https://github.com/agkozak/zsh-z
@@ -31,7 +31,7 @@
 # shellcheck shell=ksh
 
 ############################################################
-# ZSH-z COMPLETIONS
+# Zsh-z COMPLETIONS
 ############################################################
 emulate -L zsh
 (( ZSHZ_DEBUG )) &&
