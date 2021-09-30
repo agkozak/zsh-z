@@ -869,7 +869,7 @@ _zshz_chpwd() {
   ZSHZ[DIRECTORY_REMOVED]=0
 }
 
-autoload -U add-zsh-hook
+autoload -Uz add-zsh-hook
 
 add-zsh-hook precmd _zshz_precmd
 add-zsh-hook chpwd _zshz_chpwd
