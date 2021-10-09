@@ -278,7 +278,9 @@ zshz() {
     # In order to make z -x work, we have to disable zsh-z's adding
     # to the database until the user changes directory and the
     # chpwd_functions are run
-    [[ $action == '--remove' ]] && ZSHZ[DIRECTORY_REMOVED]=1
+    if [[ $action == '--remove' ]]; then
+      ZSHZ[DIRECTORY_REMOVED]=1
+    fi
   }
 
   ############################################################
