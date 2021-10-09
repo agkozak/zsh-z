@@ -225,11 +225,9 @@ zshz() {
         local xdir  # Directory to be removed
 
         if (( ${ZSHZ_NO_RESOLVE_SYMLINKS:-${_Z_NO_RESOLVE_SYMLINKS}} )); then
-#          [[ -d ${*:a} ]] && xdir=${*:a} || xdir=${PWD:a}
           [[ -d ${${*:-${PWD}}:a} ]] && xdir=${${*:-${PWD}}:a}
         else
           [[ -d ${${*:-${PWD}}:A} ]] && xdir=${${*:-${PWD}}:a}
-#          [[ -d ${*:A} ]] && xdir=${*:a} || xdir=${PWD:A}
         fi
 
         local -a lines_to_keep
