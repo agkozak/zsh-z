@@ -33,6 +33,8 @@ Zsh-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
 <details>
     <summary>Here are the latest features and updates.</summary>
 
+- October 14, 2021
+    + Completions were being sorted alphabetically, rather than by rank; this error has been fixed.
 - September 25, 2021
     + Orthographical change: "Zsh," not "ZSH."
 - September 23, 2021

@@ -57,7 +57,7 @@ local completions expl
 completions=$(zshz --complete ${(@)words:1})
 [[ -z $completions ]] && return 1
 
-_description completions expl 'directories'
+_description -V completions expl 'directories'
 
 if [[ $ZSHZ_COMPLETION == 'legacy' ]]; then
   compadd "${expl[@]}" -U -- "${(f)completions}"
