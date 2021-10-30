@@ -193,7 +193,7 @@ Then run
 
 and restart your shell.
 
-### For [Zinit](https://github.com/zdharma/zinit) (formerly `zplugin`) users
+### For Zinit (formerly `zplugin`) users
 
 Add the line
 
