@@ -700,6 +700,10 @@ zshz() {
       --add)
         [[ ! -d $* ]] && return 1
         local dir
+        # Cygwin and MSYS2 have a hard time with relative paths expressed from /
+        if [[ $OSTYPE == (cygwin|msys) && $PWD == '/' && $* != /* ]]; then
+          set -- "/$*"
+        fi
         if (( ${ZSHZ_NO_RESOLVE_SYMLINKS:-${_Z_NO_RESOLVE_SYMLINKS}} )); then
           dir=${*:a}
         else
@@ -724,6 +728,10 @@ zshz() {
       -r) method='rank' ;;
       -t) method='time' ;;
       -x)
+        # Cygwin and MSYS2 have a hard time with relative paths expressed from /
+        if [[ $OSTYPE == (cygwin|msys) && $PWD == '/' && $* != /* ]]; then
+          set -- "/$*"
+        fi
         _zshz_add_or_remove_path --remove $*
         return
         ;;
