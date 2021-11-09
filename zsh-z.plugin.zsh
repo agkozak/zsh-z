@@ -86,6 +86,7 @@ Jump to a directory that you have visited frequently or recently, or a bit of bo
 
 With no ARGUMENT, list the directory history in ascending rank.
 
+  --add Add a directory to the database
   -c    Only match subdirectories of the current directory
   -e    Echo the best match without going to it
   -h    Display this help and exit
@@ -697,7 +698,14 @@ zshz() {
   for opt in ${(k)opts}; do
     case $opt in
       --add)
-        _zshz_add_or_remove_path --add "$*"
+        [[ ! -d $* ]] && return 1
+        local dir
+        if (( ${ZSHZ_NO_RESOLVE_SYMLINKS:-${_Z_NO_RESOLVE_SYMLINKS}} )); then
+          dir=${*:a}
+        else
+          dir=${*:A}
+        fi
+        _zshz_add_or_remove_path --add "$dir"
         return
         ;;
       --complete)
