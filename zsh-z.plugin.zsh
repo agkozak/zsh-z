@@ -1,5 +1,5 @@
 ################################################################################
-# ZSH-z - jump around with ZSH - A native ZSH version of z without awk, sort,
+# Zsh-z - jump around with Zsh - A native Zsh version of z without awk, sort,
 # date, or sed
 #
 # https://github.com/agkozak/zsh-z
@@ -27,7 +27,7 @@
 # z (https://github.com/rupa/z) is copyright (c) 2009 rupa deadwyler and
 # licensed under the WTFPL license, Version 2.
 #
-# ZSH-z maintains a jump-list of the directories you actually use.
+# Zsh-z maintains a jump-list of the directories you actually use.
 #
 # INSTALL:
 #   * put something like this in your .zshrc:
@@ -63,7 +63,7 @@
 #   ZSHZ_MAX_SCORE -> maximum combined score the database entries can have
 #     before beginning to age (default: 9000)
 #   ZSHZ_NO_RESOLVE_SYMLINKS -> '1' prevents symlink resolution
-#   ZSHZ_OWNER -> your username (if you want use ZSH-z while using sudo -s)
+#   ZSHZ_OWNER -> your username (if you want use Zsh-z while using sudo -s)
 #   ZSHZ_UNCOMMON -> if 1, do not jump to "common directories," but rather drop
 #     subdirectories based on what the search string was (default: 0)
 ################################################################################
@@ -71,7 +71,7 @@
 autoload -U is-at-least
 
 if ! is-at-least 4.3.11; then
-  print "ZSH-z requires ZSH v4.3.11 or higher." >&2 && exit
+  print "Zsh-z requires Zsh v4.3.11 or higher." >&2 && exit
 fi
 
 ############################################################
@@ -86,6 +86,7 @@ Jump to a directory that you have visited frequently or recently, or a bit of bo
 
 With no ARGUMENT, list the directory history in ascending rank.
 
+  --add Add a directory to the database
   -c    Only match subdirectories of the current directory
   -e    Echo the best match without going to it
   -h    Display this help and exit
@@ -123,7 +124,7 @@ zsystem supports flock &> /dev/null && ZSHZ[USE_FLOCK]=1
 is-at-least 5.3.0 && ZSHZ[PRINTV]=1
 
 ############################################################
-# The ZSH-z Command
+# The Zsh-z Command
 #
 # Globals:
 #   ZSHZ
@@ -154,7 +155,7 @@ zshz() {
 
   # If the datafile is a directory, print a warning and exit
   if [[ -d $datafile ]]; then
-    print "ERROR: ZSH-z's datafile (${datafile}) is a directory." >&2
+    print "ERROR: Zsh-z's datafile (${datafile}) is a directory." >&2
     exit
   fi
 
@@ -225,17 +226,15 @@ zshz() {
         local xdir  # Directory to be removed
 
         if (( ${ZSHZ_NO_RESOLVE_SYMLINKS:-${_Z_NO_RESOLVE_SYMLINKS}} )); then
-#          [[ -d ${*:a} ]] && xdir=${*:a} || xdir=${PWD:a}
           [[ -d ${${*:-${PWD}}:a} ]] && xdir=${${*:-${PWD}}:a}
         else
           [[ -d ${${*:-${PWD}}:A} ]] && xdir=${${*:-${PWD}}:a}
-#          [[ -d ${*:A} ]] && xdir=${*:a} || xdir=${PWD:A}
         fi
 
         local -a lines_to_keep
         if (( ${+opts[-R]} )); then
           # Prompt user before deleting entire database
-          if [[ $xdir == '/' ]] && ! read -q "?Delete entire ZSH-z database? "; then
+          if [[ $xdir == '/' ]] && ! read -q "?Delete entire Zsh-z database? "; then
             print && return 1
           fi
           # All of the lines that don't match the directory to be deleted
@@ -280,7 +279,9 @@ zshz() {
     # In order to make z -x work, we have to disable zsh-z's adding
     # to the database until the user changes directory and the
     # chpwd_functions are run
-    [[ $action == '--remove' ]] && ZSHZ[DIRECTORY_REMOVED]=1
+    if [[ $action == '--remove' ]]; then
+      ZSHZ[DIRECTORY_REMOVED]=1
+    fi
   }
 
   ############################################################
@@ -407,8 +408,8 @@ zshz() {
   #   foo=$( bar )
   #
   # requires forking a subshell; on Cygwin/MSYS2/WSL1 that can
-  # be surprisingly slow. ZSH-z avoids doing that by printing
-  # values to the variable REPLY. Since ZSH v5.3.0 that has
+  # be surprisingly slow. Zsh-z avoids doing that by printing
+  # values to the variable REPLY. Since Zsh v5.3.0 that has
   # been possible with `print -v'; for earlier versions of the
   # shell, the values are placed on the editing buffer stack
   # and then `read' into REPLY.
@@ -627,7 +628,7 @@ zshz() {
       # If it's 'smart', be case-insensitive unless the string to be matched
       # includes capital letters.
       #
-      # Otherwise, the default behavior of ZSH-z is to match case-sensitively if
+      # Otherwise, the default behavior of Zsh-z is to match case-sensitively if
       # possible, then to fall back on a case-insensitive match if possible.
       if [[ $ZSHZ_CASE == 'smart' && ${1:l} == $1 &&
             ${path_field_normalized:l} == ${~q:l} ]]; then
@@ -699,7 +700,18 @@ zshz() {
   for opt in ${(k)opts}; do
     case $opt in
       --add)
-        _zshz_add_or_remove_path --add "$*"
+        [[ ! -d $* ]] && return 1
+        local dir
+        # Cygwin and MSYS2 have a hard time with relative paths expressed from /
+        if [[ $OSTYPE == (cygwin|msys) && $PWD == '/' && $* != /* ]]; then
+          set -- "/$*"
+        fi
+        if (( ${ZSHZ_NO_RESOLVE_SYMLINKS:-${_Z_NO_RESOLVE_SYMLINKS}} )); then
+          dir=${*:a}
+        else
+          dir=${*:A}
+        fi
+        _zshz_add_or_remove_path --add "$dir"
         return
         ;;
       --complete)
@@ -718,6 +730,10 @@ zshz() {
       -r) method='rank' ;;
       -t) method='time' ;;
       -x)
+        # Cygwin and MSYS2 have a hard time with relative paths expressed from /
+        if [[ $OSTYPE == (cygwin|msys) && $PWD == '/' && $* != /* ]]; then
+          set -- "/$*"
+        fi
         _zshz_add_or_remove_path --remove $*
         return
         ;;
@@ -861,7 +877,7 @@ _zshz_precmd() {
 # chpwd
 #
 # When the $PWD is removed from the datafile with `z -x',
-# ZSH-z refrains from adding it again until the user has
+# Zsh-z refrains from adding it again until the user has
 # left the directory.
 #
 # Globals:
@@ -871,7 +887,7 @@ _zshz_chpwd() {
   ZSHZ[DIRECTORY_REMOVED]=0
 }
 
-autoload -U add-zsh-hook
+autoload -Uz add-zsh-hook
 
 add-zsh-hook precmd _zshz_precmd
 add-zsh-hook chpwd _zshz_chpwd
@@ -881,7 +897,7 @@ add-zsh-hook chpwd _zshz_chpwd
 ############################################################
 
 # Standarized $0 handling
-# (See https://github.com/zdharma/Zsh-100-Commits-Club/blob/master/Zsh-Plugin-Standard.adoc)
+# (See https://github.com/agkozak/Zsh-100-Commits-Club/blob/master/Zsh-Plugin-Standard.adoc)
 0=${${ZERO:-${0:#$ZSH_ARGZERO}}:-${(%):-%N}}
 0=${${(M)0:#/*}:-$PWD/$0}
 
@@ -919,7 +935,7 @@ ZSHZ[FUNCTIONS]='_zshz_usage
 ############################################################
 # Unload function
 #
-# See https://github.com/zdharma/Zsh-100-Commits-Club/blob/master/Zsh-Plugin-Standard.adoc#unload-fun
+# See https://github.com/agkozak/Zsh-100-Commits-Club/blob/master/Zsh-Plugin-Standard.adoc#unload-fun
 #
 # Globals:
 #   ZSHZ
