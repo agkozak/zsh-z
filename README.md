@@ -23,7 +23,8 @@ Zsh-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
 - [Settings](#settings)
 - [Case Sensitivity](#case-sensitivity)
 - [`ZSHZ_UNCOMMON`](#zshz_uncommon)
-- [Improvements and Fixes](#improvements-and-fixes)
+- [Making `--add` work for you](#making-add-work-for-you)
+- [Other Improvements and Fixes](#other-improvements-and-fixes)
 - [Migrating from Other Tools](#migrating-from-other-tools)
 - [`COMPLETE_ALIASES`](#complete_aliases)
 - [Known Bugs](#known-bugs)
@@ -287,7 +288,20 @@ then there is no common prefix. In this case, `z code` will simply send you to t
 
 You may enable an alternate, experimental behavior by setting `ZSHZ_UNCOMMON=1`. If you do that, Zsh-z will not jump to a common prefix, even if one exists. Instead, it chooses the highest-ranking match -- but it drops any subdirectories that do not include the search term. So if you type `z bat` and `/home/me/code/bat` is the best match, that is exactly where you will end up. If, however, you had typed `z code` and the best match was also `/home/me/code/bat`, you would have ended up in `/home/me/code` (because `code` was what you had searched for). This feature is still in development, and feedback is welcome.
 
-## Improvements and Fixes
+## Making `--add` Work for You
+
+Zsh-z internally uses the `--add` option to add paths to its database. @zachriggle pointed out to me that users might want to use `--add` themselves, so I have altered it a little to make it more user-friendly.
+
+A good example might involve a directory tree that has Git repositories within it. The working directories could be added to the Zsh-z database as a batch with
+
+    for i in $(find $PWD -maxdepth 3 -name .git -type d); do
+      z --add ${i:h}
+    done
+
+(As a Zsh user, I tend to use `**` instead of `find`, but it is good to see how deep your directory trees go before doing that.)
+
+
+## Other Improvements and Fixes
 
 * `z -x` works, with the help of `chpwd_functions`.
 * Zsh-z works on Solaris.
