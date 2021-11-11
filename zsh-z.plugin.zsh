@@ -335,7 +335,8 @@ zshz() {
       # When a rank drops below 1, drop the path from the database
       (( rank_field < 1 )) && continue
 
-      if [[ $path_field == "$1" ]]; then
+      if [[ $path_field == $add_path ]]; then
+        rank[$path_field]=$rank_field
         (( rank[$path_field]++ ))
         time[$path_field]=$now
       else
