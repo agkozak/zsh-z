@@ -34,6 +34,7 @@ Zsh-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
     <summary>Here are the latest features and updates.</summary>
 
 - Unreleased
+    + A bug was fixed which was preventing ranks from being incremented.
     + `--add` has been made to work with relative paths and has been documented for the user.
 - October 14, 2021
     + Completions were being sorted alphabetically, rather than by rank; this error has been fixed.
