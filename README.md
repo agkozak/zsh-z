@@ -23,7 +23,7 @@ Zsh-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
 - [Settings](#settings)
 - [Case Sensitivity](#case-sensitivity)
 - [`ZSHZ_UNCOMMON`](#zshz_uncommon)
-- [Making `--add` work for you](#making-add-work-for-you)
+- [Making `--add` work for you](#making---add-work-for-you)
 - [Other Improvements and Fixes](#other-improvements-and-fixes)
 - [Migrating from Other Tools](#migrating-from-other-tools)
 - [`COMPLETE_ALIASES`](#complete_aliases)
