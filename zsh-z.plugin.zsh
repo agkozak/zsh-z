@@ -845,17 +845,10 @@ _zshz_precmd() {
   # if `z -x' has just been run
   [[ $PWD == "$HOME" ]] || (( ZSHZ[DIRECTORY_REMOVED] )) && return
 
-  local dir
-  if (( ${ZSHZ_NO_RESOLVE_SYMLINKS:-${_Z_NO_RESOLVE_SYMLINKS}} )); then
-    dir="${PWD:a}"
-  else
-    dir="${PWD:A}"
-  fi
-
   # Don't track directory trees excluded in ZSHZ_EXCLUDE_DIRS
   local exclude
   for exclude in ${(@)ZSHZ_EXCLUDE_DIRS:-${(@)_Z_EXCLUDE_DIRS}}; do
-    case $dir in
+    case $PWD in
       ${exclude}|${exclude}/*) return ;;
     esac
   done
@@ -863,9 +856,9 @@ _zshz_precmd() {
   # It appears that forking a subshell is so slow in Windows that it is better
   # just to add the PWD to the datafile in the foreground
   if [[ $OSTYPE == (cygwin|msys) ]]; then
-      zshz --add "$dir"
+      zshz --add "$PWD"
   else
-      (zshz --add "$dir" &)
+      (zshz --add "$PWD" &)
   fi
 
   # See https://github.com/rupa/z/pull/247/commits/081406117ea42ccb8d159f7630cfc7658db054b6
