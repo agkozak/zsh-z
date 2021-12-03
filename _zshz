@@ -60,7 +60,7 @@ completions=$(zshz --complete ${(@)words:1})
 _description -V completions expl 'directories'
 
 if [[ $ZSHZ_COMPLETION == 'legacy' ]]; then
-  compadd "${expl[@]}" -U -- "${(f)completions}"
+  compadd "${expl[@]}" -U -- "${(f)completions[@]}"
 else
   compadd "${expl[@]}" -U -V zsh-z -- "${(f)completions[@]}"
 fi
