@@ -52,17 +52,27 @@ emulate -L zsh
 #
 # Address.
 
-local completions expl
+local completions expl completion
+local -a completion_list
 
 completions=$(zshz --complete ${(@)words:1})
 [[ -z $completions ]] && return 1
 
-_description -V completions expl 'directories'
+for completion in ${(f)completions[@]}; do
+  if (( ZSHZ_TILDE )) && [[ $completion == ${HOME}* ]]; then
+    completion="~${(q)${completion#${HOME}}}"
+  else
+    completion="${(q)completion}"
+  fi
+  completion_list+=( $completion )
+done
+
+_description -V completion_list expl 'directories'
 
 if [[ $ZSHZ_COMPLETION == 'legacy' ]]; then
-  compadd "${expl[@]}" -U -- "${(f)completions[@]}"
+  compadd "${expl[@]}" -QU -- "${completion_list[@]}"
 else
-  compadd "${expl[@]}" -U -V zsh-z -- "${(f)completions[@]}"
+  compadd "${expl[@]}" -QU -V zsh-z -- "${completion_list[@]}"
 fi
 
 compstate[insert]=menu
