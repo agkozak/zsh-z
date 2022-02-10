@@ -328,7 +328,7 @@ zshz() {
     lines=( $existing_paths )
 
     for line in $lines; do
-      path_field=${line%%\|*}
+      path_field=${(q)line%%\|*}
       rank_field=${${line%\|*}#*\|}
       time_field=${line##*\|}
 
