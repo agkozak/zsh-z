@@ -217,9 +217,13 @@ zshz() {
 
     fi
 
+    # Open up tempfile for writing
+    integer tmpfd
+    exec {tmpfd}>|"$tempfile"
+
     case $action in
       --add)
-        _zshz_update_datafile "$*" >| "$tempfile"
+        _zshz_update_datafile $tmpfd "$*"
         local ret=$?
         ;;
       --remove)
@@ -250,10 +254,19 @@ zshz() {
         else
           return 1  # The $PWD isn't in the datafile
         fi
-        print -l -- $lines > "$tempfile"
+        print -u $tmpfd -l -- $lines
         local ret=$?
         ;;
     esac
+
+    # Close tempfile
+    exec {tmpfd}>&-
+
+    if (( ret != 0 )); then
+      # Avoid clobbering the datafile if the write to tempfile failed
+      zf_rm -f "$tempfile"
+      return $ret
+    fi
 
     local owner
     owner=${ZSHZ_OWNER:-${_Z_OWNER}}
@@ -265,15 +278,10 @@ zshz() {
         zf_chown ${owner}:"$(id -ng ${owner})" "$datafile"
       fi
     else
-      # Avoid clobbering the datafile in a race condition
-      if (( ret != 0 )) && [[ -f $datafile ]]; then
-        zf_rm -f "$tempfile"
-      else
-        if [[ -n $owner ]]; then
-          zf_chown "${owner}":"$(id -ng "${owner}")" "$tempfile"
-        fi
-        zf_mv -f "$tempfile" "$datafile" 2> /dev/null || zf_rm -f "$tempfile"
+      if [[ -n $owner ]]; then
+        zf_chown "${owner}":"$(id -ng "${owner}")" "$tempfile"
       fi
+      zf_mv -f "$tempfile" "$datafile" 2> /dev/null || zf_rm -f "$tempfile"
     fi
 
     # In order to make z -x work, we have to disable zsh-z's adding
@@ -298,11 +306,12 @@ zshz() {
   ############################################################
   _zshz_update_datafile() {
 
+    integer fd=$1
     local -A rank time
 
     # Characters special to the shell (such as '[]') are quoted with backslashes
     # See https://github.com/rupa/z/issues/246
-    local add_path=${(q)1}
+    local add_path=${(q)2}
 
     local -a existing_paths
     local now=$EPOCHSECONDS line dir
@@ -348,11 +357,11 @@ zshz() {
     if (( count > ${ZSHZ_MAX_SCORE:-${_Z_MAX_SCORE:-9000}} )); then
       # Aging
       for x in ${(k)rank}; do
-        print -- "$x|$(( 0.99 * rank[$x] ))|${time[$x]}"
+        print -u $fd -- "$x|$(( 0.99 * rank[$x] ))|${time[$x]}" || return 1
       done
     else
       for x in ${(k)rank}; do
-        print -- "$x|${rank[$x]}|${time[$x]}"
+        print -u $fd -- "$x|${rank[$x]}|${time[$x]}" || return 1
       done
     fi
   }
