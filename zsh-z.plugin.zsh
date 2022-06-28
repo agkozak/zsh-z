@@ -302,7 +302,8 @@ zshz() {
   #   ZSHZ_MAX_SCORE
   #
   # Arguments:
-  #   $1 Path to be added to datafile
+  #   $1 File descriptor linked to tempfile
+  #   $2 Path to be added to datafile
   ############################################################
   _zshz_update_datafile() {
 
