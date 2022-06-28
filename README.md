@@ -34,6 +34,8 @@ Zsh-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
 <details>
     <summary>Here are the latest features and updates.</summary>
 
+- June 27, 2022
+    + A bug was fixed which was preventing paths with spaces in them from being updated ([#61](https://github.com/agkozak/zsh-z/issues/61)).
 - December 19, 2021
     + ZSH-z will now display tildes for `HOME` during completion when `ZSHZ_TILDE=1` has been set.
 - November 11, 2021
