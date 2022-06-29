@@ -217,12 +217,10 @@ zshz() {
 
     fi
 
-    # Open up tempfile for writing
     integer tmpfd
-    exec {tmpfd}>|"$tempfile"
-
     case $action in
       --add)
+        exec {tmpfd}>|"$tempfile"  # Open up tempfile for writing
         _zshz_update_datafile $tmpfd "$*"
         local ret=$?
         ;;
@@ -254,13 +252,16 @@ zshz() {
         else
           return 1  # The $PWD isn't in the datafile
         fi
+        exec {tmpfd}>|"$tempfile"  # Open up tempfile for writing
         print -u $tmpfd -l -- $lines
         local ret=$?
         ;;
     esac
 
-    # Close tempfile
-    exec {tmpfd}>&-
+    if (( tmpfd != 0 )); then
+      # Close tempfile
+      exec {tmpfd}>&-
+    fi
 
     if (( ret != 0 )); then
       # Avoid clobbering the datafile if the write to tempfile failed
