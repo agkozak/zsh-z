@@ -34,6 +34,8 @@ Zsh-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
 <details>
     <summary>Here are the latest features and updates.</summary>
 
+- June 29, 2022
+    + Zsh-z is less likely to leave temporary files sitting around (props @mafredri).
 - June 27, 2022
     + A bug was fixed which was preventing paths with spaces in them from being updated ([#61](https://github.com/agkozak/zsh-z/issues/61)).
     + If writing to the temporary database file fails, the database will not be clobbered (props @mafredri).
