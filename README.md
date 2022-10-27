@@ -124,13 +124,19 @@ Add the line
 
 to your `.zshrc`, somewhere above the line that says `antigen apply`.
 
-### For [oh-my-zsh](http://ohmyz.sh/) users
+### For [Oh My Zsh](http://ohmyz.sh/) users
 
-Execute the following command:
+Zsh-z is now included as part of Oh My Zsh! As long as you are using an up-to-date installation of Oh My Zsh, you can activate Zsh-z simply by adding `z` to your `plugins` array in your `.zshrc`, e.g.,
+
+    plugins=( git z )
+
+It is as simple as that.
+
+If, however, you prefer always to use the latest version of Zsh-z from the `agkozak/zsh-z` repo, you may install it thus:
 
     git clone https://github.com/agkozak/zsh-z ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-z
 
-and add `zsh-z` to the line of your `.zshrc` that specifies `plugins=()`, e.g., `plugins=( git zsh-z )`.
+and activate it by adding `zsh-z` to the line of your `.zshrc` that specifies `plugins=()`, e.g., `plugins=( git zsh-z )`.
 
 ### For [prezto](https://github.com/sorin-ionescu/prezto) users
 
