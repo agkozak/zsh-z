@@ -161,7 +161,7 @@ zshz() {
 
   # Make sure that the datafile exists before attempting to read it or lock it
   # for writing
-  [[ -f $datafile ]] || touch "$datafile"
+  [[ -f $datafile ]] || { mkdir -p "${datafile:h}" && touch "$datafile" }
 
   # Bail if we don't own the datafile and $ZSHZ_OWNER is not set
   [[ -z ${ZSHZ_OWNER:-${_Z_OWNER}} && -f $datafile && ! -O $datafile ]] &&
