@@ -150,8 +150,10 @@ zshz() {
   local -a lines
 
   # Allow the user to specify the datafile name in $ZSHZ_DATA (default: ~/.z)
-  # If the datafile is a symlink, it gets dereferenced
+  # If the datafile is a symlink, it gets dereferenced. If no directory was
+  # specified, default to zsh home.
   local datafile=${${ZSHZ_DATA:-${_Z_DATA:-${HOME}/.z}}:A}
+  [[ "${datafile:h}" !=  '.' ]] || datafile="${ZDOTDIR:-$HOME}/$datafile"
 
   # If the datafile is a directory, print a warning and exit
   if [[ -d $datafile ]]; then
