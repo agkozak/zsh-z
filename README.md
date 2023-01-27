@@ -34,6 +34,8 @@ Zsh-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
 <details>
     <summary>Here are the latest features and updates.</summary>
 
+- January 27, 2023
+    + If the datafile directory specified by `ZSHZ_DATA` or `_Z_DATA` does not already exist, create it (props @mattmc3).
 - June 29, 2022
     + Zsh-z is less likely to leave temporary files sitting around (props @mafredri).
 - June 27, 2022
