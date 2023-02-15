@@ -769,11 +769,11 @@ zshz() {
   }
 
   #########################################################
-  # If $ZSHZ_CD is empty set it to $(builtin cd) otherwise
+  # If $ZSHZ_CD is empty set it to `builtin cd` otherwise
   # use the function defined by the user.
   #########################################################
   if [[ -z $ZSHZ_CD ]]; then
-    ZSHZ_CD=$(builtin cd)
+    typeset -g ZSHZ_CD='builtin cd'
   fi
 
   #########################################################
@@ -793,7 +793,7 @@ zshz() {
 
   if [[ ${@: -1} == /* ]] && (( ! $+opts[-e] && ! $+opts[-l] )); then
     # cd if possible; echo the new path if $ZSHZ_ECHO == 1
-    [[ -d ${@: -1} ]] && $ZSHZ_CD ${@: -1} && _zshz_echo && return
+    [[ -d ${@: -1} ]] && ${=ZSHZ_CD} ${@: -1} && _zshz_echo && return
   fi
 
   # With option -c, make sure query string matches beginning of matches;
@@ -850,12 +850,12 @@ zshz() {
       print -- "$cd"
     else
       # cd if possible; echo the new path if $ZSHZ_ECHO == 1
-      [[ -d $cd ]] && $ZSHZ_CD "$cd" && _zshz_echo
+      [[ -d $cd ]] && ${=ZSHZ_CD} "$cd" && _zshz_echo
     fi
   else
     # if $req is a valid path, cd to it; echo the new path if $ZSHZ_ECHO == 1
     if ! (( $+opts[-e] || $+opts[-l] )) && [[ -d $req ]]; then
-      $ZSHZ_CD "$req" && _zshz_echo
+      ${=ZSHZ_CD} "$req" && _zshz_echo
     else
       return $ret2
     fi
