@@ -52,7 +52,7 @@
 #   ZSHZ_CASE -> if `ignore', pattern matching is case-insensitive; if `smart',
 #     pattern matching is case-insensitive only when the pattern is all
 #     lowercase
-#   ZSHZ_CD -> the cd command that is used (default: builtin cd)
+#   ZSHZ_CD -> the directory-changing command that is used (default: builtin cd)
 #   ZSHZ_CMD -> name of command (default: z)
 #   ZSHZ_COMPLETION -> completion method (default: 'frecent'; 'legacy' for
 #     alphabetic sorting)

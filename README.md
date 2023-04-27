@@ -34,8 +34,8 @@ Zsh-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
 <details>
     <summary>Here are the latest features and updates.</summary>
 
-- January 31, 2023
-    + Zsh-z now allows to overwrite the default `cd` command using the `ZSHZ_CD` environment variable, if unset `builtin cd` is used (props @basnijholt).
+- April 27, 2023
+    + Zsh-z now allows the user to specify the directory-changing command using the `ZSHZ_CD` environment variable (default: `builtin cd`; props @basnijholt).
 - January 27, 2023
     + If the datafile directory specified by `ZSHZ_DATA` or `_Z_DATA` does not already exist, create it (props @mattmc3).
 - June 29, 2022
@@ -262,7 +262,7 @@ to install `zsh-z`.
 Zsh-z has environment variables (they all begin with `ZSHZ_`) that change its behavior if you set them; you can also keep your old ones if you have been using `rupa/z` (they begin with `_Z_`).
 
 * `ZSHZ_CMD` changes the command name (default: `z`)
-* `ZSHZ_CD` sets the `cd` command that is used (default: `builtin cd`)
+* `ZSHZ_CD` specifies the default directory-changing command (default: `builtin cd`)
 * `ZSHZ_COMPLETION` can be `'frecent'` (default) or `'legacy'`, depending on whether you want your completion results sorted according to frecency or simply sorted alphabetically
 * `ZSHZ_DATA` changes the database file (default: `~/.z`)
 * `ZSHZ_ECHO` displays the new path name when changing directories (default: `0`)
