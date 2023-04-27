@@ -630,7 +630,7 @@ zshz() {
         *)
           # Frecency routine
           (( dx = EPOCHSECONDS - time_field ))
-          rank=$(( 10000 * rank_field * (3.75/((0.0001 * dx + 1) + 0.25)) ))
+          rank=$(( 10000 * rank_field * (3.75/( (0.0001 * dx + 1) + 0.25)) ))
           ;;
       esac
 
