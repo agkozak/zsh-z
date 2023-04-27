@@ -769,12 +769,24 @@ zshz() {
   }
 
   #########################################################
-  # If $ZSHZ_CD is empty set it to `builtin cd` otherwise
-  # use the function defined by the user.
+  # Allow the user to specify directory-changing command
+  # using $ZSHZ_CD (default: builtin cd).
+  #
+  # Globals:
+  #   ZSHZ_CD
+  #
+  # Arguments:
+  #   $* Path
   #########################################################
-  if [[ -z $ZSHZ_CD ]]; then
-    typeset -g ZSHZ_CD='builtin cd'
-  fi
+  zshz_cd() {
+    setopt LOCAL_OPTIONS NO_WARN_CREATE_GLOBAL
+
+    if [[ -z $ZSHZ_CD ]]; then
+      builtin cd "$*"
+    else
+      ${=ZSHZ_CD} "$*"
+    fi
+  }
 
   #########################################################
   # If $ZSHZ_ECHO == 1, display paths as you jump to them.
@@ -793,7 +805,7 @@ zshz() {
 
   if [[ ${@: -1} == /* ]] && (( ! $+opts[-e] && ! $+opts[-l] )); then
     # cd if possible; echo the new path if $ZSHZ_ECHO == 1
-    [[ -d ${@: -1} ]] && ${=ZSHZ_CD} ${@: -1} && _zshz_echo && return
+    [[ -d ${@: -1} ]] && zshz_cd ${@: -1} && _zshz_echo && return
   fi
 
   # With option -c, make sure query string matches beginning of matches;
@@ -850,12 +862,12 @@ zshz() {
       print -- "$cd"
     else
       # cd if possible; echo the new path if $ZSHZ_ECHO == 1
-      [[ -d $cd ]] && ${=ZSHZ_CD} "$cd" && _zshz_echo
+      [[ -d $cd ]] && zshz_cd "$cd" && _zshz_echo
     fi
   else
     # if $req is a valid path, cd to it; echo the new path if $ZSHZ_ECHO == 1
     if ! (( $+opts[-e] || $+opts[-l] )) && [[ -d $req ]]; then
-      ${=ZSHZ_CD} "$req" && _zshz_echo
+      zshz_cd "$req" && _zshz_echo
     else
       return $ret2
     fi
