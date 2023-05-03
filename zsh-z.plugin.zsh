@@ -102,26 +102,26 @@ With no ARGUMENT, list the directory history in ascending rank.
 # Load zsh/datetime module, if necessary
 (( $+EPOCHSECONDS )) || zmodload zsh/datetime
 
+# Global associative array for internal use
+typeset -gA ZSHZ
+
 # Load zsh/files, if necessary and if available (MobaXterm zsh lacks zsh/files)
 if [[ ! ${builtins[zf_chown]} == 'defined' ||
       ! ${builtins[zf_mv]}    == 'defined' ||
       ! ${builtins[zf_rm]}    == 'defined' ]]; then
   if zmodload -F zsh/files b:zf_chown b:zf_mv b:zf_rm &> /dev/null; then
-    ZSHZ_CHOWN='zf_chown'
-    ZSHZ_MV='zf_mv'
-    ZSHZ_RM='zf_rm'
+    ZSHZ[CHOWN]='zf_chown'
+    ZSHZ[MV]='zf_mv'
+    ZSHZ[RM]='zf_rm'
   else
-    ZSHZ_CHOWN='chown'
-    ZSHZ_MV='mv'
-    ZSHZ_RM='rm'
+    ZSHZ[CHOWN]='chown'
+    ZSHZ[MV]='mv'
+    ZSHZ[RM]='rm'
   fi
 fi
 
 # Load zsh/system, if necessary
 [[ ${modules[zsh/system]} == 'loaded' ]] || zmodload zsh/system &> /dev/null
-
-# Global associative array for internal use
-typeset -gA ZSHZ
 
 # Make sure ZSHZ_EXCLUDE_DIRS has been declared so that other scripts can
 # simply append to it
@@ -198,11 +198,8 @@ zshz() {
   #
   # Globals:
   #   ZSHZ
-  #   ZSHZ_CHOWN
   #   ZSHZ_EXCLUDE_DIRS
-  #   ZSHZ_MV
   #   ZSHZ_OWNER
-  #   ZSHZ_RM
   #
   # Arguments:
   #   $1 Which action to perform (--add/--remove)
@@ -289,7 +286,7 @@ zshz() {
 
     if (( ret != 0 )); then
       # Avoid clobbering the datafile if the write to tempfile failed
-      $ZSHZ_RM -f "$tempfile"
+      ${ZSHZ[RM]} -f "$tempfile"
       return $ret
     fi
 
@@ -297,17 +294,17 @@ zshz() {
     owner=${ZSHZ_OWNER:-${_Z_OWNER}}
 
     if (( ZSHZ[USE_FLOCK] )); then
-      $ZSHZ_MV "$tempfile" "$datafile" 2> /dev/null || $ZSHZ_RM -f "$tempfile"
+      ${ZSHZ[MV]} "$tempfile" "$datafile" 2> /dev/null || ${ZSHZ[RM]} -f "$tempfile"
 
       if [[ -n $owner ]]; then
-        $ZSHZ_CHOWN ${owner}:"$(id -ng ${owner})" "$datafile"
+        ${ZSHZ[CHOWN]} ${owner}:"$(id -ng ${owner})" "$datafile"
       fi
     else
       if [[ -n $owner ]]; then
-        $ZSHZ_CHOWN "${owner}":"$(id -ng "${owner}")" "$tempfile"
+        ${ZSHZ[CHOWN]} "${owner}":"$(id -ng "${owner}")" "$tempfile"
       fi
-      $ZSHZ_MV -f "$tempfile" "$datafile" 2> /dev/null ||
-          $ZSHZ_RM -f "$tempfile"
+      ${ZSHZ[MV]} -f "$tempfile" "$datafile" 2> /dev/null ||
+          ${ZSHZ[RM]} -f "$tempfile"
     fi
 
     # In order to make z -x work, we have to disable zsh-z's adding
