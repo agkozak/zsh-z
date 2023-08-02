@@ -34,6 +34,8 @@ Zsh-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
 <details>
     <summary>Here are the latest features and updates.</summary>
 
+- August 2, 2023
+    + Zsh-z still uses the `zsh/files` module when possible, but will fall back on the standard `chown`, `mv`, and `rm` commands in its absence.
 - April 27, 2023
     + Zsh-z now allows the user to specify the directory-changing command using the `ZSHZ_CD` environment variable (default: `builtin cd`; props @basnijholt).
 - January 27, 2023
