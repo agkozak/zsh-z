@@ -34,6 +34,8 @@ Zsh-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
 <details>
     <summary>Here are the latest features and updates.</summary>
 
+- August 23, 2023
+    + Better logic for loading `zsh/files` (props @z0rc)
 - August 2, 2023
     + Zsh-z still uses the `zsh/files` module when possible, but will fall back on the standard `chown`, `mv`, and `rm` commands in its absence.
 - April 27, 2023

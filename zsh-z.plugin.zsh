@@ -105,18 +105,18 @@ With no ARGUMENT, list the directory history in ascending rank.
 # Global associative array for internal use
 typeset -gA ZSHZ
 
-# Load zsh/files, if necessary and if available (MobaXterm zsh lacks zsh/files)
-if [[ ! ${builtins[zf_chown]} == 'defined' ||
-      ! ${builtins[zf_mv]}    == 'defined' ||
-      ! ${builtins[zf_rm]}    == 'defined' ]]; then
+# Fallback utilities in case Zsh lacks zsh/files (as is the case with MobaXterm)
+ZSHZ[CHOWN]='chown'
+ZSHZ[MV]='mv'
+ZSHZ[RM]='rm'
+# Load zsh/files if necessary and if available
+if [[ ${builtins[zf_chown]} != 'defined' ||
+      ${builtins[zf_mv]}    != 'defined' ||
+      ${builtins[zf_rm]}    != 'defined' ]]; then
   if zmodload -F zsh/files b:zf_chown b:zf_mv b:zf_rm &> /dev/null; then
     ZSHZ[CHOWN]='zf_chown'
     ZSHZ[MV]='zf_mv'
     ZSHZ[RM]='zf_rm'
-  else
-    ZSHZ[CHOWN]='chown'
-    ZSHZ[MV]='mv'
-    ZSHZ[RM]='rm'
   fi
 fi
 
