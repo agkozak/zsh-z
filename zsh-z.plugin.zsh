@@ -109,16 +109,17 @@ typeset -gA ZSHZ
 ZSHZ[CHOWN]='chown'
 ZSHZ[MV]='mv'
 ZSHZ[RM]='rm'
-# Load zsh/files if necessary and if available
+# Try to load zsh/files utilities
 if [[ ${builtins[zf_chown]} != 'defined' ||
       ${builtins[zf_mv]}    != 'defined' ||
       ${builtins[zf_rm]}    != 'defined' ]]; then
-  if zmodload -F zsh/files b:zf_chown b:zf_mv b:zf_rm &> /dev/null; then
-    ZSHZ[CHOWN]='zf_chown'
-    ZSHZ[MV]='zf_mv'
-    ZSHZ[RM]='zf_rm'
-  fi
+  zmodload -F zsh/files b:zf_chown b:zf_mv b:zf_rm &> /dev/null
 fi
+# Use zsh/files, if it is available
+[[ ${builtins[zf_chown]} == 'defined' ]] && ZSHZ[CHOWN]='zf_chown'
+[[ ${builtins[zf_mv]} == 'defined' ]] && ZSHZ[MV]='zf_mv'
+[[ ${builtins[zf_rm]} == 'defined' ]] && ZSHZ[RM]='zf_rm'
+
 
 # Load zsh/system, if necessary
 [[ ${modules[zsh/system]} == 'loaded' ]] || zmodload zsh/system &> /dev/null
