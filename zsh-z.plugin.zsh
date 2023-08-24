@@ -100,7 +100,7 @@ With no ARGUMENT, list the directory history in ascending rank.
 }
 
 # Load zsh/datetime module, if necessary
-(( $+EPOCHSECONDS )) || zmodload zsh/datetime
+(( ${+EPOCHSECONDS} )) || zmodload zsh/datetime
 
 # Global associative array for internal use
 typeset -gA ZSHZ
@@ -110,19 +110,19 @@ ZSHZ[CHOWN]='chown'
 ZSHZ[MV]='mv'
 ZSHZ[RM]='rm'
 # Try to load zsh/files utilities
-if [[ ${builtins[zf_chown]} != 'defined' ||
-      ${builtins[zf_mv]}    != 'defined' ||
-      ${builtins[zf_rm]}    != 'defined' ]]; then
+if [[ ${builtins[zf_chown]-} != 'defined' ||
+      ${builtins[zf_mv]-}    != 'defined' ||
+      ${builtins[zf_rm]-}    != 'defined' ]]; then
   zmodload -F zsh/files b:zf_chown b:zf_mv b:zf_rm &> /dev/null
 fi
 # Use zsh/files, if it is available
-[[ ${builtins[zf_chown]} == 'defined' ]] && ZSHZ[CHOWN]='zf_chown'
-[[ ${builtins[zf_mv]} == 'defined' ]] && ZSHZ[MV]='zf_mv'
-[[ ${builtins[zf_rm]} == 'defined' ]] && ZSHZ[RM]='zf_rm'
+[[ ${builtins[zf_chown]-} == 'defined' ]] && ZSHZ[CHOWN]='zf_chown'
+[[ ${builtins[zf_mv]-} == 'defined' ]] && ZSHZ[MV]='zf_mv'
+[[ ${builtins[zf_rm]-} == 'defined' ]] && ZSHZ[RM]='zf_rm'
 
 
 # Load zsh/system, if necessary
-[[ ${modules[zsh/system]} == 'loaded' ]] || zmodload zsh/system &> /dev/null
+[[ ${modules[zsh/system]-} == 'loaded' ]] || zmodload zsh/system &> /dev/null
 
 # Make sure ZSHZ_EXCLUDE_DIRS has been declared so that other scripts can
 # simply append to it
@@ -155,7 +155,7 @@ is-at-least 5.3.0 && ZSHZ[PRINTV]=1
 zshz() {
 
   # Don't use `emulate -L zsh' - it breaks PUSHD_IGNORE_DUPS
-  setopt LOCAL_OPTIONS NO_KSH_ARRAYS NO_SH_WORD_SPLIT EXTENDED_GLOB
+  setopt LOCAL_OPTIONS NO_KSH_ARRAYS NO_SH_WORD_SPLIT EXTENDED_GLOB UNSET
   (( ZSHZ_DEBUG )) && setopt LOCAL_OPTIONS WARN_CREATE_GLOBAL
 
   local REPLY
@@ -895,6 +895,9 @@ alias ${ZSHZ_CMD:-${_Z_CMD:-z}}='zshz 2>&1'
 #   ZSHZ
 ############################################################
 _zshz_precmd() {
+  # Protect against `setopt NO_UNSET'
+  setopt LOCAL_OPTIONS UNSET
+
   # Do not add PWD to datafile when in HOME directory, or
   # if `z -x' has just been run
   [[ $PWD == "$HOME" ]] || (( ZSHZ[DIRECTORY_REMOVED] )) && return
@@ -969,7 +972,7 @@ ZSHZ[FUNCTIONS]='_zshz_usage
 # Enable WARN_NESTED_VAR for functions listed in
 #   ZSHZ[FUNCTIONS]
 ############################################################
-(( ZSHZ_DEBUG )) && () {
+(( ${+ZSHZ_DEBUG} )) && () {
   if is-at-least 5.4.0; then
     local x
     for x in ${=ZSHZ[FUNCTIONS]}; do
