@@ -34,6 +34,8 @@ Zsh-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
 <details>
     <summary>Here are the latest features and updates.</summary>
 
+- August 24, 2023
+    + Zsh-z will now run when `setopt NO_UNSET` has been enabled.
 - August 23, 2023
     + Better logic for loading `zsh/files` (props @z0rc)
 - August 2, 2023
