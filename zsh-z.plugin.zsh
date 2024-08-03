@@ -106,19 +106,22 @@ With no ARGUMENT, list the directory history in ascending rank.
 typeset -gA ZSHZ
 
 # Fallback utilities in case Zsh lacks zsh/files (as is the case with MobaXterm)
+ZSHZ[CHMOD]='chmod'
 ZSHZ[CHOWN]='chown'
 ZSHZ[MV]='mv'
 ZSHZ[RM]='rm'
 # Try to load zsh/files utilities
-if [[ ${builtins[zf_chown]-} != 'defined' ||
+if [[ ${builtins[zf_chmod]-} != 'defined' ||
+      ${builtins[zf_chown]-} != 'defined' ||
       ${builtins[zf_mv]-}    != 'defined' ||
       ${builtins[zf_rm]-}    != 'defined' ]]; then
-  zmodload -F zsh/files b:zf_chown b:zf_mv b:zf_rm &> /dev/null
+  zmodload -F zsh/files b:zf_chmod b:zf_chown b:zf_mv b:zf_rm &> /dev/null
 fi
 # Use zsh/files, if it is available
+[[ ${builtins[zf_chmod]-} == 'defined' ]] && ZSHZ[CHMOD]='zf_chmod'
 [[ ${builtins[zf_chown]-} == 'defined' ]] && ZSHZ[CHOWN]='zf_chown'
-[[ ${builtins[zf_mv]-} == 'defined' ]] && ZSHZ[MV]='zf_mv'
-[[ ${builtins[zf_rm]-} == 'defined' ]] && ZSHZ[RM]='zf_rm'
+[[ ${builtins[zf_mv]-} == 'defined'    ]] && ZSHZ[MV]='zf_mv'
+[[ ${builtins[zf_rm]-} == 'defined'    ]] && ZSHZ[RM]='zf_rm'
 
 
 # Load zsh/system, if necessary
@@ -183,7 +186,12 @@ zshz() {
 
   # Make sure that the datafile exists before attempting to read it or lock it
   # for writing
-  [[ -f $datafile ]] || { mkdir -p "${datafile:h}" && touch "$datafile" }
+  [[ -f $datafile ]] ||
+    {
+      mkdir -p "${datafile:h}" &&
+      : > "$datafile" &&
+      $ZSHZ[CHMOD] 600 "$datafile"
+    }
 
   # Bail if we don't own the datafile and $ZSHZ_OWNER is not set
   [[ -z ${ZSHZ_OWNER:-${_Z_OWNER}} && -f $datafile && ! -O $datafile ]] &&
@@ -228,6 +236,8 @@ zshz() {
 
     # A temporary file that gets copied over the datafile if all goes well
     local tempfile="${datafile}.${RANDOM}"
+    : > ${tempfile}
+    $ZSHZ[CHMOD] 600 "$tempfile"
 
     # See https://github.com/rupa/z/pull/199/commits/ed6eeed9b70d27c1582e3dd050e72ebfe246341c
     if (( ZSHZ[USE_FLOCK] )); then
