@@ -190,7 +190,8 @@ zshz() {
     {
       mkdir -p "${datafile:h}" &&
       : > "$datafile" &&
-      $ZSHZ[CHMOD] 600 "$datafile"
+      # MSYS2 chmod isn't very functional
+      [[ $OSTYPE != 'msys' ]] && $ZSHZ[CHMOD] 600 "$datafile"
     }
 
   # Bail if we don't own the datafile and $ZSHZ_OWNER is not set
@@ -236,8 +237,14 @@ zshz() {
 
     # A temporary file that gets copied over the datafile if all goes well
     local tempfile="${datafile}.${RANDOM}"
-    : > ${tempfile}
-    $ZSHZ[CHMOD] 600 "$tempfile"
+    # Create tempfile and set permissions (MSYS2 chmod isn't very functional)
+    case $OSTYPE in
+      msys) ;;
+      *)
+        : > ${tempfile}
+        $ZSHZ[CHMOD] 600 "$tempfile"
+        ;;
+    esac
 
     # See https://github.com/rupa/z/pull/199/commits/ed6eeed9b70d27c1582e3dd050e72ebfe246341c
     if (( ZSHZ[USE_FLOCK] )); then
