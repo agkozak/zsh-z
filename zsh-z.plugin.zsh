@@ -120,7 +120,6 @@ fi
 [[ ${builtins[zf_mv]-} == 'defined' ]] && ZSHZ[MV]='zf_mv'
 [[ ${builtins[zf_rm]-} == 'defined' ]] && ZSHZ[RM]='zf_rm'
 
-
 # Load zsh/system, if necessary
 [[ ${modules[zsh/system]-} == 'loaded' ]] || zmodload zsh/system &> /dev/null
 
