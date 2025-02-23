@@ -170,8 +170,13 @@ zshz() {
     exit
   fi
 
-  # Use $XDG_STATE_HOME/.z as the default
-  default_datafile="${XDG_STATE_HOME:-$HOME/.local/state}/.z"
+  local data_dir
+  # XDG mandates that all XDG variables that are not absolute paths must be ignored.
+  if [[ ${XDG_CONFIG_HOME[1]} == '/' ]]; then
+    default_datafile=$XDG_CONFIG_HOME/.z
+  else
+    default_datafile=$HOME/.local/state.z
+  fi
 
   # For backwards compatability, perform a one-time copy from $HOME/.z to $default_datafile if:
   # - $default_datafile doesn't exist
