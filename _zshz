@@ -56,6 +56,7 @@ local completions expl completion
 local -a completion_list
 
 completions=$(zshz --complete ${(@)words:1})
+completions+=$(zshz --complete ${(j: :)${(s::)${${(@)words:1}// /}}})
 [[ -z $completions ]] && return 1
 
 for completion in ${(f)completions[@]}; do
