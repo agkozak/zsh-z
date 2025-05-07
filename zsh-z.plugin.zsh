@@ -294,7 +294,16 @@ zshz() {
     owner=${ZSHZ_OWNER:-${_Z_OWNER}}
 
     if (( ZSHZ[USE_FLOCK] )); then
-      ${ZSHZ[MV]} "$tempfile" "$datafile" 2> /dev/null || ${ZSHZ[RM]} -f "$tempfile"
+      # An unsual case: if inside Docker container where datafile could be bind
+      # mounted
+      if [[ -r '/proc/1/cgroup' && "$(< '/proc/1/cgroup')" == *docker* ]]; then
+        print "$(< "$tempfile")" > "$datafile" 2> /dev/null
+        ${ZSHZ[RM]} -f "$tempfile"
+      # All other cases
+      else
+        ${ZSHZ[MV]} "$tempfile" "$datafile" 2> /dev/null ||
+            ${ZSHZ[RM]} -f "$tempfile"
+      fi
 
       if [[ -n $owner ]]; then
         ${ZSHZ[CHOWN]} ${owner}:"$(id -ng ${owner})" "$datafile"
