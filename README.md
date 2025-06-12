@@ -270,7 +270,7 @@ Zsh-z has environment variables (they all begin with `ZSHZ_`) that change its be
 * `ZSHZ_CMD` changes the command name (default: `z`)
 * `ZSHZ_CD` specifies the default directory-changing command (default: `builtin cd`)
 * `ZSHZ_COMPLETION` can be `'frecent'` (default) or `'legacy'`, depending on whether you want your completion results sorted according to frecency or simply sorted alphabetically
-* `ZSHZ_DATA` changes the database file (default: `~/.z`)
+* `ZSHZ_DATA` changes the database file (default: `$ZDOTDIR/.z` falls back to `~/.z`)
 * `ZSHZ_ECHO` displays the new path name when changing directories (default: `0`)
 * `ZSHZ_EXCLUDE_DIRS` is an array of directories to keep out of the database (default: empty)
 * `ZSHZ_KEEP_DIRS` is an array of directories that should not be removed from the database, even if they are not currently available (useful when a drive is not always mounted) (default: empty)
