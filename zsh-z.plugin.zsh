@@ -56,7 +56,7 @@
 #   ZSHZ_CMD -> name of command (default: z)
 #   ZSHZ_COMPLETION -> completion method (default: 'frecent'; 'legacy' for
 #     alphabetic sorting)
-#   ZSHZ_DATA -> name of datafile (default: ~/.z)
+#   ZSHZ_DATA -> name of datafile (default: $ZDOTDIR/.z else ~/.z)
 #   ZSHZ_EXCLUDE_DIRS -> array of directories to exclude from your database
 #     (default: empty)
 #   ZSHZ_KEEP_DIRS -> array of directories that should not be removed from the
@@ -170,9 +170,12 @@ zshz() {
     exit
   fi
 
-  # If the user specified a datafile, use that or default to ~/.z
+  # If the user specified a datafile, use it else default to $ZDOTDIR/.z otherwise default to $HOME/.z
   # If the datafile is a symlink, it gets dereferenced
-  local datafile=${${custom_datafile:-$HOME/.z}:A}
+  local datafile=$custom_datafile
+  : ${datafile:=$HOME/.z}
+  [[ -f $datafile ]] || datafile=${ZDOTDIR:-$HOME}/.z
+  datafile=${datafile:A}
 
   # If the datafile is a directory, print a warning and exit
   if [[ -d $datafile ]]; then
