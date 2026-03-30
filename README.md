@@ -24,16 +24,17 @@ Zsh-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
 - [Case Sensitivity](#case-sensitivity)
 - [`ZSHZ_UNCOMMON`](#zshz_uncommon)
 - [Making `--add` work for you](#making---add-work-for-you)
-- [Other Improvements and Fixes](#other-improvements-and-fixes)
+- [Other Improvements to the Original Functionality of `rupa/z`](#other-improvements-to-the-original-functionality-of-rupa-z)
 - [Migrating from Other Tools](#migrating-from-other-tools)
 - [`COMPLETE_ALIASES`](#complete_aliases)
-- [Known Bugs](#known-bugs)
 
 ## News
 
 <details>
     <summary>Here are the latest features and updates.</summary>
 
+- March 30, 2026
+    + When the user hits Tab after entering a command-line argument that uses spaces as wildcards (e.g., `z us lo bi`), the command line is clear of detritus (i.e., it looks like `z /usr/local/bin` instead of `z us lo /usr/local/bin`).
 - August 24, 2023
     + Zsh-z will now run when `setopt NO_UNSET` has been enabled (props @ntninja).
 - August 23, 2023
@@ -324,7 +325,7 @@ A good example might involve a directory tree that has Git repositories within i
 
 (As a Zsh user, I tend to use `**` instead of `find`, but it is good to see how deep your directory trees go before doing that.)
 
-## Other Improvements and Fixes
+## Other Improvements to the Original Functionality of `rupa/z`
 
 * `z -x` works, with the help of `chpwd_functions`.
 * Zsh-z is compatible with Solaris.
@@ -336,6 +337,7 @@ A good example might involve a directory tree that has Git repositories within i
 * Completions now work with options `-c`, `-r`, and `-t`.
 * If `~/foo` and `~/foob` are matches, `~/foo` is no longer considered the common root. Only a common parent directory can be a common root.
 * `z -x` and the new, recursive `z -xR` can now accept an argument so that you can remove directories other than `PWD` from the database.
+* Zsh-z inherits `rupa/z`'s behavior of allowing spaces as wildcards (e.g., `z us lo bi` might take you to `/usr/local/bin`), but now completion of such command lines does not result in visual detritus.
 
 ## Migrating from Other Tools
 
@@ -356,10 +358,3 @@ the line
     compdef _zshz ${ZSHZ_CMD:-${_Z_CMD:-z}}
 
 That will re-bind `z` or the command of your choice to the underlying Zsh-z function.
-
-## Known Bug
-It is possible to run a completion on a string with spaces in it, e.g., `z us bi<TAB>` might take you to `/usr/local/bin`. This works, but as things stand, after the completion the command line reads
-
-    z us /usr/local/bin.
-
-You get where you want to go, but the detritus on the command line is annoying. This is also a problem in `rupa/z`, but I am keen on eventually eliminating this glitch. Advice is welcome.

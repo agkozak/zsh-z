@@ -961,6 +961,51 @@ add-zsh-hook chpwd _zshz_chpwd
 (( ${fpath[(ie)${0:A:h}]} <= ${#fpath} )) || fpath=( "${0:A:h}" "${fpath[@]}" )
 
 ############################################################
+# ZLE widget to fix spaces-as-wildcards completion
+#
+# When completing a zshz command with multiple search terms
+# (e.g. `z us lo bi'), collapse the terms into a single
+# wildcard-joined word (e.g. `z us*lo*bi') before triggering
+# completion. This causes compadd to replace the whole query
+# with the matched path rather than just the last word.
+#
+# Globals:
+#   ZSHZ_CMD
+############################################################
+_zshz_zle_completion_widget() {
+  local cmd=${ZSHZ_CMD:-${_Z_CMD:-z}}
+
+  # Only act when there are at least two words after the command
+  if [[ $LBUFFER == ${cmd}\ *\ * ]]; then
+    local after=${LBUFFER#${cmd} }
+    local -a parts flag_parts search_parts
+    local p past_flags=0
+
+    parts=( ${(z)after} )
+    for p in $parts; do
+      if (( ! past_flags )) && [[ $p == -* ]]; then
+        flag_parts+=( $p )
+      else
+        past_flags=1
+        search_parts+=( $p )
+      fi
+    done
+
+    if (( ${#search_parts} > 1 )); then
+      LBUFFER="${cmd}${flag_parts:+ ${(j: :)flag_parts}} ${(j:*:)search_parts}"
+    fi
+  fi
+
+  zle expand-or-complete
+}
+
+zle -N _zshz_zle_completion_widget
+
+# Save the existing Tab binding so it can be restored on unload
+ZSHZ[TAB_BINDING]="${$(bindkey '\t')##* }"
+bindkey '\t' _zshz_zle_completion_widget
+
+############################################################
 # zsh-z functions
 ############################################################
 ZSHZ[FUNCTIONS]='_zshz_usage
@@ -974,7 +1019,8 @@ ZSHZ[FUNCTIONS]='_zshz_usage
                  zshz
                  _zshz_precmd
                  _zshz_chpwd
-                 _zshz'
+                 _zshz
+                 _zshz_zle_completion_widget'
 
 ############################################################
 # Enable WARN_NESTED_VAR for functions listed in
@@ -1003,6 +1049,9 @@ zsh-z_plugin_unload() {
 
   add-zsh-hook -D precmd _zshz_precmd
   add-zsh-hook -d chpwd _zshz_chpwd
+
+  zle -D _zshz_zle_completion_widget
+  bindkey '\t' "${ZSHZ[TAB_BINDING]:-expand-or-complete}"
 
   local x
   for x in ${=ZSHZ[FUNCTIONS]}; do
