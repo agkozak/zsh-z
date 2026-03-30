@@ -975,6 +975,13 @@ add-zsh-hook chpwd _zshz_chpwd
 _zshz_zle_completion_widget() {
   local cmd=${ZSHZ_CMD:-${_Z_CMD:-z}}
 
+  # If a trailing space was added after an already-completed absolute path
+  # (e.g. `z /usr/local/bin '), a second Tab would otherwise re-trigger
+  # completion on an empty word and insert a duplicate. Bail out early.
+  if [[ $LBUFFER[-1] == ' ' && ${${LBUFFER% }##* } == [/~]* ]]; then
+    return
+  fi
+
   # Only act when there are at least two words after the command
   if [[ $LBUFFER == ${cmd}\ *\ * ]]; then
     local after=${LBUFFER#${cmd} }
