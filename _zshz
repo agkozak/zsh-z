@@ -46,7 +46,7 @@ emulate -L zsh
 #
 #   z /usr/local/bin
 #
-# but it also reproduces z's buggy display on the commandline, viz.
+# but it also reproduces z's buggy display on the command line, viz.
 #
 #   z us lo /usr/local/bin
 #
