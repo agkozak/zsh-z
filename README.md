@@ -33,8 +33,9 @@ Zsh-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
 <details>
     <summary>Here are the latest features and updates.</summary>
 
-- March 30, 2026
+- March 31, 2026
     + When the user hits Tab after entering a command-line argument that uses spaces as wildcards (e.g., `z us lo bi`), the command line is clear of detritus (i.e., it looks like `z /usr/local/bin` instead of `z us lo /usr/local/bin`).
+    + Improved test for Docker containers.
 - August 24, 2023
     + Zsh-z will now run when `setopt NO_UNSET` has been enabled (props @ntninja).
 - August 23, 2023
