@@ -960,6 +960,9 @@ add-zsh-hook chpwd _zshz_chpwd
 
 (( ${fpath[(ie)${0:A:h}]} <= ${#fpath} )) || fpath=( "${0:A:h}" "${fpath[@]}" )
 
+# Save the existing Tab binding
+ZSHZ[TAB_BINDING]="${$(bindkey '\t')##* }"
+
 ############################################################
 # ZLE widget to fix spaces-as-wildcards completion
 #
@@ -1003,13 +1006,13 @@ _zshz_zle_completion_widget() {
     fi
   fi
 
-  zle expand-or-complete
+  # If Tab had a non-default binding, continue to use it; otherwise the default
+  # expand-or-complete gets used.
+  zle ${ZSHZ[TAB_BINDING]:-expand-or-complete}
 }
 
 zle -N _zshz_zle_completion_widget
 
-# Save the existing Tab binding so it can be restored on unload
-ZSHZ[TAB_BINDING]="${$(bindkey '\t')##* }"
 bindkey '\t' _zshz_zle_completion_widget
 
 ############################################################
