@@ -961,7 +961,7 @@ add-zsh-hook chpwd _zshz_chpwd
 (( ${fpath[(ie)${0:A:h}]} <= ${#fpath} )) || fpath=( "${0:A:h}" "${fpath[@]}" )
 
 # Save the existing Tab binding
-ZSHZ[TAB_BINDING]="${$(bindkey '\t')##* }"
+ZSHZ[TAB_BINDING]="${$(bindkey -M main '^I')##* }"
 
 ############################################################
 # ZLE widget to fix spaces-as-wildcards completion
@@ -1013,7 +1013,7 @@ _zshz_zle_completion_widget() {
 
 zle -N _zshz_zle_completion_widget
 
-bindkey '\t' _zshz_zle_completion_widget
+bindkey -M main '^I' _zshz_zle_completion_widget
 
 ############################################################
 # zsh-z functions
@@ -1061,7 +1061,14 @@ zsh-z_plugin_unload() {
   add-zsh-hook -d chpwd _zshz_chpwd
 
   zle -D _zshz_zle_completion_widget
-  bindkey '\t' "${ZSHZ[TAB_BINDING]:-expand-or-complete}"
+
+  # Only restore Tab binding if it is still bound to our widget; otherwise
+  # leave it alone.
+  local _zshz_current_tab
+  _zshz_current_tab="$(bindkey -M main '^I' 2>/dev/null || true)"
+  if [[ ${_zshz_current_tab##* } == _zshz_zle_completion_widget ]]; then
+    bindkey -M main '^I' "${ZSHZ[TAB_BINDING]:-expand-or-complete}"
+  fi
 
   local x
   for x in ${=ZSHZ[FUNCTIONS]}; do
