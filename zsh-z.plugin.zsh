@@ -976,6 +976,7 @@ ZSHZ[TAB_BINDING]="${$(bindkey -M main '^I')##* }"
 #   ZSHZ_CMD
 ############################################################
 _zshz_zle_completion_widget() {
+  emulate -L zsh
   local cmd=${ZSHZ_CMD:-${_Z_CMD:-z}}
 
   # If a trailing space was added after an already-completed absolute path
