@@ -52,7 +52,7 @@ Zsh-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
     + A bug was fixed which was preventing paths with spaces in them from being updated ([#61](https://github.com/agkozak/zsh-z/issues/61)).
     + If writing to the temporary database file fails, the database will not be clobbered (props @mafredri).
 - December 19, 2021
-    + ZSH-z will now display tildes for `HOME` during completion when `ZSHZ_TILDE=1` has been set.
+    + Zsh-z will now display tildes for `HOME` during completion when `ZSHZ_TILDE=1` has been set.
 - November 11, 2021
     + A bug was fixed which was preventing ranks from being incremented.
     + `--add` has been made to work with relative paths and has been documented for the user.
@@ -73,7 +73,7 @@ Zsh-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
 - July 29, 2021
     + Temporarily disabling the use of `print -v`, which was mangling CJK multibyte strings.
 - July 27, 2021
-    + Internal escaping of path names now works with older versions of ZSH.
+    + Internal escaping of path names now works with older versions of Zsh.
     + Zsh-z now detects and discards any incomplete or incorrectly formatted database entries.
 - July 10, 2021
     + Setting `ZSHZ_TRAILING_SLASH=1` makes it so that a search pattern ending in `/` can match the end of a path; e.g. `z foo/` can match `/path/to/foo`.
@@ -86,7 +86,7 @@ Zsh-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
     + Ranks are displayed the way `rupa/z` now displays them, i.e. as large integers. This should help Zsh-z to integrate with other tools.
 - January 31, 2021
     + Zsh-z is now efficient enough that, on MSYS2 and Cygwin, it is faster to run it in the foreground than it is to fork a subshell for it.
-    + `_zshz_precmd` simply returns if `PWD` is `HOME` or in `ZSH_EXCLUDE_DIRS`, rather than waiting for `zshz` to do that.
+    + `_zshz_precmd` simply returns if `PWD` is `HOME` or in `ZSHZ_EXCLUDE_DIRS`, rather than waiting for `zshz` to do that.
 - January 17, 2021
     + Made sure that the `PUSHD_IGNORE_DUPS` option is respected.
 - January 14, 2021
@@ -173,7 +173,7 @@ is uncommented. Then find the section that specifies which modules are to be loa
         'completion' \
         'prompt'
 
-Add a backslash to the end of the last line add `'zsh-z'` to the list, e.g.,
+Add a backslash to the end of the last line and add `'zsh-z'` to the list, e.g.,
 
     zstyle ':prezto:load' pmodule \
         'environment' \
@@ -281,7 +281,7 @@ Zsh-z has environment variables (they all begin with `ZSHZ_`) that change its be
 * `ZSHZ_OWNER` allows usage when in `sudo -s` mode (default: empty)
 * `ZSHZ_TILDE` displays the name of the `HOME` directory as a `~` (default: `0`)
 * `ZSHZ_TRAILING_SLASH` makes it so that a search pattern ending in `/` can match the final element in a path; e.g., `z foo/` can match `/path/to/foo` (default: `0`)
-* `ZSHZ_UNCOMMON` changes the logic used to calculate the directory jumped to; [see below](#zshz_uncommon`) (default: `0`)
+* `ZSHZ_UNCOMMON` changes the logic used to calculate the directory jumped to; [see below](#zshz_uncommon) (default: `0`)
 
 ## Case sensitivity
 
@@ -350,7 +350,7 @@ If you are coming to Zsh-z (or even to the original `rupa/z`, for that matter) f
 
 ## `COMPLETE_ALIASES`
 
-`z`, or any alternative you set up using `$ZSH_CMD` or `$_Z_CMD`, is an alias. `setopt COMPLETE_ALIASES` divorces the tab completion for aliases from the underlying commands they invoke, so if you enable `COMPLETE_ALIASES`, tab completion for Zsh-z will be broken. You can get it working again, however, by adding under
+`z`, or any alternative you set up using `$ZSHZ_CMD` or `$_Z_CMD`, is an alias. `setopt COMPLETE_ALIASES` divorces the tab completion for aliases from the underlying commands they invoke, so if you enable `COMPLETE_ALIASES`, tab completion for Zsh-z will be broken. You can get it working again, however, by adding under
 
     setopt COMPLETE_ALIASES
 
