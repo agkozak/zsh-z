@@ -81,7 +81,7 @@ Zsh-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
     + Setting `ZSHZ_TILDE=1` displays the `HOME` directory as `~`.
 - May 7, 2021
     + Setting `ZSHZ_ECHO=1` will cause Zsh-z to display the new path when you change directories.
-    + Better escaping of path names to deal paths containing the characters ``\`()[]``.
+    + Better escaping of path names to deal with paths containing the characters ``\`()[]``.
 - February 15, 2021
     + Ranks are displayed the way `rupa/z` now displays them, i.e. as large integers. This should help Zsh-z to integrate with other tools.
 - January 31, 2021
