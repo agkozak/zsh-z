@@ -993,7 +993,7 @@ _zshz_zle_completion_widget() {
 
     parts=( ${(z)after} )
     for p in $parts; do
-      if (( ! past_flags )) && [[ $p == -* ]]; then
+      if (( ! past_flags )) && [[ $p == -[cehlrRtx]## ]]; then
         flag_parts+=( $p )
       else
         past_flags=1
