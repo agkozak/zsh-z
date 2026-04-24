@@ -966,7 +966,7 @@ ZSHZ[TAB_BINDING]="${$(bindkey -M main '^I')##* }"
 ############################################################
 # ZLE widget to fix spaces-as-wildcards completion
 #
-# When completing a zshz command with multiple search terms
+# When completing a Zsh-z command with multiple search terms
 # (e.g. `z us lo bi'), collapse the terms into a single
 # wildcard-joined word (e.g. `z us*lo*bi') before triggering
 # completion. This causes compadd to replace the whole query
