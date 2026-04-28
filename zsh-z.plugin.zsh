@@ -251,7 +251,7 @@ zshz() {
         if (( ${ZSHZ_NO_RESOLVE_SYMLINKS:-${_Z_NO_RESOLVE_SYMLINKS}} )); then
           [[ -d ${${*:-${PWD}}:a} ]] && xdir=${${*:-${PWD}}:a}
         else
-          [[ -d ${${*:-${PWD}}:A} ]] && xdir=${${*:-${PWD}}:a}
+          [[ -d ${${*:-${PWD}}:A} ]] && xdir=${${*:-${PWD}}:A}
         fi
 
         local -a lines_to_keep
