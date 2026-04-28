@@ -1,9 +1,9 @@
 # ZSHZ_CASE: 'smart', 'ignore', or default.
 #
-# Default: case-sensitive match preferred, case-insensitive as fallback.
+# `_zshz_find_matches` supports three modes:
+# Default:    case-sensitive match preferred, case-insensitive as fallback.
 # 'smart':   case-insensitive only if query is all lowercase.
 # 'ignore':  always case-insensitive.
-# (zsh-z.plugin.zsh:681-688)
 
 test_case_default_falls_back_to_insensitive() {
   mkdir -p "$TESTDIR/Foo/Bar"

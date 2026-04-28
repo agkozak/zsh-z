@@ -1,8 +1,8 @@
 # Datafile robustness: malformed lines, empty file, missing file.
 #
-# zsh-z.plugin.zsh:194 filters lines through a glob that requires
-# /path|digits[.digits]|digits format. Anything else should be silently
-# discarded, not crash zshz or pollute results.
+# When `zshz` loads the database, it filters entries down to the expected
+# `/path|rank|time` shape. Malformed lines should be ignored quietly rather
+# than crashing or polluting results.
 
 test_malformed_lines_are_filtered() {
   mkdir -p "$TESTDIR/valid"

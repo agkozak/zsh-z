@@ -2,7 +2,8 @@
 #
 # Each test seeds the datafile with synthetic rank/time values (paths must
 # exist on disk or stale-cleanup would remove them) and asserts which entry
-# wins. These tests lock in the scoring formula at zsh-z.plugin.zsh:661.
+# wins. These tests lock in the frecency calculation used by
+# `_zshz_find_matches`.
 
 test_frecency_higher_rank_wins_at_equal_time() {
   mkdir -p "$TESTDIR/t/aa" "$TESTDIR/t/bb"

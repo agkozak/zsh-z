@@ -1,8 +1,8 @@
 # Aging behavior at the ZSHZ_MAX_SCORE threshold.
 #
-# When the sum of stored ranks exceeds ZSHZ_MAX_SCORE, the next write multiplies
-# every rank by 0.99 (zsh-z.plugin.zsh:399-403) -- a state transition that's
-# easy to break with off-by-one or boolean errors.
+# `_zshz_update_datafile` ages the database once the total stored rank exceeds
+# `ZSHZ_MAX_SCORE`, multiplying each stored rank by 0.99. That threshold
+# transition is easy to break with off-by-one or boolean errors.
 
 test_no_aging_below_max_score() {
   mkdir -p "$TESTDIR/x"
@@ -30,9 +30,9 @@ test_aging_kicks_in_above_max_score() {
 }
 
 test_aging_drops_entries_below_rank_1() {
-  # When aging would push a rank below 1, the entry is dropped on the next
-  # write (line 388: `(( rank_field < 1 )) && continue`). Seed an entry with
-  # rank 0.5 directly and trigger a write.
+  # Entries whose stored rank is already below 1 are skipped when
+  # `_zshz_update_datafile` rewrites the datafile. Seed an entry with rank 0.5
+  # directly and trigger a write.
   mkdir -p "$TESTDIR/keep" "$TESTDIR/decayed"
   zshz_seed "$TESTDIR/keep" 10
   zshz_seed "$TESTDIR/decayed" 0.5

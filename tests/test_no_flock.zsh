@@ -1,7 +1,7 @@
-# ZSHZ[USE_FLOCK]=0 fallback path: when zsh/system isn't available, Zsh-z
-# falls back to a no-flock write (zsh-z.plugin.zsh:227, ~315-321). Single-
-# process correctness must still hold; concurrent updates can race in this
-# mode, which is fundamental, not a regression.
+# `ZSHZ[USE_FLOCK]=0` fallback path: when `zsh/system` isn't available,
+# `_zshz_add_or_remove_path` skips the lockfile path and writes without flock.
+# Single-process add/remove behavior must still hold; concurrent updates can
+# race in this mode by design.
 
 test_add_works_without_flock() {
   ZSHZ[USE_FLOCK]=0

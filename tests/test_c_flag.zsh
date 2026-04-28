@@ -1,7 +1,7 @@
 # -c flag: restrict matches to subdirectories of $PWD.
 #
-# Internally this prepends "$PWD " to the search string and anchors the match
-# at start (zsh-z.plugin.zsh:765, ~858).
+# The `-c` path prefixes the query with "$PWD " and then matches only from the
+# start of candidate paths, so results must stay within the current subtree.
 
 test_c_flag_picks_match_under_pwd() {
   mkdir -p "$TESTDIR/here/sub" "$TESTDIR/elsewhere/sub"

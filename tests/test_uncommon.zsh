@@ -1,7 +1,6 @@
-# ZSHZ_UNCOMMON: shrink the destination path to the shortest level that still
-# preserves the count of the search pattern in the path. Distinct from the
-# default behavior, which prefers the common root of all matches when one
-# exists. (zsh-z.plugin.zsh:849-876, ~591)
+# ZSHZ_UNCOMMON: shrink the chosen destination to the shortest level that still
+# preserves how many times the search pattern appears in the path. Distinct
+# from the default behavior, which prefers a shared common root when one exists.
 
 test_uncommon_shrinks_to_keep_pattern_count() {
   # /foo/bar/foo/bar contains "foo" twice; with query "foo", UNCOMMON should

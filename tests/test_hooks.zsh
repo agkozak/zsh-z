@@ -1,4 +1,8 @@
 # Hook behavior for precmd/chpwd integration.
+#
+# These tests force OSTYPE=cygwin so `_zshz_precmd` takes its foreground write
+# path; otherwise it backgrounds `zshz --add`, which would make the assertions
+# racy.
 
 test_precmd_adds_pwd_in_foreground() {
   mkdir -p "$TESTDIR/work"

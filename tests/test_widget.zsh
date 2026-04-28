@@ -1,9 +1,9 @@
 # ZLE completion widget transformation logic.
 #
-# `_zshz_zle_completion_widget` rewrites `z us lo bi` into `z us*lo*bi` before
-# delegating to the original Tab binding (zsh-z.plugin.zsh:996-1031). We
-# can't drive a real ZLE session non-interactively, so we stub `zle` to a
-# no-op function and inspect LBUFFER after the call.
+# `_zshz_zle_completion_widget` collapses multiple search terms after the
+# command into one `*`-joined token before delegating to the saved Tab binding.
+# We can't drive a real ZLE session non-interactively, so we stub `zle` to a
+# no-op function and inspect `LBUFFER` after the call.
 
 test_widget_joins_multiple_search_terms_with_asterisk() {
   local out

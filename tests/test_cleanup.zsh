@@ -1,8 +1,8 @@
 # Stale-entry cleanup and ZSHZ_KEEP_DIRS.
 #
-# Entries whose paths no longer exist on disk are pruned from the datafile
-# on the next write (zsh-z.plugin.zsh:363-377). ZSHZ_KEEP_DIRS shields a
-# subtree from that pruning, useful for ephemeral mounts.
+# `_zshz_update_datafile` drops entries whose directories no longer exist when
+# it rewrites the database. `ZSHZ_KEEP_DIRS` exempts matching paths and their
+# subtrees from that cleanup, which is useful for ephemeral mounts.
 
 test_stale_entry_pruned_on_next_write() {
   mkdir -p "$TESTDIR/keep" "$TESTDIR/gone"

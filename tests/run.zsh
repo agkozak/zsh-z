@@ -24,7 +24,8 @@ while IFS= read -r _f; do
 done < <(find "$TESTS_DIR" -maxdepth 1 -type f -name 'test_*.zsh' | LC_ALL=C sort)
 typeset -ga _test_fns
 
-# Collect test functions in source order
+# Collect test functions from the sourced files, then sort by name so the
+# execution order is stable.
 for _f in $_test_files; do
   [[ ${_f:t} == test_helpers.zsh ]] && continue
   source "$_f"
