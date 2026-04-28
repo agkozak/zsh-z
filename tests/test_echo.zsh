@@ -3,7 +3,8 @@
 test_echo_off_no_print_on_jump() {
   mkdir -p "$TESTDIR/foo"
   zshz --add "$TESTDIR/foo"
-  local out=$(zshz foo)
+  local out
+  out=$(zshz foo)
   assert_eq "" "$out" "without ZSHZ_ECHO, jump should produce no output"
 }
 
@@ -11,7 +12,8 @@ test_echo_prints_destination_path() {
   mkdir -p "$TESTDIR/foo"
   zshz --add "$TESTDIR/foo"
   ZSHZ_ECHO=1
-  local out=$(zshz foo)
+  local out
+  out=$(zshz foo)
   assert_eq "$TESTDIR/foo" "$out" "ZSHZ_ECHO=1 should print path after jump"
 }
 
@@ -21,6 +23,7 @@ test_echo_combined_with_tilde() {
   zshz --add "$HOME/foo"
   ZSHZ_ECHO=1
   ZSHZ_TILDE=1
-  local out=$(zshz foo)
+  local out
+  out=$(zshz foo)
   assert_eq "~/foo" "$out" "ECHO + TILDE should print ~ form"
 }

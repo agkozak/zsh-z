@@ -6,15 +6,22 @@
 # produced by a test causes it to fail (so WARN_CREATE_GLOBAL warnings and
 # unintended errors both surface).
 
-setopt PIPE_FAIL EXTENDED_GLOB
+setopt EXTENDED_GLOB
+# Zsh 4.3.11 does not have PIPE_FAIL.
+(( ${+options[pipefail]} )) && setopt PIPE_FAIL
 
-PLUGIN_DIR=${0:A:h:h}
-TESTS_DIR=${0:A:h}
+TESTS_DIR=${0:h}
+[[ $TESTS_DIR == $0 ]] && TESTS_DIR=.
+TESTS_DIR=$(builtin cd "$TESTS_DIR" && builtin pwd -P) || exit 2
+PLUGIN_DIR=$(builtin cd "$TESTS_DIR/.." && builtin pwd -P) || exit 2
 
 source "$PLUGIN_DIR/zsh-z.plugin.zsh"
 source "$TESTS_DIR/test_helpers.zsh"
 
-typeset -ga _test_files=( "$TESTS_DIR"/test_*.zsh )
+typeset -ga _test_files
+while IFS= read -r _f; do
+  _test_files+=( "$_f" )
+done < <(find "$TESTS_DIR" -maxdepth 1 -type f -name 'test_*.zsh' | LC_ALL=C sort)
 typeset -ga _test_fns
 
 # Collect test functions in source order

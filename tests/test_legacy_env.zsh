@@ -31,7 +31,8 @@ test__Z_MAX_SCORE_controls_aging() {
     zshz --add "$TESTDIR/x"
   done
 
-  local rank=$(zshz_rank_of "$TESTDIR/x")
+  local rank
+  rank=$(zshz_rank_of "$TESTDIR/x")
   [[ -n $rank ]] || fail "rank should be present"
   (( rank < 7 )) || fail "_Z_MAX_SCORE should trigger aging before rank reaches 7, was $rank"
   (( rank > 6 )) || fail "aged rank should still stay above 6, was $rank"

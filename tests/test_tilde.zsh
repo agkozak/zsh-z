@@ -7,7 +7,8 @@ test_tilde_replaces_home_in_list_output() {
   mkdir -p "$HOME/sub"
   zshz --add "$HOME/sub"
   ZSHZ_TILDE=1
-  local out=$(zshz -l)
+  local out
+  out=$(zshz -l)
   assert_contains "~/sub" "$out" "ZSHZ_TILDE=1 should display ~ for HOME prefix in -l"
   assert_not_contains "$HOME/sub" "$out" "raw HOME path should not appear when TILDE is on"
 }
@@ -16,7 +17,8 @@ test_tilde_off_shows_full_home_path() {
   local HOME="$TESTDIR"
   mkdir -p "$HOME/sub"
   zshz --add "$HOME/sub"
-  local out=$(zshz -l)
+  local out
+  out=$(zshz -l)
   assert_contains "$HOME/sub" "$out" "without TILDE, full HOME path should be shown"
 }
 
@@ -25,6 +27,7 @@ test_tilde_in_echo_output() {
   mkdir -p "$HOME/foo"
   zshz --add "$HOME/foo"
   ZSHZ_TILDE=1
-  local out=$(zshz -e foo)
+  local out
+  out=$(zshz -e foo)
   assert_eq "~/foo" "$out" "-e with TILDE should print ~ form"
 }

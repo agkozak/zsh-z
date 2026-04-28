@@ -8,7 +8,8 @@
 test_case_default_falls_back_to_insensitive() {
   mkdir -p "$TESTDIR/Foo/Bar"
   zshz --add "$TESTDIR/Foo/Bar"
-  local out=$(zshz -e bar)
+  local out
+  out=$(zshz -e bar)
   assert_eq "$TESTDIR/Foo/Bar" "$out" "default mode should fall back to case-insensitive"
 }
 
@@ -16,7 +17,8 @@ test_case_default_prefers_sensitive_when_both_available() {
   mkdir -p "$TESTDIR/Foo/Bar" "$TESTDIR/foo/bar"
   zshz --add "$TESTDIR/Foo/Bar"
   zshz --add "$TESTDIR/foo/bar"
-  local out=$(zshz -e bar)
+  local out
+  out=$(zshz -e bar)
   assert_eq "$TESTDIR/foo/bar" "$out" "default mode should prefer case-sensitive match"
 }
 
@@ -24,7 +26,8 @@ test_case_ignore_always_insensitive() {
   mkdir -p "$TESTDIR/Foo/Bar"
   zshz --add "$TESTDIR/Foo/Bar"
   ZSHZ_CASE=ignore
-  local out=$(zshz -e bar)
+  local out
+  out=$(zshz -e bar)
   assert_eq "$TESTDIR/Foo/Bar" "$out" "ZSHZ_CASE=ignore should match case-insensitively"
 }
 
@@ -32,7 +35,8 @@ test_case_smart_lowercase_query_is_insensitive() {
   mkdir -p "$TESTDIR/Foo/Bar"
   zshz --add "$TESTDIR/Foo/Bar"
   ZSHZ_CASE=smart
-  local out=$(zshz -e bar)
+  local out
+  out=$(zshz -e bar)
   assert_eq "$TESTDIR/Foo/Bar" "$out" "smart + lowercase query should match insensitively"
 }
 

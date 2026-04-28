@@ -9,7 +9,8 @@ test_c_flag_picks_match_under_pwd() {
   zshz --add "$TESTDIR/elsewhere/sub"
 
   cd "$TESTDIR/here"
-  local out=$(zshz -ce sub)
+  local out
+  out=$(zshz -ce sub)
   assert_eq "$TESTDIR/here/sub" "$out" "-c should pick the match inside PWD subtree"
 }
 

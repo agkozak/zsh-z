@@ -7,25 +7,37 @@ fail() {
 }
 
 assert_eq() {
-  local expected=$1 actual=$2 msg=${3:-}
+  local expected actual msg
+  expected="$1"
+  actual="$2"
+  msg="${3:-}"
   [[ $expected == $actual ]] && return 0
   fail "${msg:+$msg: }expected '$expected', got '$actual'"
 }
 
 assert_ne() {
-  local unexpected=$1 actual=$2 msg=${3:-}
+  local unexpected actual msg
+  unexpected="$1"
+  actual="$2"
+  msg="${3:-}"
   [[ $unexpected != $actual ]] && return 0
   fail "${msg:+$msg: }expected anything but '$unexpected', got '$actual'"
 }
 
 assert_contains() {
-  local needle=$1 haystack=$2 msg=${3:-}
+  local needle haystack msg
+  needle="$1"
+  haystack="$2"
+  msg="${3:-}"
   [[ $haystack == *$needle* ]] && return 0
   fail "${msg:+$msg: }expected '$haystack' to contain '$needle'"
 }
 
 assert_not_contains() {
-  local needle=$1 haystack=$2 msg=${3:-}
+  local needle haystack msg
+  needle="$1"
+  haystack="$2"
+  msg="${3:-}"
   [[ $haystack != *$needle* ]] && return 0
   fail "${msg:+$msg: }expected '$haystack' not to contain '$needle'"
 }
@@ -49,7 +61,10 @@ zshz_dump() {
 
 # Append a synthetic entry to $ZSHZ_DATA with timestamp = now - SECONDS_AGO.
 zshz_seed() {
-  local path=$1 rank=$2 seconds_ago=${3:-0}
+  local path rank seconds_ago
+  path="$1"
+  rank="$2"
+  seconds_ago="${3:-0}"
   print "${path}|${rank}|$(( EPOCHSECONDS - seconds_ago ))" >> "$ZSHZ_DATA"
 }
 

@@ -9,14 +9,16 @@ test_uncommon_shrinks_to_keep_pattern_count() {
   mkdir -p "$TESTDIR/foo/bar/foo/bar"
   zshz --add "$TESTDIR/foo/bar/foo/bar"
   ZSHZ_UNCOMMON=1
-  local out=$(zshz -e foo)
+  local out
+  out=$(zshz -e foo)
   assert_eq "$TESTDIR/foo/bar/foo" "$out" "UNCOMMON should keep both 'foo' occurrences"
 }
 
 test_default_with_single_match_returns_full_path() {
   mkdir -p "$TESTDIR/foo/bar/foo/bar"
   zshz --add "$TESTDIR/foo/bar/foo/bar"
-  local out=$(zshz -e foo)
+  local out
+  out=$(zshz -e foo)
   assert_eq "$TESTDIR/foo/bar/foo/bar" "$out" "default with single match should return the full path"
 }
 
@@ -25,6 +27,7 @@ test_default_returns_common_root_when_one_exists() {
   zshz_seed "$TESTDIR/cr" 1 60
   zshz_seed "$TESTDIR/cr/aaa" 100 60
   zshz_seed "$TESTDIR/cr/bbb" 50 60
-  local out=$(zshz -e cr)
+  local out
+  out=$(zshz -e cr)
   assert_eq "$TESTDIR/cr" "$out" "default should pick the common-root entry over the highest-rank child"
 }

@@ -13,7 +13,8 @@ test_add_same_path_twice_increments_rank() {
 
 test_add_skips_HOME() {
   zshz --add "$HOME"
-  local rank=$(zshz_rank_of "$HOME")
+  local rank
+  rank=$(zshz_rank_of "$HOME")
   assert_eq "" "$rank" "\$HOME should not be added"
 }
 
@@ -74,6 +75,7 @@ test_echo_returns_best_match() {
   zshz --add "$a"
   zshz --add "$a"
   zshz --add "$b"
-  local out=$(zshz -e alpha 2>&1)
+  local out
+  out=$(zshz -e alpha 2>&1)
   assert_contains "alpha" "$out" "-e should echo a match for 'alpha'"
 }

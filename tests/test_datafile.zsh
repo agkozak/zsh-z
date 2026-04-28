@@ -46,7 +46,8 @@ test_missing_datafile_is_created() {
 }
 
 test_ZSHZ_DATA_without_directory_prints_error_and_exits() {
-  local out=$(zshz_in_fresh_shell '
+  local out
+  out=$(zshz_in_fresh_shell '
     ZSHZ_DATA=barefile zshz -l
     print SENTINEL
   ' 2>&1)
@@ -57,7 +58,8 @@ test_ZSHZ_DATA_without_directory_prints_error_and_exits() {
 
 test_ZSHZ_DATA_directory_prints_error_and_exits() {
   mkdir -p "$TESTDIR/data-dir"
-  local out=$(zshz_in_fresh_shell "
+  local out
+  out=$(zshz_in_fresh_shell "
     ZSHZ_DATA='$TESTDIR/data-dir' zshz -l
     print SENTINEL
   " 2>&1)

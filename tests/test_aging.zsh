@@ -22,7 +22,8 @@ test_aging_kicks_in_above_max_score() {
   local i
   for i in {1..7}; do zshz --add "$TESTDIR/x"; done
 
-  local rank=$(zshz_rank_of "$TESTDIR/x")
+  local rank
+  rank=$(zshz_rank_of "$TESTDIR/x")
   [[ -n $rank ]] || fail "rank should be present"
   (( rank < 7 )) || fail "rank should be < 7 after aging, was $rank"
   (( rank > 6 )) || fail "rank should be > 6 after aging, was $rank"

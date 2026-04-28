@@ -14,7 +14,8 @@ test_jump_uses_ZSHZ_CD_when_set() {
 
   cd_capture() { print "captured:$1"; cd "$@" }
   ZSHZ_CD=cd_capture
-  local out=$(zshz foo)
+  local out
+  out=$(zshz foo)
   assert_contains "captured:$TESTDIR/foo" "$out" "ZSHZ_CD function should receive the target path"
 }
 
@@ -24,6 +25,7 @@ test_ZSHZ_CD_supports_multi_word_command() {
 
   capture_multi() { print "multi:$1:$2"; cd "$2" }
   ZSHZ_CD='capture_multi PREFIX'
-  local out=$(zshz foo)
+  local out
+  out=$(zshz foo)
   assert_contains "multi:PREFIX:$TESTDIR/foo" "$out" "ZSHZ_CD value should be word-split via \${=...}"
 }
