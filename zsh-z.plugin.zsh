@@ -188,11 +188,6 @@ zshz() {
   [[ -z ${ZSHZ_OWNER:-${_Z_OWNER}} && -f $datafile && ! -O $datafile ]] &&
     return
 
-  # Load the datafile into an array and parse it
-  lines=( ${(f)"$(< $datafile)"} )
-  # Discard entries that are incomplete or incorrectly formatted
-  lines=( ${(M)lines:#/*\|[[:digit:]]##[.,]#[[:digit:]]#\|[[:digit:]]##} )
-
   ############################################################
   # Add a path to or remove one from the datafile
   #
@@ -228,15 +223,27 @@ zshz() {
     # A temporary file that gets copied over the datafile if all goes well
     local tempfile="${datafile}.${RANDOM}"
 
-    # See https://github.com/rupa/z/pull/199/commits/ed6eeed9b70d27c1582e3dd050e72ebfe246341c
+    # Using zsystem flock
     if (( ZSHZ[USE_FLOCK] )); then
 
-      local lockfd
+      local lockfd lockfile="${datafile}.lock"
 
-      # Grab exclusive lock (released when function exits)
-      zsystem flock -f lockfd "$datafile" 2> /dev/null || return
+      # Obtain an exclusive lock on the lockfile. The lock is released when the
+      # function exits and lockfd is closed.
+      #
+      # Note that locking the datafile directly would not necessarily serialize
+      # Zsh-z processes trying to write concurrently, as it gets replaced by mv,
+      # and each new datafile has a new inode.
+      [[ -f $lockfile ]] || touch "$lockfile"
+      zsystem flock -f lockfd "$lockfile" 2> /dev/null || return
 
     fi
+
+    # Read the datafile only after obtaining the lock so that concurrent --add
+    # calls do not all depend on the same stale data
+    lines=( ${(f)"$(< $datafile)"} )
+    # Discard entries that are incomplete or incorrectly formatted
+    lines=( ${(M)lines:#/*\|[[:digit:]]##[.,]#[[:digit:]]#\|[[:digit:]]##} )
 
     integer tmpfd
     case $action in
@@ -780,6 +787,12 @@ zshz() {
         ;;
     esac
   done
+
+  # Load the datafile into an array and parse it
+  lines=( ${(f)"$(< $datafile)"} )
+  # Discard entries that are incomplete or incorrectly formatted
+  lines=( ${(M)lines:#/*\|[[:digit:]]##[.,]#[[:digit:]]#\|[[:digit:]]##} )
+
   req="$*"
   fnd="$prefix$*"
 
