@@ -982,6 +982,7 @@ fi
 ############################################################
 _zshz_zle_completion_widget() {
   emulate -L zsh
+  setopt LOCAL_OPTIONS EXTENDED_GLOB
   local cmd=${ZSHZ_CMD:-${_Z_CMD:-z}}
 
   # If a trailing space was added after an already-completed absolute path
