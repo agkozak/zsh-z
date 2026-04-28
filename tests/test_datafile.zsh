@@ -44,3 +44,28 @@ test_missing_datafile_is_created() {
   assert_file_exists "$ZSHZ_DATA"
   assert_eq "1" "$(zshz_rank_of "$TESTDIR")" "add when datafile missing should create and populate it"
 }
+
+test_ZSHZ_DATA_without_directory_prints_error_and_exits() {
+  local out
+  out=$(zsh --no-rcs -c "
+    source '$PLUGIN_DIR/zsh-z.plugin.zsh'
+    ZSHZ_DATA=barefile zshz -l
+    print SENTINEL
+  " 2>&1)
+
+  assert_contains "ERROR: You configured a custom Zsh-z datafile (barefile), but have not specified its directory." "$out" "bare filename should be rejected"
+  assert_not_contains "SENTINEL" "$out" "shell should exit before reaching later commands"
+}
+
+test_ZSHZ_DATA_directory_prints_error_and_exits() {
+  mkdir -p "$TESTDIR/data-dir"
+  local out
+  out=$(zsh --no-rcs -c "
+    source '$PLUGIN_DIR/zsh-z.plugin.zsh'
+    ZSHZ_DATA='$TESTDIR/data-dir' zshz -l
+    print SENTINEL
+  " 2>&1)
+
+  assert_contains "ERROR: Zsh-z's datafile ($TESTDIR/data-dir) is a directory." "$out" "directory datafile should be rejected"
+  assert_not_contains "SENTINEL" "$out" "shell should exit before reaching later commands"
+}
