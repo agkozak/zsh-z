@@ -48,3 +48,4 @@ test_time_match_picks_most_recent_ignoring_rank() {
   zshz_seed "$TESTDIR/t/bb" 100 86400
   assert_eq "$TESTDIR/t/aa" "$(zshz -te t)" "-t should pick more recent regardless of rank"
 }
+# vim: fdm=indent:ts=2:et:sts=2:sw=2:

@@ -37,3 +37,4 @@ test_keep_dirs_protects_exact_match() {
 
   assert_eq "1" "$(zshz_rank_of "$TESTDIR/exact")" "exact-match KEEP_DIRS entry should survive"
 }
+# vim: fdm=indent:ts=2:et:sts=2:sw=2:

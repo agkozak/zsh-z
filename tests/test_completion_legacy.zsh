@@ -30,3 +30,4 @@ test_legacy_complete_trailing_slash_matches_directory_end() {
   assert_contains "$TESTDIR/root/foo" "$on" "TRAILING_SLASH should allow matching a directory end"
   assert_not_contains "$TESTDIR/root/foobar" "$on" "TRAILING_SLASH should not match longer sibling names"
 }
+# vim: fdm=indent:ts=2:et:sts=2:sw=2:

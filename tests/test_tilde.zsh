@@ -31,3 +31,4 @@ test_tilde_in_echo_output() {
   out=$(zshz -e foo)
   assert_eq "~/foo" "$out" "-e with TILDE should print ~ form"
 }
+# vim: fdm=indent:ts=2:et:sts=2:sw=2:

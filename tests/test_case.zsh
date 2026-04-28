@@ -50,3 +50,4 @@ test_case_smart_uppercase_query_is_strict() {
   assert_ne "0" "$rc" "smart + uppercase query should not fall back to insensitive"
   assert_eq "" "$out" "smart + uppercase query should not match a lowercase path"
 }
+# vim: fdm=indent:ts=2:et:sts=2:sw=2:

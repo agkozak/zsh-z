@@ -45,3 +45,4 @@ test_removed_directory_is_not_readded_until_chpwd() {
   _zshz_precmd
   assert_eq "1" "$(zshz_rank_of "$TESTDIR/work")" "_zshz_chpwd should allow later re-addition"
 }
+# vim: fdm=indent:ts=2:et:sts=2:sw=2:

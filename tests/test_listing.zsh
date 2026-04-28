@@ -40,3 +40,4 @@ test_list_prints_common_root_line() {
   assert_contains "common:" "$lines[1]" "-l should print a common-root summary when multiple matches share one"
   assert_contains "$TESTDIR/foo" "$lines[1]" "common-root summary should show the shared root"
 }
+# vim: fdm=indent:ts=2:et:sts=2:sw=2:

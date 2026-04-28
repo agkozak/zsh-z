@@ -30,3 +30,4 @@ test_default_returns_common_root_when_one_exists() {
   out=$(zshz -e cr)
   assert_eq "$TESTDIR/cr" "$out" "default should pick the common-root entry over the highest-rank child"
 }
+# vim: fdm=indent:ts=2:et:sts=2:sw=2:

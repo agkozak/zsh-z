@@ -82,3 +82,4 @@ done
 print
 print "Results: $passed passed, $failed failed of $total"
 (( failed == 0 ))
+# vim: fdm=indent:ts=2:et:sts=2:sw=2:

@@ -29,3 +29,4 @@ test_ZSHZ_CD_supports_multi_word_command() {
   out=$(zshz foo)
   assert_contains "multi:PREFIX:$TESTDIR/foo" "$out" "ZSHZ_CD value should be word-split via \${=...}"
 }
+# vim: fdm=indent:ts=2:et:sts=2:sw=2:

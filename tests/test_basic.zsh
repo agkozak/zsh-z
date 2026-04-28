@@ -79,3 +79,4 @@ test_echo_returns_best_match() {
   out=$(zshz -e alpha 2>&1)
   assert_contains "alpha" "$out" "-e should echo a match for 'alpha'"
 }
+# vim: fdm=indent:ts=2:et:sts=2:sw=2:

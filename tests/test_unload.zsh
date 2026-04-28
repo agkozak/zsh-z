@@ -98,3 +98,4 @@ test_reload_after_unload_captures_current_tab_binding() {
   ")
   assert_eq "menu-complete" "$out" "reload should capture the binding present at reload time"
 }
+# vim: fdm=indent:ts=2:et:sts=2:sw=2:

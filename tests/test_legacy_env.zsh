@@ -48,3 +48,4 @@ test__Z_NO_RESOLVE_SYMLINKS_stores_link_path() {
   assert_eq "1" "$(zshz_rank_of "$link")" "_Z_NO_RESOLVE_SYMLINKS should store the symlink path"
   assert_eq "" "$(zshz_rank_of "$target")" "_Z_NO_RESOLVE_SYMLINKS should not store the resolved target"
 }
+# vim: fdm=indent:ts=2:et:sts=2:sw=2:

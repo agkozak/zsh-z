@@ -51,3 +51,4 @@ test_absolute_path_fallback_does_not_apply_with_echo() {
   assert_ne "0" "$rc" "-e should skip the absolute-path fast path"
   assert_eq "" "$out" "-e should not echo a direct absolute-path fallback"
 }
+# vim: fdm=indent:ts=2:et:sts=2:sw=2:

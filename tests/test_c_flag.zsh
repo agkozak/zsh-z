@@ -25,3 +25,4 @@ test_c_flag_excludes_paths_outside_pwd() {
   assert_ne "0" "$rc" "-c should not match outside PWD subtree"
   assert_eq "" "$out" "no output when nothing under PWD matches"
 }
+# vim: fdm=indent:ts=2:et:sts=2:sw=2:

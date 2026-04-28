@@ -29,3 +29,4 @@ test_invalid_option_prints_error_and_usage() {
   assert_contains "Improper option(s) given." "$out" "invalid option should print an error"
   assert_contains "Usage: z" "$out" "invalid option should also print usage"
 }
+# vim: fdm=indent:ts=2:et:sts=2:sw=2:

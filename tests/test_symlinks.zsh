@@ -46,3 +46,4 @@ test_symlink_add_no_resolve_does_not_store_target() {
   ZSHZ_NO_RESOLVE_SYMLINKS=1 zshz --add "$link"
   assert_eq "" "$(zshz_rank_of "$target")" "NO_RESOLVE should not silently store the resolved target"
 }
+# vim: fdm=indent:ts=2:et:sts=2:sw=2:

@@ -31,3 +31,4 @@ test_concurrent_add_two_paths_each_independent() {
   assert_eq "$n" "$(zshz_rank_of "$a")" "$n concurrent adds to a"
   assert_eq "$n" "$(zshz_rank_of "$b")" "$n concurrent adds to b"
 }
+# vim: fdm=indent:ts=2:et:sts=2:sw=2:

@@ -49,3 +49,4 @@ test_first_source_preserves_non_default_tab_binding() {
   ")
   assert_eq "menu-complete" "$out" "user's non-default Tab binding should be captured verbatim"
 }
+# vim: fdm=indent:ts=2:et:sts=2:sw=2:

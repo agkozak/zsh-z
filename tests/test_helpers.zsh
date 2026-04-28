@@ -79,3 +79,4 @@ zshz_in_fresh_shell() {
     $1
   "
 }
+# vim: fdm=indent:ts=2:et:sts=2:sw=2:

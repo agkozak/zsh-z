@@ -27,3 +27,4 @@ test_echo_combined_with_tilde() {
   out=$(zshz foo)
   assert_eq "~/foo" "$out" "ECHO + TILDE should print ~ form"
 }
+# vim: fdm=indent:ts=2:et:sts=2:sw=2:

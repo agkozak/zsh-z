@@ -26,3 +26,4 @@ test_no_lockfile_created_without_flock() {
     fail "lockfile should not be created when USE_FLOCK=0"
   fi
 }
+# vim: fdm=indent:ts=2:et:sts=2:sw=2:

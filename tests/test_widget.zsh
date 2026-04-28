@@ -76,3 +76,4 @@ test_widget_uses_custom_ZSHZ_CMD() {
   ")
   assert_eq "zoo us*lo" "$out" "widget should respect a custom ZSHZ_CMD"
 }
+# vim: fdm=indent:ts=2:et:sts=2:sw=2:

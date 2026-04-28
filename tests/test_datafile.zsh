@@ -55,6 +55,7 @@ test_ZSHZ_DATA_without_directory_prints_error_and_exits() {
   assert_contains "ERROR: You configured a custom Zsh-z datafile (barefile), but have not specified its directory." "$out" "bare filename should be rejected"
   assert_not_contains "SENTINEL" "$out" "shell should exit before reaching later commands"
 }
+# vim: fdm=indent:ts=2:et:sts=2:sw=2:
 
 test_ZSHZ_DATA_directory_prints_error_and_exits() {
   mkdir -p "$TESTDIR/data-dir"

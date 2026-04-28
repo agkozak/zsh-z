@@ -39,3 +39,4 @@ test_aging_drops_entries_below_rank_1() {
   zshz --add "$TESTDIR/keep"
   assert_eq "" "$(zshz_rank_of "$TESTDIR/decayed")" "entry with rank<1 should be dropped on write"
 }
+# vim: fdm=indent:ts=2:et:sts=2:sw=2:
