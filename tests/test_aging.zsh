@@ -33,11 +33,8 @@ test_aging_drops_entries_below_rank_1() {
   # write (line 388: `(( rank_field < 1 )) && continue`). Seed an entry with
   # rank 0.5 directly and trigger a write.
   mkdir -p "$TESTDIR/keep" "$TESTDIR/decayed"
-  local now=$EPOCHSECONDS
-  print -l \
-    "$TESTDIR/keep|10|$now" \
-    "$TESTDIR/decayed|0.5|$now" \
-    > "$ZSHZ_DATA"
+  zshz_seed "$TESTDIR/keep" 10
+  zshz_seed "$TESTDIR/decayed" 0.5
   zshz --add "$TESTDIR/keep"
   assert_eq "" "$(zshz_rank_of "$TESTDIR/decayed")" "entry with rank<1 should be dropped on write"
 }

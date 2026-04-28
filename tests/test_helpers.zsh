@@ -46,3 +46,21 @@ zshz_rank_of() {
 zshz_dump() {
   [[ -f $ZSHZ_DATA ]] && sort "$ZSHZ_DATA"
 }
+
+# Append a synthetic entry to $ZSHZ_DATA with timestamp = now - SECONDS_AGO.
+zshz_seed() {
+  local path=$1 rank=$2 seconds_ago=${3:-0}
+  print "${path}|${rank}|$(( EPOCHSECONDS - seconds_ago ))" >> "$ZSHZ_DATA"
+}
+
+# Run BODY in a fresh `zsh --no-rcs -c` after binding Tab to expand-or-complete
+# and sourcing the plugin. Tests that need different setup before sourcing
+# (e.g. _Z_CMD=zoo, or a non-default Tab binding as captured baseline) must
+# use raw `zsh -c`.
+zshz_in_fresh_shell() {
+  zsh --no-rcs -c "
+    bindkey -M main '^I' expand-or-complete
+    source '$PLUGIN_DIR/zsh-z.plugin.zsh'
+    $1
+  "
+}

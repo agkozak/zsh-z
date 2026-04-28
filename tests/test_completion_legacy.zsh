@@ -2,12 +2,9 @@
 
 test_legacy_complete_returns_matches() {
   mkdir -p "$TESTDIR/foo/bar" "$TESTDIR/foo/baz" "$TESTDIR/qux"
-  local now=$EPOCHSECONDS
-  print -l \
-    "$TESTDIR/foo/bar|1|$now" \
-    "$TESTDIR/foo/baz|1|$now" \
-    "$TESTDIR/qux|1|$now" \
-    > "$ZSHZ_DATA"
+  zshz_seed "$TESTDIR/foo/bar" 1
+  zshz_seed "$TESTDIR/foo/baz" 1
+  zshz_seed "$TESTDIR/qux" 1
 
   ZSHZ_COMPLETION=legacy
   local out=$(zshz --complete foo)
@@ -18,11 +15,8 @@ test_legacy_complete_returns_matches() {
 
 test_legacy_complete_trailing_slash_matches_directory_end() {
   mkdir -p "$TESTDIR/root/foo" "$TESTDIR/root/foobar"
-  local now=$EPOCHSECONDS
-  print -l \
-    "$TESTDIR/root/foo|1|$now" \
-    "$TESTDIR/root/foobar|1|$now" \
-    > "$ZSHZ_DATA"
+  zshz_seed "$TESTDIR/root/foo" 1
+  zshz_seed "$TESTDIR/root/foobar" 1
 
   ZSHZ_COMPLETION=legacy
   local off=$(zshz --complete 'foo/')

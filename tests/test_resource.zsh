@@ -9,30 +9,17 @@
 # sourced for the first time in that process.
 
 test_first_source_captures_existing_tab_binding() {
-  local out
-  out=$(zsh --no-rcs -c "
-    bindkey -M main '^I' expand-or-complete
-    source '$PLUGIN_DIR/zsh-z.plugin.zsh'
-    print -- \$ZSHZ[TAB_BINDING]
-  ")
+  local out=$(zshz_in_fresh_shell 'print -- $ZSHZ[TAB_BINDING]')
   assert_eq "expand-or-complete" "$out" "TAB_BINDING should hold the prior binding"
 }
 
 test_first_source_binds_tab_to_widget() {
-  local out
-  out=$(zsh --no-rcs -c "
-    bindkey -M main '^I' expand-or-complete
-    source '$PLUGIN_DIR/zsh-z.plugin.zsh'
-    bindkey -M main '^I'
-  ")
+  local out=$(zshz_in_fresh_shell "bindkey -M main '^I'")
   assert_contains "_zshz_zle_completion_widget" "$out" "Tab should be bound to the widget after sourcing"
 }
 
 test_resource_does_not_capture_own_widget() {
-  local out
-  out=$(zsh --no-rcs -c "
-    bindkey -M main '^I' expand-or-complete
-    source '$PLUGIN_DIR/zsh-z.plugin.zsh'
+  local out=$(zshz_in_fresh_shell "
     source '$PLUGIN_DIR/zsh-z.plugin.zsh'
     print -- \$ZSHZ[TAB_BINDING]
   ")
@@ -41,10 +28,7 @@ test_resource_does_not_capture_own_widget() {
 }
 
 test_resource_keeps_tab_bound_to_widget() {
-  local out
-  out=$(zsh --no-rcs -c "
-    bindkey -M main '^I' expand-or-complete
-    source '$PLUGIN_DIR/zsh-z.plugin.zsh'
+  local out=$(zshz_in_fresh_shell "
     source '$PLUGIN_DIR/zsh-z.plugin.zsh'
     bindkey -M main '^I'
   ")

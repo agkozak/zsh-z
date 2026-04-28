@@ -6,10 +6,7 @@
 # no-op function and inspect LBUFFER after the call.
 
 test_widget_joins_multiple_search_terms_with_asterisk() {
-  local out
-  out=$(zsh --no-rcs -c "
-    bindkey -M main '^I' expand-or-complete
-    source '$PLUGIN_DIR/zsh-z.plugin.zsh'
+  local out=$(zshz_in_fresh_shell "
     zle() { return 0 }
     LBUFFER='z us lo bi'
     _zshz_zle_completion_widget
@@ -19,10 +16,7 @@ test_widget_joins_multiple_search_terms_with_asterisk() {
 }
 
 test_widget_preserves_flags_before_search_terms() {
-  local out
-  out=$(zsh --no-rcs -c "
-    bindkey -M main '^I' expand-or-complete
-    source '$PLUGIN_DIR/zsh-z.plugin.zsh'
+  local out=$(zshz_in_fresh_shell "
     zle() { return 0 }
     LBUFFER='z -e foo bar'
     _zshz_zle_completion_widget
@@ -32,10 +26,7 @@ test_widget_preserves_flags_before_search_terms() {
 }
 
 test_widget_passes_through_single_term() {
-  local out
-  out=$(zsh --no-rcs -c "
-    bindkey -M main '^I' expand-or-complete
-    source '$PLUGIN_DIR/zsh-z.plugin.zsh'
+  local out=$(zshz_in_fresh_shell "
     zle() { return 0 }
     LBUFFER='z foo'
     _zshz_zle_completion_widget
@@ -48,10 +39,7 @@ test_widget_does_not_retrigger_on_completed_absolute_path() {
   # When LBUFFER ends with a space after an absolute path (the result of a
   # successful prior completion), the widget should bail so a second Tab
   # doesn't re-trigger and produce a duplicate.
-  local out
-  out=$(zsh --no-rcs -c "
-    bindkey -M main '^I' expand-or-complete
-    source '$PLUGIN_DIR/zsh-z.plugin.zsh'
+  local out=$(zshz_in_fresh_shell "
     zle() { return 0 }
     LBUFFER='z /usr/local/bin '
     _zshz_zle_completion_widget
@@ -61,10 +49,7 @@ test_widget_does_not_retrigger_on_completed_absolute_path() {
 }
 
 test_widget_recognizes_long_flags() {
-  local out
-  out=$(zsh --no-rcs -c "
-    bindkey -M main '^I' expand-or-complete
-    source '$PLUGIN_DIR/zsh-z.plugin.zsh'
+  local out=$(zshz_in_fresh_shell "
     zle() { return 0 }
     LBUFFER='z --add foo bar'
     _zshz_zle_completion_widget

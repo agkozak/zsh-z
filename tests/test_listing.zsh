@@ -2,22 +2,16 @@
 
 test_no_args_matches_list_output() {
   mkdir -p "$TESTDIR/a" "$TESTDIR/b"
-  local now=$EPOCHSECONDS
-  print -l \
-    "$TESTDIR/a|5|$((now - 60))" \
-    "$TESTDIR/b|10|$((now - 120))" \
-    > "$ZSHZ_DATA"
+  zshz_seed "$TESTDIR/a" 5 60
+  zshz_seed "$TESTDIR/b" 10 120
 
   assert_eq "$(zshz -l)" "$(zshz)" "calling zshz with no args should behave like -l"
 }
 
 test_list_rank_and_time_modes_order_entries() {
   mkdir -p "$TESTDIR/a" "$TESTDIR/b"
-  local now=$EPOCHSECONDS
-  print -l \
-    "$TESTDIR/a|5|$((now - 60))" \
-    "$TESTDIR/b|10|$((now - 120))" \
-    > "$ZSHZ_DATA"
+  zshz_seed "$TESTDIR/a" 5 60
+  zshz_seed "$TESTDIR/b" 10 120
 
   local rank_out=$(zshz -lr)
   local -a rank_lines=( ${(f)rank_out} )
@@ -32,11 +26,8 @@ test_list_rank_and_time_modes_order_entries() {
 
 test_list_prints_common_root_line() {
   mkdir -p "$TESTDIR/foo" "$TESTDIR/foo/bar"
-  local now=$EPOCHSECONDS
-  print -l \
-    "$TESTDIR/foo|1|$now" \
-    "$TESTDIR/foo/bar|2|$now" \
-    > "$ZSHZ_DATA"
+  zshz_seed "$TESTDIR/foo" 1
+  zshz_seed "$TESTDIR/foo/bar" 2
 
   local out=$(zshz -l foo)
   local -a lines=( ${(f)out} )
