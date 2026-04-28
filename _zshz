@@ -27,8 +27,6 @@
 #
 # z (https://github.com/rupa/z) is copyright (c) 2009 rupa deadwyler and
 # licensed under the WTFPL license, Version 2.a
-#
-# shellcheck shell=ksh
 
 ############################################################
 # Zsh-z COMPLETIONS

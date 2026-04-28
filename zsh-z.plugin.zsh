@@ -827,6 +827,10 @@ zshz() {
   # If $ZSHZ_ECHO == 1, display paths as you jump to them.
   # If it is also the case that $ZSHZ_TILDE == 1, display
   # the home directory as a tilde.
+  #
+  # Globals:
+  #   ZSHZ_ECHO
+  #   ZSHZ_TILDE
   #########################################################
   _zshz_echo() {
     if (( ZSHZ_ECHO )); then
@@ -860,7 +864,8 @@ zshz() {
 
   # New experimental "uncommon" behavior
   #
-  # If the best choice at this point is something like /foo/bar/foo/bar, and the  # search pattern is `bar', go to /foo/bar/foo/bar; but if the search pattern
+  # If the best choice at this point is something like /foo/bar/foo/bar, and the
+  # # search pattern is `bar', go to /foo/bar/foo/bar; but if the search pattern
   # is `foo', go to /foo/bar/foo
   if (( ZSHZ_UNCOMMON )) && [[ -n $cd ]]; then
     if [[ -n $cd ]]; then
