@@ -764,6 +764,9 @@ zshz() {
         ;;
       --complete)
         if [[ -s $datafile && ${ZSHZ_COMPLETION:-frecent} == 'legacy' ]]; then
+          lines=( ${(f)"$(< $datafile)"} )
+          # Discard entries that are incomplete or incorrectly formatted
+          lines=( ${(M)lines:#/*\|[[:digit:]]##[.,]#[[:digit:]]#\|[[:digit:]]##} )
           _zshz_legacy_complete "$1"
           return
         fi
