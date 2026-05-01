@@ -3,16 +3,20 @@
 # Before the fix, the read-modify-write cycle was racy: lines was read before
 # the lock was acquired, and the lock was held on $datafile (whose inode is
 # replaced via mv) so concurrent writers did not actually serialize.
+#
+# Each writer is spawned as an independent `zsh -c` process via xargs rather
+# than as a backgrounded subshell of the test runner. This exercises the
+# plugin's flock-based serialization across real OS processes (closer to real
+# usage: multiple terminals, each their own zsh) and avoids zsh 4.3.11's
+# `&`/`wait` machinery, which segfaults under even light fork load.
 
 test_concurrent_add_no_lost_updates() {
-  local n=20 i
+  local n=20
   local target="$TESTDIR/target"
   mkdir -p "$target"
 
-  for i in $(seq 1 $n); do
-    ( zshz --add "$target" ) &
-  done
-  wait
+  seq 1 $n | xargs -P 4 -I{} \
+    zsh -c "source '$PLUGIN_DIR/zsh-z.plugin.zsh'; zshz --add '$target'"
 
   assert_eq "$n" "$(zshz_rank_of "$target")" "$n concurrent adds should produce rank $n"
 }
@@ -22,11 +26,15 @@ test_concurrent_add_two_paths_each_independent() {
   local a="$TESTDIR/a" b="$TESTDIR/b"
   mkdir -p "$a" "$b"
 
-  for i in $(seq 1 $n); do
-    ( zshz --add "$a" ) &
-    ( zshz --add "$b" ) &
-  done
-  wait
+  # Interleave a and b on the input list so xargs runs adds for both paths
+  # concurrently (rather than draining one before starting the other).
+  {
+    for ((i=1; i<=n; i++)); do
+      print -- "$a"
+      print -- "$b"
+    done
+  } | xargs -P 4 -I{} \
+        zsh -c "source '$PLUGIN_DIR/zsh-z.plugin.zsh'; zshz --add '{}'"
 
   assert_eq "$n" "$(zshz_rank_of "$a")" "$n concurrent adds to a"
   assert_eq "$n" "$(zshz_rank_of "$b")" "$n concurrent adds to b"
