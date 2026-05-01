@@ -11,7 +11,7 @@ assert_eq() {
   expected="$1"
   actual="$2"
   msg="${3:-}"
-  [[ $expected == $actual ]] && return 0
+  [[ $expected == "$actual" ]] && return 0
   fail "${msg:+$msg: }expected '$expected', got '$actual'"
 }
 
@@ -20,7 +20,7 @@ assert_ne() {
   unexpected="$1"
   actual="$2"
   msg="${3:-}"
-  [[ $unexpected != $actual ]] && return 0
+  [[ $unexpected != "$actual" ]] && return 0
   fail "${msg:+$msg: }expected anything but '$unexpected', got '$actual'"
 }
 
