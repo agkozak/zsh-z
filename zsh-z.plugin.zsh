@@ -313,7 +313,11 @@ zshz() {
       fi
 
       if [[ -n $owner ]]; then
-        ${ZSHZ[CHOWN]} ${owner}:"$(id -ng ${owner})" "$datafile"
+        # chown the lockfile too: zsystem flock opens it O_RDWR, so if root
+        # creates it first under sudo -s, the unprivileged $ZSHZ_OWNER user's
+        # subsequent flock attempts fail with EACCES (silently swallowed),
+        # so --add and -x silently do nothing.
+        ${ZSHZ[CHOWN]} ${owner}:"$(id -ng ${owner})" "$datafile" "$lockfile"
       fi
     else
       if [[ -n $owner ]]; then
