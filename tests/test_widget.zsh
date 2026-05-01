@@ -76,4 +76,18 @@ test_widget_uses_custom_ZSHZ_CMD() {
   ")
   assert_eq "zoo us*lo" "$out" "widget should respect a custom ZSHZ_CMD"
 }
+
+test_widget_passes_through_single_path_after_long_flag() {
+  # `z --add /tmp` <Tab> with one path arg must leave LBUFFER unchanged so
+  # filesystem completion can run on /tmp. If --add were ever dropped from the
+  # widget's flag pattern, this would collapse to 'z --add*/tmp'.
+  local out
+  out=$(zshz_in_fresh_shell "
+    zle() { return 0 }
+    LBUFFER='z --add /tmp'
+    _zshz_zle_completion_widget
+    print -- \$LBUFFER
+  ")
+  assert_eq "z --add /tmp" "$out" "single path arg after --add must pass through unchanged"
+}
 # vim: fdm=indent:ts=2:et:sts=2:sw=2:
