@@ -36,6 +36,18 @@ for _fn in ${(k)functions}; do
 done
 _test_fns=( ${(o)_test_fns} )
 
+# If names were passed on the command line, run only those tests. Each arg is
+# matched as a glob against test function names, so prefixes work too:
+#   zsh tests/run.zsh test_concurrent_add_no_lost_updates
+#   zsh tests/run.zsh 'test_concurrent_*'
+if (( $# )); then
+  _test_fns=( ${(M)_test_fns:#${~^@}} )
+  if (( ! ${#_test_fns} )); then
+    print -u 2 "No tests matched: $*"
+    exit 2
+  fi
+fi
+
 typeset -gi total=0 passed=0 failed=0
 typeset -ga failures
 
