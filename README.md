@@ -34,7 +34,7 @@ Zsh-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
     <summary>Here are the latest features and updates.</summary>
 
 - May 1, 2026
-    + Concurrent instances of `--add` no longer lose updates; the `zsystem flock` is now held on a separate lockfile, not on the datafile (whose inode gets replaced by mv).
+    + Concurrent instances of `--add` no longer lose updates; the `zsystem flock` is now held on a separate lockfile, not on the datafile (whose inode gets replaced by `mv`).
     + Various tab completion bugs resolved.
 - April 27, 2026
     + Fixes a bug where re-sourcing the script caused an infinite loop when tab was pressed. Props to @maheshpec for [successfully diagnosing the problem](https://github.com/ohmyzsh/ohmyzsh/pull/13715).
