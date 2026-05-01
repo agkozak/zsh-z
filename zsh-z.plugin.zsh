@@ -1001,7 +1001,7 @@ _zshz_zle_completion_widget() {
 
     parts=( ${(z)after} )
     for p in $parts; do
-      if (( ! past_flags )) && [[ $p == (-[cehlrRtx]##|--add|--complete|--help) ]]; then
+      if (( ! past_flags )) && [[ $p == (--|-[cehlrRtx]##|--add|--complete|--help) ]]; then
         flag_parts+=( $p )
       else
         past_flags=1
