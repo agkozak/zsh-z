@@ -21,7 +21,7 @@ echo "zsh:      $("$ZSH_BIN" --version)"
 echo "writers:  $N"
 echo "parallel: $PARALLEL"
 
-seq 1 "$N" | xargs -n1 -P "$PARALLEL" -I{} \
+seq 1 "$N" | xargs -P "$PARALLEL" -I{} \
   "$ZSH_BIN" -c "source '$PLUGIN'; zshz --add '$TARGET'"
 
 rank=$(awk -F'|' -v p="$TARGET" '$1==p { print $2 }' "$ZSHZ_DATA")
