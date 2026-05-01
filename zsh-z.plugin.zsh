@@ -741,6 +741,9 @@ zshz() {
   for opt in ${(k)opts}; do
     case $opt in
       --add)
+        # Don't mutate the database when invoked via --complete (e.g. from the
+        # tab-completion code path).
+        (( ${+opts[--complete]} )) && continue
         [[ ! -d $* ]] && return 1
         local dir
         # Cygwin and MSYS2 have a hard time with relative paths expressed from /
@@ -764,6 +767,7 @@ zshz() {
         ;;
       -c) [[ $* == ${PWD}/* || $PWD == '/' ]] || prefix="$PWD " ;;
       -h|--help)
+        (( ${+opts[--complete]} )) && continue
         _zshz_usage
         return
         ;;
@@ -771,6 +775,7 @@ zshz() {
       -r) method='rank' ;;
       -t) method='time' ;;
       -x)
+        (( ${+opts[--complete]} )) && continue
         # Cygwin and MSYS2 have a hard time with relative paths expressed from /
         if [[ $OSTYPE == (cygwin|msys) && $PWD == '/' && $* != /* ]]; then
           set -- "/$*"
