@@ -996,21 +996,24 @@ _zshz_zle_completion_widget() {
   # Only act when there are at least two words after the command
   if [[ $LBUFFER == ${cmd}\ *\ * ]]; then
     local after=${LBUFFER#${cmd} }
-    local -a parts flag_parts search_parts
-    local p past_flags=0
+    local -a parts option_parts search_parts
+    local p past_options=0
 
     parts=( ${(z)after} )
     for p in $parts; do
-      if (( ! past_flags )) && [[ $p == (--|-[cehlrRtx]##|--add|--complete|--help) ]]; then
-        flag_parts+=( $p )
+      if (( ! past_options )) && [[ $p == (--|-[cehlrRtx]##|--add|--complete|--help) ]]; then
+        option_parts+=( $p )
+        # `--' terminates option parsing; subsequent tokens are positional,
+        # even if they happen to look like options.
+        [[ $p == -- ]] && past_options=1
       else
-        past_flags=1
+        past_options=1
         search_parts+=( $p )
       fi
     done
 
     if (( ${#search_parts} > 1 )); then
-      LBUFFER="${cmd}${flag_parts:+ ${(j: :)flag_parts}} ${(j:*:)search_parts}"
+      LBUFFER="${cmd}${option_parts:+ ${(j: :)option_parts}} ${(j:*:)search_parts}"
     fi
   fi
 
