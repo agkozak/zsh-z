@@ -874,7 +874,7 @@ zshz() {
   # New experimental "uncommon" behavior
   #
   # If the best choice at this point is something like /foo/bar/foo/bar, and the
-  # # search pattern is `bar', go to /foo/bar/foo/bar; but if the search pattern
+  # search pattern is `bar', go to /foo/bar/foo/bar; but if the search pattern
   # is `foo', go to /foo/bar/foo
   if (( ZSHZ_UNCOMMON )) && [[ -n $cd ]]; then
     if [[ -n $cd ]]; then
