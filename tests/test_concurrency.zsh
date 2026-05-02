@@ -28,6 +28,33 @@ test_concurrent_add_no_lost_updates() {
   assert_eq "$n" "$(zshz_rank_of "$target")" "$n concurrent adds should produce rank $n"
 }
 
+test_lock_fd_does_not_leak_across_repeated_adds() {
+  # zsystem flock -f opens an fd that persists for the shell process's
+  # lifetime; without an explicit zsystem flock -u, the fcntl lock stays
+  # held until the shell exits. POSIX advisory locks are per-process, so
+  # the leaking shell never notices, but peers block on F_SETLKW until
+  # ZSHZ_LOCK_TIMEOUT and silently drop their update.
+  #
+  # This shell is the runner: do two --add calls so any leaked fd would
+  # still be held when we spawn the external writer. The external shell
+  # uses a tight 1s timeout: if the runner leaked, it would time out and
+  # the rank would not land.
+  local a="$TESTDIR/leak-a" b="$TESTDIR/leak-b" c="$TESTDIR/leak-c"
+  mkdir -p "$a" "$b" "$c"
+  zshz --add "$a"
+  zshz --add "$b"
+
+  local rc
+  env ZSHZ_LOCK_TIMEOUT=1 zsh --no-rcs -c "
+    source '$PLUGIN_DIR/zsh-z.plugin.zsh'
+    zshz --add '$c'
+  " > /dev/null 2>&1
+  rc=$?
+
+  assert_eq "0" "$rc" "external --add should not time out waiting on a leaked lock"
+  assert_eq "1" "$(zshz_rank_of "$c")" "external --add should have landed in the datafile"
+}
+
 test_concurrent_add_two_paths_each_independent() {
   local n=15 i
   local a="$TESTDIR/a" b="$TESTDIR/b"
