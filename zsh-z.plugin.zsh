@@ -948,13 +948,16 @@ _zshz_precmd() {
     esac
   done
 
-  # It appears that forking a subshell is so slow in Windows that it is better
-  # just to add the PWD to the datafile in the foreground
-  if [[ $OSTYPE == (cygwin|msys) ]]; then
-      zshz --add "$PWD"
-  else
-      (zshz --add "$PWD" &)
-  fi
+  # rupa/z ran the following as a background process for efficiency. Zsh-z
+  # inherited that behavior, but eventually its native Zsh code became so fast
+  # that, on Cygwin and MSYS2 at least, running it in the foreground was faster,
+  # as it avoided forking a subshell.
+  #
+  # Zsh-z processes are now serialized on a shared lockfile to prevent losing
+  # update data. The queue can stall if a process hangs (a real risk on WSL2
+  # zsh, it seems, where the `(cmd &)` fork can leak an fd). Foregrounding
+  # limits Zsh-z to one process trying to write to the datafile per shell.
+  zshz --add "$PWD"
 
   # See https://github.com/rupa/z/pull/247/commits/081406117ea42ccb8d159f7630cfc7658db054b6
   : $RANDOM
