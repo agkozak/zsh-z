@@ -170,7 +170,24 @@ zshz() {
     exit
   fi
 
-  # If the user specified a datafile, use that or default to ~/.z
+  local data_dir
+  # XDG mandates that all XDG variables that are not absolute paths must be ignored.
+  if [[ ${XDG_CONFIG_HOME[1]} == '/' ]]; then
+    default_datafile=$XDG_CONFIG_HOME/.z
+  else
+    default_datafile=$HOME/.local/state.z
+  fi
+
+  # For backwards compatability, perform a one-time copy from $HOME/.z to $default_datafile if:
+  # - $default_datafile doesn't exist
+  # - $HOME/.z exists and meets the ownership requirements
+  # - $custom_datafile is not being used.
+  if [[ -z "$custom_datafile" && ! -f "$default_datafile" && -f "$HOME/.z" && -z ${ZSHZ_OWNER:-${_Z_OWNER}} && ! -O "$HOME/.z" ]]; then
+    mkdir -p "${default_datafile:h}" && cp "$HOME/.z" "$default_datafile"
+  fi
+
+  local datafile=${${custom_datafile:-$default_datafile}:A}
+  # If the user specified a datafile, use that or default to $XDG_STATE_HOME/.z
   # If the datafile is a symlink, it gets dereferenced
   local datafile=${${custom_datafile:-$HOME/.z}:A}
 
