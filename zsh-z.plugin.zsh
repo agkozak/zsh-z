@@ -224,116 +224,141 @@ zshz() {
     fi
 
     # A temporary file that gets copied over the datafile if all goes well
-    local tempfile="${datafile}.${RANDOM}"
+    local tempfile="${datafile}.${RANDOM}" lockfile="${datafile}.lock"
+    integer lockfd=0
 
-    # Using zsystem flock
-    if (( ZSHZ[USE_FLOCK] )); then
+    {
+      # Using zsystem flock
+      if (( ZSHZ[USE_FLOCK] )); then
 
-      local lockfd lockfile="${datafile}.lock"
+        # Obtain an exclusive lock on the lockfile.
+        #
+        # Locking the datafile directly would not actually serialize concurrent
+        # writers, since the datafile gets replaced by mv and each new datafile
+        # has a new inode -- so a separate, stable lockfile is needed.
+        #
+        # Bound the lock acquisition (default 1s, override with ZSHZ_LOCK_TIMEOUT)
+        # so a stuck holder can't freeze precmd's foreground `zshz --add'. Once
+        # the holder dies, the kernel frees the lock and the next add succeeds
+        # automatically -- no manual `rm ~/.z.lock' needed.
+        [[ -f $lockfile ]] || touch "$lockfile"
+        zsystem flock -t ${ZSHZ_LOCK_TIMEOUT:-1} -f lockfd "$lockfile" 2> /dev/null || return
 
-      # Obtain an exclusive lock on the lockfile. The lock is released when the
-      # function exits and lockfd is closed.
-      #
-      # Locking the datafile directly would not actually serialize concurrent
-      # writers, since the datafile gets replaced by mv and each new datafile
-      # has a new inode -- so a separate, stable lockfile is needed.
-      #
-      # Bound the lock acquisition (default 1s, override with ZSHZ_LOCK_TIMEOUT)
-      # so a stuck holder can't freeze precmd's foreground `zshz --add'. Once
-      # the holder dies, the kernel frees the lock and the next add succeeds
-      # automatically -- no manual `rm ~/.z.lock' needed.
-      [[ -f $lockfile ]] || touch "$lockfile"
-      zsystem flock -t ${ZSHZ_LOCK_TIMEOUT:-1} -f lockfd "$lockfile" 2> /dev/null || return
+      fi
 
-    fi
+      # Read the datafile only after obtaining the lock, so concurrent --add
+      # calls don't all act on the same stale snapshot.
+      lines=( ${(f)"$(< $datafile)"} )
+      # Discard entries that are incomplete or incorrectly formatted
+      lines=( ${(M)lines:#/*\|[[:digit:]]##[.,]#[[:digit:]]#\|[[:digit:]]##} )
 
-    # Read the datafile only after obtaining the lock, so concurrent --add
-    # calls don't all act on the same stale snapshot.
-    lines=( ${(f)"$(< $datafile)"} )
-    # Discard entries that are incomplete or incorrectly formatted
-    lines=( ${(M)lines:#/*\|[[:digit:]]##[.,]#[[:digit:]]#\|[[:digit:]]##} )
+      integer tmpfd
+      case $action in
+        --add)
+          exec {tmpfd}>|"$tempfile"  # Open up tempfile for writing
+          _zshz_update_datafile $tmpfd "$*"
+          local ret=$?
+          ;;
+        --remove)
+          local xdir  # Directory to be removed
 
-    integer tmpfd
-    case $action in
-      --add)
-        exec {tmpfd}>|"$tempfile"  # Open up tempfile for writing
-        _zshz_update_datafile $tmpfd "$*"
-        local ret=$?
-        ;;
-      --remove)
-        local xdir  # Directory to be removed
-
-        if (( ${ZSHZ_NO_RESOLVE_SYMLINKS:-${_Z_NO_RESOLVE_SYMLINKS}} )); then
-          [[ -d ${${*:-${PWD}}:a} ]] && xdir=${${*:-${PWD}}:a}
-        else
-          [[ -d ${${*:-${PWD}}:A} ]] && xdir=${${*:-${PWD}}:A}
-        fi
-
-        local -a lines_to_keep
-        if (( ${+opts[-R]} )); then
-          # Prompt user before deleting entire database
-          if [[ $xdir == '/' ]] && ! read -q "?Delete entire Zsh-z database? "; then
-            print && return 1
+          if (( ${ZSHZ_NO_RESOLVE_SYMLINKS:-${_Z_NO_RESOLVE_SYMLINKS}} )); then
+            [[ -d ${${*:-${PWD}}:a} ]] && xdir=${${*:-${PWD}}:a}
+          else
+            [[ -d ${${*:-${PWD}}:A} ]] && xdir=${${*:-${PWD}}:A}
           fi
-          # All of the lines that don't match the directory to be deleted
-          lines_to_keep=( ${lines:#${xdir}\|*} )
-          # Or its subdirectories
-          lines_to_keep=( ${lines_to_keep:#${xdir%/}/**} )
-        else
-          # All of the lines that don't match the directory to be deleted
-          lines_to_keep=( ${lines:#${xdir}\|*} )
-        fi
-        if [[ $lines != "$lines_to_keep" ]]; then
-          lines=( $lines_to_keep )
-        else
-          return 1  # The $PWD isn't in the datafile
-        fi
-        exec {tmpfd}>|"$tempfile"  # Open up tempfile for writing
-        print -u $tmpfd -l -- $lines
-        local ret=$?
-        ;;
-    esac
 
-    if (( tmpfd != 0 )); then
-      # Close tempfile
-      exec {tmpfd}>&-
-    fi
+          local -a lines_to_keep
+          if (( ${+opts[-R]} )); then
+            # Prompt user before deleting entire database
+            if [[ $xdir == '/' ]] && ! read -q "?Delete entire Zsh-z database? "; then
+              print && return 1
+            fi
+            # All of the lines that don't match the directory to be deleted
+            lines_to_keep=( ${lines:#${xdir}\|*} )
+            # Or its subdirectories
+            lines_to_keep=( ${lines_to_keep:#${xdir%/}/**} )
+          else
+            # All of the lines that don't match the directory to be deleted
+            lines_to_keep=( ${lines:#${xdir}\|*} )
+          fi
+          if [[ $lines != "$lines_to_keep" ]]; then
+            lines=( $lines_to_keep )
+          else
+            return 1  # The $PWD isn't in the datafile
+          fi
+          exec {tmpfd}>|"$tempfile"  # Open up tempfile for writing
+          print -u $tmpfd -l -- $lines
+          local ret=$?
+          ;;
+      esac
 
-    if (( ret != 0 )); then
-      # Avoid clobbering the datafile if the write to tempfile failed
-      ${ZSHZ[RM]} -f "$tempfile"
-      return $ret
-    fi
+      if (( tmpfd != 0 )); then
+        # Close tempfile
+        exec {tmpfd}>&-
+      fi
 
-    local owner
-    owner=${ZSHZ_OWNER:-${_Z_OWNER}}
-
-    if (( ZSHZ[USE_FLOCK] )); then
-      # An unusual case: if inside Docker container where datafile could be bind
-      # mounted
-      if [[ -f '/.dockerenv' || ( -r '/proc/1/cgroup' && "$(< '/proc/1/cgroup')" == *docker* ) ]]; then
-        print "$(< "$tempfile")" > "$datafile" 2> /dev/null
+      if (( ret != 0 )); then
+        # Avoid clobbering the datafile if the write to tempfile failed
         ${ZSHZ[RM]} -f "$tempfile"
-      # All other cases
-      else
-        ${ZSHZ[MV]} "$tempfile" "$datafile" 2> /dev/null ||
-            ${ZSHZ[RM]} -f "$tempfile"
+        return $ret
       fi
 
-      if [[ -n $owner ]]; then
-        # Chown the lockfile alongside the datafile: zsystem flock opens it
-        # O_RDWR, so if root creates it first under sudo -s, the unprivileged
-        # $ZSHZ_OWNER user's flock attempts would fail with EACCES (silently
-        # swallowed), turning --add and -x into no-ops.
-        ${ZSHZ[CHOWN]} ${owner}:"$(id -ng ${owner})" "$datafile" "$lockfile"
+      integer write_ret chown_ret
+      local owner
+      owner=${ZSHZ_OWNER:-${_Z_OWNER}}
+
+      if (( ZSHZ[USE_FLOCK] )); then
+        # An unusual case: if inside Docker container where datafile could be bind
+        # mounted
+        if [[ -f '/.dockerenv' || ( -r '/proc/1/cgroup' && "$(< '/proc/1/cgroup')" == *docker* ) ]]; then
+          print -- "$(< "$tempfile")" >| "$datafile" 2> /dev/null
+          write_ret=$?
+          ${ZSHZ[RM]} -f "$tempfile" 2> /dev/null
+        # All other cases
+        else
+          ${ZSHZ[MV]} "$tempfile" "$datafile" 2> /dev/null
+          write_ret=$?
+          (( write_ret != 0 )) && ${ZSHZ[RM]} -f "$tempfile" 2> /dev/null
+        fi
+        # Preserve the write failure itself; best-effort tempfile cleanup must not
+        # turn a failed persist into a successful return.
+        (( write_ret == 0 )) || return $write_ret
+
+        if [[ -n $owner ]]; then
+          # Chown the lockfile alongside the datafile: zsystem flock opens it
+          # O_RDWR, so if root creates it first under sudo -s, the unprivileged
+          # $ZSHZ_OWNER user's flock attempts would fail with EACCES (silently
+          # swallowed), turning --add and -x into no-ops.
+          ${ZSHZ[CHOWN]} ${owner}:"$(id -ng ${owner})" "$datafile" "$lockfile"
+          chown_ret=$?
+          # Surface post-write chown failures too: the current write landed, but a
+          # wrong owner can break the next locked write.
+          (( chown_ret == 0 )) || return $chown_ret
+        fi
+      else
+        if [[ -n $owner ]]; then
+          ${ZSHZ[CHOWN]} "${owner}":"$(id -ng "${owner}")" "$tempfile"
+          chown_ret=$?
+          if (( chown_ret != 0 )); then
+            # In the no-flock path, chown happens before the move, so clean up the
+            # tempfile and leave the live database untouched.
+            ${ZSHZ[RM]} -f "$tempfile" 2> /dev/null
+            return $chown_ret
+          fi
+        fi
+        ${ZSHZ[MV]} -f "$tempfile" "$datafile" 2> /dev/null
+        write_ret=$?
+        if (( write_ret != 0 )); then
+          ${ZSHZ[RM]} -f "$tempfile" 2> /dev/null
+          return $write_ret
+        fi
       fi
-    else
-      if [[ -n $owner ]]; then
-        ${ZSHZ[CHOWN]} "${owner}":"$(id -ng "${owner}")" "$tempfile"
-      fi
-      ${ZSHZ[MV]} -f "$tempfile" "$datafile" 2> /dev/null ||
-          ${ZSHZ[RM]} -f "$tempfile"
-    fi
+    } always {
+      # zsystem flock -f opens a real fd; explicitly unlock it so repeated
+      # foreground precmd writes don't leak lock descriptors and stall peers.
+      (( lockfd != 0 )) && zsystem flock -u $lockfd 2> /dev/null
+    }
 
     # In order to make z -x work, we have to disable zsh-z's adding
     # to the database until the user changes directory and the
