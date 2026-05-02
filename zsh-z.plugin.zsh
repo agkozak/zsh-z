@@ -741,8 +741,8 @@ zshz() {
   for opt in ${(k)opts}; do
     case $opt in
       --add)
-        # Don't mutate the database when invoked via --complete (e.g. from the
-        # tab-completion code path).
+        # Don't change the database when invoked via --complete (e.g., from
+        # tab completion).
         (( ${+opts[--complete]} )) && continue
         [[ ! -d $* ]] && return 1
         local dir
