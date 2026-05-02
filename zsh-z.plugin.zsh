@@ -229,13 +229,16 @@ zshz() {
       local lockfd lockfile="${datafile}.lock"
 
       # Obtain an exclusive lock on the lockfile. The lock is released when the
-      # function exits and lockfd is closed.
+      # function exits and lockfd is closed. Lock acquisition is limited to one
+      # second so that if a process is stuck, it cannot hang the prompt. Once
+      # the holder dies, the kernel frees the lock and the next add succeeds
+      # automatically -- no manual rm is needed.
       #
       # Note that locking the datafile directly would not necessarily serialize
       # Zsh-z processes trying to write concurrently, as it gets replaced by mv,
       # and each new datafile has a new inode.
       [[ -f $lockfile ]] || touch "$lockfile"
-      zsystem flock -f lockfd "$lockfile" 2> /dev/null || return
+      zsystem flock -t 1 -f lockfd "$lockfile" 2> /dev/null || return
 
     fi
 
