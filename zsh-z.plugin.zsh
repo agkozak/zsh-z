@@ -61,6 +61,8 @@
 #     (default: empty)
 #   ZSHZ_KEEP_DIRS -> array of directories that should not be removed from the
 #     database, even if they are not currently available (default: empty)
+#   ZSHZ_LOCK_TIMEOUT -> seconds to wait for the lockfile before giving up
+#     (default: 1)
 #   ZSHZ_MAX_SCORE -> maximum combined score the database entries can have
 #     before beginning to age (default: 9000)
 #   ZSHZ_NO_RESOLVE_SYMLINKS -> '1' prevents symlink resolution
@@ -72,7 +74,8 @@
 autoload -U is-at-least
 
 if ! is-at-least 4.3.11; then
-  print "Zsh-z requires Zsh v4.3.11 or higher." >&2 && exit
+  print "Zsh-z requires Zsh v4.3.11 or higher." >&2
+  return 1 2> /dev/null || exit 1
 fi
 
 ############################################################
@@ -167,7 +170,7 @@ zshz() {
   # print a warning and exit
   if [[ -n ${custom_datafile} && ${custom_datafile} != */* ]]; then
     print "ERROR: You configured a custom Zsh-z datafile (${custom_datafile}), but have not specified its directory." >&2
-    exit
+    return 1
   fi
 
   # If the user specified a datafile, use that or default to ~/.z
@@ -177,7 +180,7 @@ zshz() {
   # If the datafile is a directory, print a warning and exit
   if [[ -d $datafile ]]; then
     print "ERROR: Zsh-z's datafile (${datafile}) is a directory." >&2
-    exit
+    return 1
   fi
 
   # Make sure that the datafile exists before attempting to read it or lock it
@@ -229,21 +232,23 @@ zshz() {
       local lockfd lockfile="${datafile}.lock"
 
       # Obtain an exclusive lock on the lockfile. The lock is released when the
-      # function exits and lockfd is closed. Lock acquisition is limited to one
-      # second so that if a process is stuck, it cannot hang the prompt. Once
-      # the holder dies, the kernel frees the lock and the next add succeeds
-      # automatically -- no manual rm is needed.
+      # function exits and lockfd is closed.
       #
-      # Note that locking the datafile directly would not necessarily serialize
-      # Zsh-z processes trying to write concurrently, as it gets replaced by mv,
-      # and each new datafile has a new inode.
+      # Locking the datafile directly would not actually serialize concurrent
+      # writers, since the datafile gets replaced by mv and each new datafile
+      # has a new inode -- so a separate, stable lockfile is needed.
+      #
+      # Bound the lock acquisition (default 1s, override with ZSHZ_LOCK_TIMEOUT)
+      # so a stuck holder can't freeze precmd's foreground `zshz --add'. Once
+      # the holder dies, the kernel frees the lock and the next add succeeds
+      # automatically -- no manual `rm ~/.z.lock' needed.
       [[ -f $lockfile ]] || touch "$lockfile"
-      zsystem flock -t 1 -f lockfd "$lockfile" 2> /dev/null || return
+      zsystem flock -t ${ZSHZ_LOCK_TIMEOUT:-1} -f lockfd "$lockfile" 2> /dev/null || return
 
     fi
 
-    # Read the datafile only after obtaining the lock so that concurrent --add
-    # calls do not all depend on the same stale data
+    # Read the datafile only after obtaining the lock, so concurrent --add
+    # calls don't all act on the same stale snapshot.
     lines=( ${(f)"$(< $datafile)"} )
     # Discard entries that are incomplete or incorrectly formatted
     lines=( ${(M)lines:#/*\|[[:digit:]]##[.,]#[[:digit:]]#\|[[:digit:]]##} )
@@ -316,10 +321,10 @@ zshz() {
       fi
 
       if [[ -n $owner ]]; then
-        # chown the lockfile too: zsystem flock opens it O_RDWR, so if root
-        # creates it first under sudo -s, the unprivileged $ZSHZ_OWNER user's
-        # subsequent flock attempts fail with EACCES (silently swallowed),
-        # so --add and -x silently do nothing.
+        # Chown the lockfile alongside the datafile: zsystem flock opens it
+        # O_RDWR, so if root creates it first under sudo -s, the unprivileged
+        # $ZSHZ_OWNER user's flock attempts would fail with EACCES (silently
+        # swallowed), turning --add and -x into no-ops.
         ${ZSHZ[CHOWN]} ${owner}:"$(id -ng ${owner})" "$datafile" "$lockfile"
       fi
     else
@@ -755,8 +760,8 @@ zshz() {
   for opt in ${(k)opts}; do
     case $opt in
       --add)
-        # Don't mutate the database when invoked via --complete (e.g. from the
-        # tab-completion code path).
+        # Don't change the database when invoked via --complete (e.g., from
+        # tab completion).
         (( ${+opts[--complete]} )) && continue
         [[ ! -d $* ]] && return 1
         local dir
@@ -839,10 +844,6 @@ zshz() {
   # If $ZSHZ_ECHO == 1, display paths as you jump to them.
   # If it is also the case that $ZSHZ_TILDE == 1, display
   # the home directory as a tilde.
-  #
-  # Globals:
-  #   ZSHZ_ECHO
-  #   ZSHZ_TILDE
   #########################################################
   _zshz_echo() {
     if (( ZSHZ_ECHO )); then
@@ -951,15 +952,12 @@ _zshz_precmd() {
     esac
   done
 
-  # rupa/z ran the following as a background process for efficiency. Zsh-z
-  # inherited that behavior, but eventually its native Zsh code became so fast
-  # that, on Cygwin and MSYS2 at least, running it in the foreground was faster,
-  # as it avoided forking a subshell.
-  #
-  # Zsh-z processes are now serialized on a shared lockfile to prevent losing
-  # update data. The queue can stall if a process hangs (a real risk on WSL2
-  # zsh, it seems, where the `(cmd &)` fork can leak an fd). Foregrounding
-  # limits Zsh-z to one process trying to write to the datafile per shell.
+  # Add PWD to the datafile in the foreground. An earlier version backgrounded
+  # this on Linux via `(zshz --add "$PWD" &)' for a small async win. With
+  # writers serializing on a shared lockfile, that pattern could pile up
+  # behind a stuck holder; on some builds (notably WSL2 zsh) the (cmd &) fork
+  # also leaked an fd onto the lockfile, deadlocking the queue. Foreground
+  # keeps it to one writer per shell with negligible per-prompt cost.
   zshz --add "$PWD"
 
   # See https://github.com/rupa/z/pull/247/commits/081406117ea42ccb8d159f7630cfc7658db054b6
