@@ -120,15 +120,9 @@ fi
 [[ ${builtins[zf_mv]-} == 'defined' ]] && ZSHZ[MV]='zf_mv'
 [[ ${builtins[zf_rm]-} == 'defined' ]] && ZSHZ[RM]='zf_rm'
 
-# Load zsh/system, if necessary
-[[ ${modules[zsh/system]-} == 'loaded' ]] || zmodload zsh/system &> /dev/null
-
 # Make sure ZSHZ_EXCLUDE_DIRS has been declared so that other scripts can
 # simply append to it
 (( ${+ZSHZ_EXCLUDE_DIRS} )) || typeset -gUa ZSHZ_EXCLUDE_DIRS
-
-# Determine if zsystem flock is available
-zsystem supports flock &> /dev/null && ZSHZ[USE_FLOCK]=1
 
 # Determine if `print -v' is supported
 is-at-least 5.3.0 && ZSHZ[PRINTV]=1
@@ -188,8 +182,12 @@ zshz() {
   [[ -z ${ZSHZ_OWNER:-${_Z_OWNER}} && -f $datafile && ! -O $datafile ]] &&
     return
 
-  # Load the datafile into an array and parse it
-  lines=( ${(f)"$(< $datafile)"} )
+  # Load the datafile into an array and parse it. We also keep the raw
+  # snapshot so _zshz_add_or_remove_path can verify the datafile hasn't
+  # changed before swapping in its tempfile (optimistic concurrency).
+  local datafile_snapshot
+  datafile_snapshot="$(< $datafile)"
+  lines=( ${(f)datafile_snapshot} )
   # Discard entries that are incomplete or incorrectly formatted
   lines=( ${(M)lines:#/*\|[[:digit:]]##[.,]#[[:digit:]]#\|[[:digit:]]##} )
 
@@ -228,15 +226,12 @@ zshz() {
     # A temporary file that gets copied over the datafile if all goes well
     local tempfile="${datafile}.${RANDOM}"
 
-    # See https://github.com/rupa/z/pull/199/commits/ed6eeed9b70d27c1582e3dd050e72ebfe246341c
-    if (( ZSHZ[USE_FLOCK] )); then
-
-      local lockfd
-
-      # Grab exclusive lock (released when function exits)
-      zsystem flock -f lockfd "$datafile" 2> /dev/null || return
-
-    fi
+    # Optimistic concurrency: rather than locking, we'll re-read the datafile
+    # right before the rename and abort if it has changed. This avoids the
+    # platform-specific flock pitfalls (e.g., WSL2 fork-fd inheritance) at
+    # the cost of dropping our update if a concurrent writer beat us to it.
+    # In practice that's a single rank increment on one entry -- the next
+    # cd will produce another --add and recover the count.
 
     integer tmpfd
     case $action in
@@ -293,24 +288,25 @@ zshz() {
     local owner
     owner=${ZSHZ_OWNER:-${_Z_OWNER}}
 
-    if (( ZSHZ[USE_FLOCK] )); then
-      # An unusual case: if inside Docker container where datafile could be bind
-      # mounted
-      if [[ -f '/.dockerenv' || ( -r '/proc/1/cgroup' && "$(< '/proc/1/cgroup')" == *docker* ) ]]; then
-        print "$(< "$tempfile")" > "$datafile" 2> /dev/null
-        ${ZSHZ[RM]} -f "$tempfile"
-      # All other cases
-      else
-        ${ZSHZ[MV]} "$tempfile" "$datafile" 2> /dev/null ||
-            ${ZSHZ[RM]} -f "$tempfile"
-      fi
+    # Verify the datafile hasn't changed since we read it. If it has, a
+    # concurrent writer got there first; drop our update and return cleanly.
+    if [[ "$(< $datafile)" != "$datafile_snapshot" ]]; then
+      ${ZSHZ[RM]} -f "$tempfile"
+      return 0
+    fi
 
+    # Inside a Docker container the datafile may be bind-mounted, so we
+    # can't replace the inode via mv. Copy contents into the existing inode
+    # instead and chown afterward.
+    if [[ -f '/.dockerenv' || ( -r '/proc/1/cgroup' && "$(< '/proc/1/cgroup')" == *docker* ) ]]; then
+      print "$(< "$tempfile")" > "$datafile" 2> /dev/null
+      ${ZSHZ[RM]} -f "$tempfile"
       if [[ -n $owner ]]; then
         ${ZSHZ[CHOWN]} ${owner}:"$(id -ng ${owner})" "$datafile"
       fi
     else
       if [[ -n $owner ]]; then
-        ${ZSHZ[CHOWN]} "${owner}":"$(id -ng "${owner}")" "$tempfile"
+        ${ZSHZ[CHOWN]} ${owner}:"$(id -ng ${owner})" "$tempfile"
       fi
       ${ZSHZ[MV]} -f "$tempfile" "$datafile" 2> /dev/null ||
           ${ZSHZ[RM]} -f "$tempfile"
@@ -924,13 +920,12 @@ _zshz_precmd() {
     esac
   done
 
-  # It appears that forking a subshell is so slow in Windows that it is better
-  # just to add the PWD to the datafile in the foreground
-  if [[ $OSTYPE == (cygwin|msys) ]]; then
-      zshz --add "$PWD"
-  else
-      (zshz --add "$PWD" &)
-  fi
+  # Add PWD to the datafile in the foreground. An earlier version backgrounded
+  # this on Linux via `(zshz --add "$PWD" &)' for a small async win, but with
+  # optimistic concurrency in _zshz_add_or_remove_path, foreground keeps
+  # contention to one writer per shell -- almost no races, no `(cmd &)' fork
+  # weirdness. The per-prompt cost is negligible.
+  zshz --add "$PWD"
 
   # See https://github.com/rupa/z/pull/247/commits/081406117ea42ccb8d159f7630cfc7658db054b6
   : $RANDOM
