@@ -61,6 +61,8 @@
 #     (default: empty)
 #   ZSHZ_KEEP_DIRS -> array of directories that should not be removed from the
 #     database, even if they are not currently available (default: empty)
+#   ZSHZ_LOCK_TIMEOUT -> seconds to wait for the lockfile before giving up
+#     (default: 1)
 #   ZSHZ_MAX_SCORE -> maximum combined score the database entries can have
 #     before beginning to age (default: 9000)
 #   ZSHZ_NO_RESOLVE_SYMLINKS -> '1' prevents symlink resolution
@@ -189,11 +191,6 @@ zshz() {
   [[ -z ${ZSHZ_OWNER:-${_Z_OWNER}} && -f $datafile && ! -O $datafile ]] &&
     return
 
-  # Load the datafile into an array and parse it
-  lines=( ${(f)"$(< $datafile)"} )
-  # Discard entries that are incomplete or incorrectly formatted
-  lines=( ${(M)lines:#/*\|[[:digit:]]##[.,]#[[:digit:]]#\|[[:digit:]]##} )
-
   ############################################################
   # Add a path to or remove one from the datafile
   #
@@ -229,15 +226,32 @@ zshz() {
     # A temporary file that gets copied over the datafile if all goes well
     local tempfile="${datafile}.${RANDOM}"
 
-    # See https://github.com/rupa/z/pull/199/commits/ed6eeed9b70d27c1582e3dd050e72ebfe246341c
+    # Using zsystem flock
     if (( ZSHZ[USE_FLOCK] )); then
 
-      local lockfd
+      local lockfd lockfile="${datafile}.lock"
 
-      # Grab exclusive lock (released when function exits)
-      zsystem flock -f lockfd "$datafile" 2> /dev/null || return
+      # Obtain an exclusive lock on the lockfile. The lock is released when the
+      # function exits and lockfd is closed.
+      #
+      # Locking the datafile directly would not actually serialize concurrent
+      # writers, since the datafile gets replaced by mv and each new datafile
+      # has a new inode -- so a separate, stable lockfile is needed.
+      #
+      # Bound the lock acquisition (default 1s, override with ZSHZ_LOCK_TIMEOUT)
+      # so a stuck holder can't freeze precmd's foreground `zshz --add'. Once
+      # the holder dies, the kernel frees the lock and the next add succeeds
+      # automatically -- no manual `rm ~/.z.lock' needed.
+      [[ -f $lockfile ]] || touch "$lockfile"
+      zsystem flock -t ${ZSHZ_LOCK_TIMEOUT:-1} -f lockfd "$lockfile" 2> /dev/null || return
 
     fi
+
+    # Read the datafile only after obtaining the lock, so concurrent --add
+    # calls don't all act on the same stale snapshot.
+    lines=( ${(f)"$(< $datafile)"} )
+    # Discard entries that are incomplete or incorrectly formatted
+    lines=( ${(M)lines:#/*\|[[:digit:]]##[.,]#[[:digit:]]#\|[[:digit:]]##} )
 
     integer tmpfd
     case $action in
@@ -307,7 +321,11 @@ zshz() {
       fi
 
       if [[ -n $owner ]]; then
-        ${ZSHZ[CHOWN]} ${owner}:"$(id -ng ${owner})" "$datafile"
+        # Chown the lockfile alongside the datafile: zsystem flock opens it
+        # O_RDWR, so if root creates it first under sudo -s, the unprivileged
+        # $ZSHZ_OWNER user's flock attempts would fail with EACCES (silently
+        # swallowed), turning --add and -x into no-ops.
+        ${ZSHZ[CHOWN]} ${owner}:"$(id -ng ${owner})" "$datafile" "$lockfile"
       fi
     else
       if [[ -n $owner ]]; then
@@ -761,6 +779,9 @@ zshz() {
         ;;
       --complete)
         if [[ -s $datafile && ${ZSHZ_COMPLETION:-frecent} == 'legacy' ]]; then
+          lines=( ${(f)"$(< $datafile)"} )
+          # Discard entries that are incomplete or incorrectly formatted
+          lines=( ${(M)lines:#/*\|[[:digit:]]##[.,]#[[:digit:]]#\|[[:digit:]]##} )
           _zshz_legacy_complete "$1"
           return
         fi
@@ -786,6 +807,12 @@ zshz() {
         ;;
     esac
   done
+
+  # Load the datafile into an array and parse it
+  lines=( ${(f)"$(< $datafile)"} )
+  # Discard entries that are incomplete or incorrectly formatted
+  lines=( ${(M)lines:#/*\|[[:digit:]]##[.,]#[[:digit:]]#\|[[:digit:]]##} )
+
   req="$*"
   fnd="$prefix$*"
 
@@ -925,13 +952,13 @@ _zshz_precmd() {
     esac
   done
 
-  # It appears that forking a subshell is so slow in Windows that it is better
-  # just to add the PWD to the datafile in the foreground
-  if [[ $OSTYPE == (cygwin|msys) ]]; then
-      zshz --add "$PWD"
-  else
-      (zshz --add "$PWD" &)
-  fi
+  # Add PWD to the datafile in the foreground. An earlier version backgrounded
+  # this on Linux via `(zshz --add "$PWD" &)' for a small async win. With
+  # writers serializing on a shared lockfile, that pattern could pile up
+  # behind a stuck holder; on some builds (notably WSL2 zsh) the (cmd &) fork
+  # also leaked an fd onto the lockfile, deadlocking the queue. Foreground
+  # keeps it to one writer per shell with negligible per-prompt cost.
+  zshz --add "$PWD"
 
   # See https://github.com/rupa/z/pull/247/commits/081406117ea42ccb8d159f7630cfc7658db054b6
   : $RANDOM
