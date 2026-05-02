@@ -977,13 +977,22 @@ _zshz_precmd() {
     esac
   done
 
-  # Add PWD to the datafile in the foreground. An earlier version backgrounded
-  # this on Linux via `(zshz --add "$PWD" &)' for a small async win. With
-  # writers serializing on a shared lockfile, that pattern could pile up
-  # behind a stuck holder; on some builds (notably WSL2 zsh) the (cmd &) fork
-  # also leaked an fd onto the lockfile, deadlocking the queue. Foreground
-  # keeps it to one writer per shell with negligible per-prompt cost.
-  zshz --add "$PWD"
+  # Add PWD to the datafile. On Cygwin/MSYS, fork is so slow that synchronous
+  # is actually cheaper than `(cmd &)'. Everywhere else (including WSL2, where
+  # OSTYPE is linux-gnu), background the write so the prompt doesn't wait on
+  # read + tempfile + rename + chown -- which is tens of ms per prompt on
+  # 9P-bridged or VHD-backed paths. Backgrounding is safe under develop's
+  # lock design: the `always { zsystem flock -u $lockfd }' block in
+  # _zshz_add_or_remove_path guarantees the parent never holds an open
+  # lockfd between precmd invocations (so a `&!' fork can't inherit one),
+  # and ZSHZ_LOCK_TIMEOUT (default 1s) bounds contention so a stuck holder
+  # can't pile up writers. `&!' is zsh background + disown: no wrapper
+  # subshell, no job-table entry, no "Done" line at the next prompt.
+  if [[ $OSTYPE == (cygwin|msys) ]]; then
+    zshz --add "$PWD"
+  else
+    zshz --add "$PWD" &!
+  fi
 
   # See https://github.com/rupa/z/pull/247/commits/081406117ea42ccb8d159f7630cfc7658db054b6
   : $RANDOM
