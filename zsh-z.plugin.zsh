@@ -96,7 +96,7 @@ With no ARGUMENT, list the directory history in ascending rank.
   -t    Match by recent access
   -x    Remove a directory from the database (by default, the current directory)
   -xR   Remove a directory and its subdirectories from the database (by default, the current directory)" |
-    fold -s -w $(( COLUMNS > 0 ? COLUMNS : 80 )) >&2
+    fold -s -w $COLUMNS >&2
 }
 
 # Load zsh/datetime module, if necessary
@@ -188,6 +188,11 @@ zshz() {
   [[ -z ${ZSHZ_OWNER:-${_Z_OWNER}} && -f $datafile && ! -O $datafile ]] &&
     return
 
+  # Load the datafile into an array and parse it
+  lines=( ${(f)"$(< $datafile)"} )
+  # Discard entries that are incomplete or incorrectly formatted
+  lines=( ${(M)lines:#/*\|[[:digit:]]##[.,]#[[:digit:]]#\|[[:digit:]]##} )
+
   ############################################################
   # Add a path to or remove one from the datafile
   #
@@ -223,30 +228,15 @@ zshz() {
     # A temporary file that gets copied over the datafile if all goes well
     local tempfile="${datafile}.${RANDOM}"
 
-    # Using zsystem flock
+    # See https://github.com/rupa/z/pull/199/commits/ed6eeed9b70d27c1582e3dd050e72ebfe246341c
     if (( ZSHZ[USE_FLOCK] )); then
 
-      local lockfd lockfile="${datafile}.lock"
+      local lockfd
 
-      # Obtain an exclusive lock on the lockfile. The lock is released when the
-      # function exits and lockfd is closed. Lock acquisition is limited to one
-      # second so that if a process is stuck, it cannot hang the prompt. Once
-      # the holder dies, the kernel frees the lock and the next add succeeds
-      # automatically -- no manual rm is needed.
-      #
-      # Note that locking the datafile directly would not necessarily serialize
-      # Zsh-z processes trying to write concurrently, as it gets replaced by mv,
-      # and each new datafile has a new inode.
-      [[ -f $lockfile ]] || touch "$lockfile"
-      zsystem flock -t 1 -f lockfd "$lockfile" 2> /dev/null || return
+      # Grab exclusive lock (released when function exits)
+      zsystem flock -f lockfd "$datafile" 2> /dev/null || return
 
     fi
-
-    # Read the datafile only after obtaining the lock so that concurrent --add
-    # calls do not all depend on the same stale data
-    lines=( ${(f)"$(< $datafile)"} )
-    # Discard entries that are incomplete or incorrectly formatted
-    lines=( ${(M)lines:#/*\|[[:digit:]]##[.,]#[[:digit:]]#\|[[:digit:]]##} )
 
     integer tmpfd
     case $action in
@@ -261,7 +251,7 @@ zshz() {
         if (( ${ZSHZ_NO_RESOLVE_SYMLINKS:-${_Z_NO_RESOLVE_SYMLINKS}} )); then
           [[ -d ${${*:-${PWD}}:a} ]] && xdir=${${*:-${PWD}}:a}
         else
-          [[ -d ${${*:-${PWD}}:A} ]] && xdir=${${*:-${PWD}}:A}
+          [[ -d ${${*:-${PWD}}:A} ]] && xdir=${${*:-${PWD}}:a}
         fi
 
         local -a lines_to_keep
@@ -316,11 +306,7 @@ zshz() {
       fi
 
       if [[ -n $owner ]]; then
-        # chown the lockfile too: zsystem flock opens it O_RDWR, so if root
-        # creates it first under sudo -s, the unprivileged $ZSHZ_OWNER user's
-        # subsequent flock attempts fail with EACCES (silently swallowed),
-        # so --add and -x silently do nothing.
-        ${ZSHZ[CHOWN]} ${owner}:"$(id -ng ${owner})" "$datafile" "$lockfile"
+        ${ZSHZ[CHOWN]} ${owner}:"$(id -ng ${owner})" "$datafile"
       fi
     else
       if [[ -n $owner ]]; then
@@ -755,9 +741,6 @@ zshz() {
   for opt in ${(k)opts}; do
     case $opt in
       --add)
-        # Don't mutate the database when invoked via --complete (e.g. from the
-        # tab-completion code path).
-        (( ${+opts[--complete]} )) && continue
         [[ ! -d $* ]] && return 1
         local dir
         # Cygwin and MSYS2 have a hard time with relative paths expressed from /
@@ -774,9 +757,6 @@ zshz() {
         ;;
       --complete)
         if [[ -s $datafile && ${ZSHZ_COMPLETION:-frecent} == 'legacy' ]]; then
-          lines=( ${(f)"$(< $datafile)"} )
-          # Discard entries that are incomplete or incorrectly formatted
-          lines=( ${(M)lines:#/*\|[[:digit:]]##[.,]#[[:digit:]]#\|[[:digit:]]##} )
           _zshz_legacy_complete "$1"
           return
         fi
@@ -784,7 +764,6 @@ zshz() {
         ;;
       -c) [[ $* == ${PWD}/* || $PWD == '/' ]] || prefix="$PWD " ;;
       -h|--help)
-        (( ${+opts[--complete]} )) && continue
         _zshz_usage
         return
         ;;
@@ -792,7 +771,6 @@ zshz() {
       -r) method='rank' ;;
       -t) method='time' ;;
       -x)
-        (( ${+opts[--complete]} )) && continue
         # Cygwin and MSYS2 have a hard time with relative paths expressed from /
         if [[ $OSTYPE == (cygwin|msys) && $PWD == '/' && $* != /* ]]; then
           set -- "/$*"
@@ -802,12 +780,6 @@ zshz() {
         ;;
     esac
   done
-
-  # Load the datafile into an array and parse it
-  lines=( ${(f)"$(< $datafile)"} )
-  # Discard entries that are incomplete or incorrectly formatted
-  lines=( ${(M)lines:#/*\|[[:digit:]]##[.,]#[[:digit:]]#\|[[:digit:]]##} )
-
   req="$*"
   fnd="$prefix$*"
 
@@ -839,10 +811,6 @@ zshz() {
   # If $ZSHZ_ECHO == 1, display paths as you jump to them.
   # If it is also the case that $ZSHZ_TILDE == 1, display
   # the home directory as a tilde.
-  #
-  # Globals:
-  #   ZSHZ_ECHO
-  #   ZSHZ_TILDE
   #########################################################
   _zshz_echo() {
     if (( ZSHZ_ECHO )); then
@@ -876,8 +844,7 @@ zshz() {
 
   # New experimental "uncommon" behavior
   #
-  # If the best choice at this point is something like /foo/bar/foo/bar, and the
-  # search pattern is `bar', go to /foo/bar/foo/bar; but if the search pattern
+  # If the best choice at this point is something like /foo/bar/foo/bar, and the  # search pattern is `bar', go to /foo/bar/foo/bar; but if the search pattern
   # is `foo', go to /foo/bar/foo
   if (( ZSHZ_UNCOMMON )) && [[ -n $cd ]]; then
     if [[ -n $cd ]]; then
@@ -951,16 +918,13 @@ _zshz_precmd() {
     esac
   done
 
-  # rupa/z ran the following as a background process for efficiency. Zsh-z
-  # inherited that behavior, but eventually its native Zsh code became so fast
-  # that, on Cygwin and MSYS2 at least, running it in the foreground was faster,
-  # as it avoided forking a subshell.
-  #
-  # Zsh-z processes are now serialized on a shared lockfile to prevent losing
-  # update data. The queue can stall if a process hangs (a real risk on WSL2
-  # zsh, it seems, where the `(cmd &)` fork can leak an fd). Foregrounding
-  # limits Zsh-z to one process trying to write to the datafile per shell.
-  zshz --add "$PWD"
+  # It appears that forking a subshell is so slow in Windows that it is better
+  # just to add the PWD to the datafile in the foreground
+  if [[ $OSTYPE == (cygwin|msys) ]]; then
+      zshz --add "$PWD"
+  else
+      (zshz --add "$PWD" &)
+  fi
 
   # See https://github.com/rupa/z/pull/247/commits/081406117ea42ccb8d159f7630cfc7658db054b6
   : $RANDOM
@@ -1032,24 +996,21 @@ _zshz_zle_completion_widget() {
   # Only act when there are at least two words after the command
   if [[ $LBUFFER == ${cmd}\ *\ * ]]; then
     local after=${LBUFFER#${cmd} }
-    local -a parts option_parts search_parts
-    local p past_options=0
+    local -a parts flag_parts search_parts
+    local p past_flags=0
 
     parts=( ${(z)after} )
     for p in $parts; do
-      if (( ! past_options )) && [[ $p == (--|-[cehlrRtx]##|--add|--complete|--help) ]]; then
-        option_parts+=( $p )
-        # `--' terminates option parsing; subsequent tokens are positional,
-        # even if they happen to look like options.
-        [[ $p == -- ]] && past_options=1
+      if (( ! past_flags )) && [[ $p == (--|-[cehlrRtx]##|--add|--complete|--help) ]]; then
+        flag_parts+=( $p )
       else
-        past_options=1
+        past_flags=1
         search_parts+=( $p )
       fi
     done
 
     if (( ${#search_parts} > 1 )); then
-      LBUFFER="${cmd}${option_parts:+ ${(j: :)option_parts}} ${(j:*:)search_parts}"
+      LBUFFER="${cmd}${flag_parts:+ ${(j: :)flag_parts}} ${(j:*:)search_parts}"
     fi
   fi
 

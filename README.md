@@ -33,14 +33,11 @@ Zsh-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
 <details>
     <summary>Here are the latest features and updates.</summary>
 
-- May 1, 2026
-    + Concurrent instances of `--add` no longer lose updates; the `zsystem flock` is now held on a separate lockfile, not on the datafile (whose inode gets replaced by `mv`). To avoid stalling on the new shared lockfile, the `precmd` hook now runs `zshz --add` in the foreground on all platforms.
-    + Various tab completion bugs resolved.
 - April 27, 2026
-    + Fixes a bug where re-sourcing the script caused an infinite loop when tab was pressed. Props to @maheshpec for [successfully diagnosing the problem](https://github.com/ohmyzsh/ohmyzsh/pull/13715).
-    + Fixes a bug where the completion widget was not identifying options correctly.
+    + Fixes a bug where re-sourcing the script caused an infinite loop when Tab was pressed. Props to @maheshpec for [successfully diagnosing the problem](https://github.com/ohmyzsh/ohmyzsh/pull/13715).
+    + Fixes a bug where the completion widget was not identifying flags correctly.
 - March 31, 2026
-    + When the user hits tab after entering a command-line argument that uses spaces as wildcards (e.g., `z us lo bi`), the command line is clear of detritus (i.e., it looks like `z /usr/local/bin` instead of `z us lo /usr/local/bin`).
+    + When the user hits Tab after entering a command-line argument that uses spaces as wildcards (e.g., `z us lo bi`), the command line is clear of detritus (i.e., it looks like `z /usr/local/bin` instead of `z us lo /usr/local/bin`).
     + Improved test for Docker containers.
 - August 24, 2023
     + Zsh-z will now run when `setopt NO_UNSET` has been enabled (props @ntninja).
