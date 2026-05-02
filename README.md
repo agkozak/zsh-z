@@ -33,6 +33,8 @@ Zsh-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
 <details>
     <summary>Here are the latest features and updates.</summary>
 
+- May 1, 2026
+    + Various tab completion bugs resolved.
 - April 27, 2026
     + Fixes a bug where re-sourcing the script caused an infinite loop when Tab was pressed. Props to @maheshpec for [successfully diagnosing the problem](https://github.com/ohmyzsh/ohmyzsh/pull/13715).
     + Fixes a bug where the completion widget was not identifying options correctly.
