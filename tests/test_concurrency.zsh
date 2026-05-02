@@ -9,6 +9,12 @@
 # plugin's flock-based serialization across real OS processes (closer to real
 # usage: multiple terminals, each their own zsh) and avoids zsh 4.3.11's
 # `&`/`wait` machinery, which segfaults under even light fork load.
+#
+# The plugin's default lock timeout (ZSHZ_LOCK_TIMEOUT=1s) is meant to keep
+# stuck holders from freezing the prompt; under heavy concurrent load that
+# bound is too tight and writers would time out and silently drop updates.
+# The tests bump the timeout via env so honest contention isn't mistaken
+# for a regression.
 
 test_concurrent_add_no_lost_updates() {
   local n=20
@@ -16,7 +22,8 @@ test_concurrent_add_no_lost_updates() {
   mkdir -p "$target"
 
   seq 1 $n | xargs -P 4 -I{} \
-    zsh -c "source '$PLUGIN_DIR/zsh-z.plugin.zsh'; zshz --add '$target'"
+    env ZSHZ_LOCK_TIMEOUT=30 zsh -c \
+      "source '$PLUGIN_DIR/zsh-z.plugin.zsh'; zshz --add '$target'"
 
   assert_eq "$n" "$(zshz_rank_of "$target")" "$n concurrent adds should produce rank $n"
 }
@@ -34,7 +41,8 @@ test_concurrent_add_two_paths_each_independent() {
       print -- "$b"
     done
   } | xargs -P 4 -I{} \
-        zsh -c "source '$PLUGIN_DIR/zsh-z.plugin.zsh'; zshz --add '{}'"
+        env ZSHZ_LOCK_TIMEOUT=30 zsh -c \
+          "source '$PLUGIN_DIR/zsh-z.plugin.zsh'; zshz --add '{}'"
 
   assert_eq "$n" "$(zshz_rank_of "$a")" "$n concurrent adds to a"
   assert_eq "$n" "$(zshz_rank_of "$b")" "$n concurrent adds to b"

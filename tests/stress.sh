@@ -14,12 +14,17 @@ TESTDIR=$(mktemp -d -t zshz-stress.XXXXXX)
 trap 'rm -rf "$TESTDIR"' EXIT
 
 export ZSHZ_DATA="$TESTDIR/.z"
+# Default flock timeout (1s) is meant to keep a stuck holder from freezing
+# the prompt; under heavy stress, give writers plenty of time to acquire so
+# we measure real lock-correctness, not the timeout drop-rate.
+export ZSHZ_LOCK_TIMEOUT=${ZSHZ_LOCK_TIMEOUT:-30}
 TARGET="$TESTDIR/target"
 mkdir -p "$TARGET"
 
-echo "zsh:      $("$ZSH_BIN" --version)"
-echo "writers:  $N"
-echo "parallel: $PARALLEL"
+echo "zsh:           $("$ZSH_BIN" --version)"
+echo "writers:       $N"
+echo "parallel:      $PARALLEL"
+echo "lock timeout:  ${ZSHZ_LOCK_TIMEOUT}s"
 
 seq 1 "$N" | xargs -P "$PARALLEL" -I{} \
   "$ZSH_BIN" -c "source '$PLUGIN'; zshz --add '$TARGET'"
