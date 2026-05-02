@@ -72,7 +72,8 @@
 autoload -U is-at-least
 
 if ! is-at-least 4.3.11; then
-  print "Zsh-z requires Zsh v4.3.11 or higher." >&2 && exit
+  print "Zsh-z requires Zsh v4.3.11 or higher." >&2
+  return 1 2> /dev/null || exit 1
 fi
 
 ############################################################
@@ -167,7 +168,7 @@ zshz() {
   # print a warning and exit
   if [[ -n ${custom_datafile} && ${custom_datafile} != */* ]]; then
     print "ERROR: You configured a custom Zsh-z datafile (${custom_datafile}), but have not specified its directory." >&2
-    exit
+    return 1
   fi
 
   # If the user specified a datafile, use that or default to ~/.z
@@ -177,7 +178,7 @@ zshz() {
   # If the datafile is a directory, print a warning and exit
   if [[ -d $datafile ]]; then
     print "ERROR: Zsh-z's datafile (${datafile}) is a directory." >&2
-    exit
+    return 1
   fi
 
   # Make sure that the datafile exists before attempting to read it or lock it
