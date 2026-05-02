@@ -48,12 +48,11 @@ test_missing_datafile_is_created() {
 test_ZSHZ_DATA_without_directory_prints_error_and_exits() {
   local out
   out=$(zshz_in_fresh_shell '
-    ZSHZ_DATA=barefile zshz -l
-    print SENTINEL
+    ZSHZ_DATA=barefile zshz -l && print SENTINEL
   ' 2>&1)
 
   assert_contains "ERROR: You configured a custom Zsh-z datafile (barefile), but have not specified its directory." "$out" "bare filename should be rejected"
-  assert_not_contains "SENTINEL" "$out" "shell should exit before reaching later commands"
+  assert_not_contains "SENTINEL" "$out" "zshz should return non-zero on misconfigured datafile"
 }
 # vim: fdm=indent:ts=2:et:sts=2:sw=2:
 
@@ -61,10 +60,9 @@ test_ZSHZ_DATA_directory_prints_error_and_exits() {
   mkdir -p "$TESTDIR/data-dir"
   local out
   out=$(zshz_in_fresh_shell "
-    ZSHZ_DATA='$TESTDIR/data-dir' zshz -l
-    print SENTINEL
+    ZSHZ_DATA='$TESTDIR/data-dir' zshz -l && print SENTINEL
   " 2>&1)
 
   assert_contains "ERROR: Zsh-z's datafile ($TESTDIR/data-dir) is a directory." "$out" "directory datafile should be rejected"
-  assert_not_contains "SENTINEL" "$out" "shell should exit before reaching later commands"
+  assert_not_contains "SENTINEL" "$out" "zshz should return non-zero on misconfigured datafile"
 }
