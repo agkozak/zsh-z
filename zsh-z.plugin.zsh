@@ -977,9 +977,7 @@ _zshz_precmd() {
     esac
   done
 
-  # Add PWD to the datafile. On Cygwin/MSYS, fork is so slow that synchronous
-  # is actually cheaper than `(cmd &)'. Everywhere else (including WSL2, where
-  # OSTYPE is linux-gnu), background the write so the prompt doesn't wait on
+  # Add PWD to the datafile. Background the write so the prompt doesn't wait on
   # read + tempfile + rename + chown -- which is tens of ms per prompt on
   # 9P-bridged or VHD-backed paths. Backgrounding is safe under develop's
   # lock design: the `always { zsystem flock -u $lockfd }' block in
@@ -988,11 +986,7 @@ _zshz_precmd() {
   # and ZSHZ_LOCK_TIMEOUT (default 1s) bounds contention so a stuck holder
   # can't pile up writers. `&!' is zsh background + disown: no wrapper
   # subshell, no job-table entry, no "Done" line at the next prompt.
-  if [[ $OSTYPE == (cygwin|msys) ]]; then
-    zshz --add "$PWD"
-  else
-    zshz --add "$PWD" &!
-  fi
+  zshz --add "$PWD" &!
 
   # See https://github.com/rupa/z/pull/247/commits/081406117ea42ccb8d159f7630cfc7658db054b6
   : $RANDOM
