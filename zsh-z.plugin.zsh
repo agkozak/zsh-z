@@ -71,7 +71,7 @@
 #     subdirectories based on what the search string was (default: 0)
 ################################################################################
 
-autoload -U is-at-least
+autoload -Uz is-at-least
 
 if ! is-at-least 4.3.11; then
   print "Zsh-z requires Zsh v4.3.11 or higher." >&2
