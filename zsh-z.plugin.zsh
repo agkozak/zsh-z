@@ -71,6 +71,13 @@
 #     subdirectories based on what the search string was (default: 0)
 ################################################################################
 
+# Minimalistic solution to allow this plugin to keep running under sh/bash/ksh
+# emulation while continuing to use Zsh-only syntax features
+if [[ -o KSH_ARRAYS || -o SH_WORD_SPLIT ]]; then
+  emulate zsh -c "source ${(%):-%N}"
+  return $?
+fi
+
 autoload -Uz is-at-least
 
 if ! is-at-least 4.3.11; then
