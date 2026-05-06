@@ -71,6 +71,13 @@
 #     subdirectories based on what the search string was (default: 0)
 ################################################################################
 
+# Minimalistic solution to allow this plugin to keep running under sh/bash/ksh
+# emulation while continuing to use Zsh-only syntax features
+if [[ -o KSH_ARRAYS || -o SH_WORD_SPLIT ]]; then
+  emulate zsh -c "source ${(%):-%N}"
+  return $?
+fi
+
 autoload -Uz is-at-least
 
 if ! is-at-least 4.3.11; then
@@ -792,7 +799,7 @@ zshz() {
         [[ ! -d $* ]] && return 1
         local dir
         # Cygwin and MSYS2 have a hard time with relative paths expressed from /
-        if [[ $OSTYPE == cygwin || $OSTYPE == msys ]] && [[ $PWD == '/' && $* != /* ]]; then
+        if [[ $OSTYPE == (cygwin|msys) && $PWD == '/' && $* != /* ]]; then
           set -- "/$*"
         fi
         if (( ${ZSHZ_NO_RESOLVE_SYMLINKS:-${_Z_NO_RESOLVE_SYMLINKS}} )); then
@@ -825,7 +832,7 @@ zshz() {
       -x)
         (( ${+opts[--complete]} )) && continue
         # Cygwin and MSYS2 have a hard time with relative paths expressed from /
-        if [[ $OSTYPE == cygwin || $OSTYPE == msys ]] && [[ $PWD == '/' && $* != /* ]]; then
+        if [[ $OSTYPE == (cygwin|msys) && $PWD == '/' && $* != /* ]]; then
           set -- "/$*"
         fi
         _zshz_add_or_remove_path --remove $*
@@ -1064,9 +1071,7 @@ _zshz_zle_completion_widget() {
 
     parts=( ${(z)after} )
     for p in $parts; do
-      if (( ! past_options )) && \
-         [[ $p == -- || $p == --add || $p == --complete || $p == --help \
-            || $p =~ '^-[cehlrRtx]+$' ]]; then
+      if (( ! past_options )) && [[ $p == (--|-[cehlrRtx]##|--add|--complete|--help) ]]; then
         option_parts+=( $p )
         # `--' terminates option parsing; subsequent tokens are positional,
         # even if they happen to look like options.
