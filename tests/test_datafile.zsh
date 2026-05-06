@@ -80,6 +80,60 @@ test_missing_datafile_is_created() {
   assert_eq "1" "$(zshz_rank_of "$TESTDIR")" "add when datafile missing should create and populate it"
 }
 
+test_list_on_missing_datafile_is_clean_and_empty() {
+  # Read-only operations on a never-created datafile must not error,
+  # write to stderr, or leave the shell in a bad state. The plugin
+  # auto-creates the datafile (and its parent directory) on every
+  # zshz invocation, so the file should exist after the call even
+  # though no entry has been added.
+  rm -f "$ZSHZ_DATA"
+  local out
+  out=$(zshz -l)
+  assert_eq "" "$out" "list on missing datafile should produce no output"
+  assert_file_exists "$ZSHZ_DATA"
+}
+
+test_search_on_missing_datafile_matches_nothing() {
+  rm -f "$ZSHZ_DATA"
+  local out
+  out=$(zshz nothingmatchesthis)
+  assert_eq "" "$out" "search on missing datafile should match nothing"
+}
+
+test_remove_on_missing_datafile_does_not_crash() {
+  # `zshz -x' on a missing datafile must not crash. It returns
+  # non-zero because there's nothing to remove, but stderr must be
+  # clean (the runner fails on any stderr).
+  rm -f "$ZSHZ_DATA"
+  zshz -x /tmp/never-added
+  return 0
+}
+
+test_list_on_zero_byte_datafile_is_clean_and_empty() {
+  : > "$ZSHZ_DATA"
+  local out
+  out=$(zshz -l)
+  assert_eq "" "$out" "list on zero-byte datafile should produce no output"
+}
+
+test_whitespace_only_datafile_is_treated_as_empty() {
+  # Newlines without any line content -- the `${(f)...}` split
+  # produces empty array elements, and the malformed-line filter
+  # discards them. --add should still work; -l should be empty.
+  printf '\n\n\n' > "$ZSHZ_DATA"
+  zshz --add "$TESTDIR" || return 1
+  assert_eq "1" "$(zshz_rank_of "$TESTDIR")" "whitespace-only datafile should not block --add"
+}
+
+test_precmd_on_missing_datafile_creates_and_populates() {
+  rm -f "$ZSHZ_DATA"
+  mkdir -p "$TESTDIR/work"
+  cd "$TESTDIR/work"
+  _zshz_precmd
+  _wait_for_add "$TESTDIR/work"
+  assert_eq "1" "$(zshz_rank_of "$TESTDIR/work")" "precmd should create datafile and add PWD"
+}
+
 test_ZSHZ_DATA_without_directory_prints_error_and_exits() {
   local out
   out=$(zshz_in_fresh_shell '
