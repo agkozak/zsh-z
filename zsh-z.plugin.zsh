@@ -732,6 +732,7 @@ zshz() {
       escaped_path_field=${escaped_path_field//')'/'\)'}
       escaped_path_field=${escaped_path_field//'['/'\['}
       escaped_path_field=${escaped_path_field//']'/'\]'}
+      escaped_path_field=${escaped_path_field//'$'/'\$'}
 
       if (( matches[$escaped_path_field] )) &&
          (( matches[$escaped_path_field] > hi_rank )); then
