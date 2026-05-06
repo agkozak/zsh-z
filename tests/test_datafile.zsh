@@ -6,21 +6,56 @@
 
 test_malformed_lines_are_filtered() {
   mkdir -p "$TESTDIR/valid"
-  cat > "$ZSHZ_DATA" <<EOF
-$TESTDIR/valid|5|1700000000
+  # The embedded-newline case (printf %b on \n) ends up as two physical
+  # lines after `${(f)...}` splitting: `$TESTDIR/embed` and `inner|9|123'.
+  # Both should be rejected by the filter -- the first because it has no
+  # `|rank|time' suffix, the second because it has no leading `/'.
+  printf '%b' "$TESTDIR/valid|5|1700000000
 
 random text
 $TESTDIR|nope|123
 no-leading-slash|5|1700000000
 |5|1700000000
 $TESTDIR/missingfields
-EOF
+$TESTDIR/trailing|5|1700000000|extra
+$TESTDIR/embed\ninner|9|123
+" > "$ZSHZ_DATA"
   local out
   out=$(zshz -l 2>&1)
   assert_contains "$TESTDIR/valid" "$out" "well-formed entry should be listed"
   assert_not_contains "random text" "$out" "garbage line should not appear"
   assert_not_contains "no-leading-slash" "$out" "non-absolute path should not appear"
   assert_not_contains "missingfields" "$out" "incomplete line should not appear"
+  assert_not_contains "trailing" "$out" "line with extra trailing fields should not appear"
+  assert_not_contains "embed" "$out" "fragments split by an embedded newline should not appear"
+  assert_not_contains "inner" "$out" "fragments split by an embedded newline should not appear"
+}
+
+test_add_preserves_valid_entries_amid_malformed_ones() {
+  mkdir -p "$TESTDIR/valid" "$TESTDIR/new"
+  printf '%b' "$TESTDIR/valid|5|1700000000
+
+random text
+$TESTDIR|nope|123
+$TESTDIR/trailing|5|1700000000|extra
+$TESTDIR/embed\ninner|9|123
+" > "$ZSHZ_DATA"
+
+  zshz --add "$TESTDIR/new" || return 1
+
+  # The newly-added entry must land...
+  assert_eq "1" "$(zshz_rank_of "$TESTDIR/new")" "--add should land despite malformed neighbors"
+  # ...and the valid entry must survive the rewrite. The pre-existing
+  # rank was 5; --add bumps existing entries by 1 only when the same
+  # path is re-added, so the survivor's rank should still be 5.
+  assert_eq "5" "$(zshz_rank_of "$TESTDIR/valid")" "valid entry should survive a rewrite past malformed lines"
+
+  # Garbage lines should be gone from the datafile after the rewrite.
+  local dump
+  dump=$(zshz_dump)
+  assert_not_contains "random text" "$dump" "garbage line should be dropped on rewrite"
+  assert_not_contains "trailing" "$dump" "trailing-junk line should be dropped on rewrite"
+  assert_not_contains "embed" "$dump" "embedded-newline fragment should be dropped on rewrite"
 }
 
 test_malformed_datafile_does_not_break_add() {
