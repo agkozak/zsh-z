@@ -141,4 +141,70 @@ test_precmd_does_not_emit_done_line_in_interactive_shell() {
     fail "backgrounded write never landed (rank=$rank)"
   fi
 }
+
+test_repeated_precmd_under_prompt_spam() {
+  # Hammer `_zshz_precmd' in a tight loop and verify:
+  #   1. The calling shell holds no lockfile fd afterward. In the
+  #      current async precmd, lock acquisition happens inside the
+  #      disowned `zshz --add' child's own fd table -- the parent
+  #      should never end up holding one. This guards against a future
+  #      refactor that makes precmd synchronous without preserving the
+  #      `always { ... zsystem flock -u }' discipline in
+  #      `_zshz_add_or_remove_path'.
+  #   2. Several disowned writes actually land in the datafile.
+  #
+  # N is modest because zsh 4.3.11's `&'/`wait' machinery segfaults
+  # under heavier fork load (see test_concurrency.zsh's note about
+  # spawning external `zsh -c' processes). The
+  # `test_lock_fd_does_not_leak_across_repeated_adds' regression
+  # covers the synchronous-`--add' fd-leak path with an external probe;
+  # this test complements it on the precmd path.
+  [[ -d /proc/self/fd ]] || { print "skip: /proc/self/fd unavailable"; return 0; }
+
+  mkdir -p "$TESTDIR/work"
+  cd "$TESTDIR/work"
+
+  local i n=30
+  for ((i=0; i<n; i++)); do
+    _zshz_precmd
+  done
+
+  # Drain: wait until the rank stops growing for one tick.
+  local deadline=$(( EPOCHSECONDS + 6 ))
+  local prev=-1 cur=
+  while (( EPOCHSECONDS < deadline )); do
+    cur=$(zshz_rank_of "$TESTDIR/work")
+    [[ -n $cur && $cur == $prev ]] && break
+    prev=${cur:-0}
+    sleep 0.1
+  done
+
+  # Inspect this shell's own fd table via /proc/self/fd. We resolve the
+  # symlink targets via zsh's `:A' modifier rather than external
+  # `readlink' / `lsof', because `zsystem flock' opens its lockfd with
+  # FD_CLOEXEC -- a forked `readlink' would see those fds as already
+  # closed and miss the leak entirely. `$$' is the wrong pid here too:
+  # in zsh `$$' refers to the parent shell, not the subshell that ran
+  # `_zshz_precmd', so anything spawning a child to inspect "this
+  # shell's" fds would also miss the target process.
+  local fd link
+  local -a leaks
+  local lockname=${ZSHZ_DATA##*/}.lock
+  for fd in /proc/self/fd/*(N); do
+    link=${fd:A}
+    [[ $link == *$lockname* ]] && leaks+=( "$fd -> $link" )
+  done
+  if (( ${#leaks} )); then
+    fail "calling shell holds lockfile fds: ${(j:; :)leaks}"
+  fi
+
+  # And several disowned writes must have landed. We don't expect rank
+  # == n: the children all race for the lockfile, and ZSHZ_LOCK_TIMEOUT
+  # may legitimately drop a few. We expect a clear majority though.
+  local rank
+  rank=$(zshz_rank_of "$TESTDIR/work")
+  if [[ -z $rank ]] || (( rank < 5 )); then
+    fail "expected several disowned writes to land; got rank=${rank:-(empty)}"
+  fi
+}
 # vim: fdm=indent:ts=2:et:sts=2:sw=2:
