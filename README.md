@@ -33,8 +33,9 @@ Zsh-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
 <details>
     <summary>Here are the latest features and updates.</summary>
 
-- May 5, 2026
+- May 6, 2026
     + Zsh-z will now handle paths with dollar signs (`$`) in them.
+    + Workaround for Zsh emulating `sh`/`bash`/`ksh`.
 - May 1, 2026
     + Various tab completion bugs resolved.
 - April 27, 2026
