@@ -17,6 +17,13 @@
 # new adds, and the assertions below would fail; that's intentional.
 
 test_external_writer_during_our_add_serializes() {
+  # Without `zsystem flock', the no-lock fallback can't serialize
+  # cross-process writers and the second `mv' overwrites the first.
+  # Skip when the system module is unavailable (e.g. MobaXterm's Cygwin).
+  if ! (( ZSHZ[USE_FLOCK] )); then
+    print "skip: zsystem flock unavailable"
+    return 0
+  fi
   local seeded="$TESTDIR/seeded" a="$TESTDIR/a" b="$TESTDIR/b"
   mkdir -p "$seeded" "$a" "$b"
 
@@ -49,6 +56,10 @@ test_many_concurrent_writers_preserve_seeded_entries() {
   # every write, so a stale `lines' (master's bug) would silently
   # delete entries that another in-flight writer just added. With
   # develop's read-after-lock, every writer sees the latest state.
+  if ! (( ZSHZ[USE_FLOCK] )); then
+    print "skip: zsystem flock unavailable"
+    return 0
+  fi
   local seeded_count=10 writer_count=10 i
   local -a writer_paths
   for ((i=1; i<=seeded_count; i++)); do

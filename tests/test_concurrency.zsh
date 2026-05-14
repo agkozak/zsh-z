@@ -17,6 +17,14 @@
 # for a regression.
 
 test_concurrent_add_no_lost_updates() {
+  # Without `zsystem flock', the plugin's no-lock fallback can't
+  # serialize cross-process writers -- each one reads its own
+  # snapshot and the last `mv' wins. Skip on environments without
+  # `zsh/system' (e.g. MobaXterm's Cygwin).
+  if ! (( ZSHZ[USE_FLOCK] )); then
+    print "skip: zsystem flock unavailable"
+    return 0
+  fi
   local n=20
   local target="$TESTDIR/target"
   mkdir -p "$target"
@@ -39,6 +47,10 @@ test_lock_fd_does_not_leak_across_repeated_adds() {
   # still be held when we spawn the external writer. The external shell
   # uses a tight 1s timeout: if the runner leaked, it would time out and
   # the rank would not land.
+  if ! (( ZSHZ[USE_FLOCK] )); then
+    print "skip: zsystem flock unavailable"
+    return 0
+  fi
   local a="$TESTDIR/leak-a" b="$TESTDIR/leak-b" c="$TESTDIR/leak-c"
   mkdir -p "$a" "$b" "$c"
   zshz --add "$a"
@@ -56,6 +68,10 @@ test_lock_fd_does_not_leak_across_repeated_adds() {
 }
 
 test_concurrent_add_two_paths_each_independent() {
+  if ! (( ZSHZ[USE_FLOCK] )); then
+    print "skip: zsystem flock unavailable"
+    return 0
+  fi
   local n=15 i
   local a="$TESTDIR/a" b="$TESTDIR/b"
   mkdir -p "$a" "$b"
