@@ -151,7 +151,13 @@ test_precmd_does_not_emit_done_line_in_interactive_shell() {
   if [[ -z $rank ]] || (( rank < 1 )); then
     local dump
     dump=$(zshz_dump)
-    fail "backgrounded write never landed (rank=$rank); looked up '$TESTDIR/work'; datafile: ${dump:-<empty>}"
+    # On a failure here, the most useful thing to see is what the inner
+    # zsh actually printed back -- a cd error, a parse error on some
+    # input line, or just a missing prompt all look the same from the
+    # outside otherwise. `$out' was already drained above for the
+    # `+ done' check; reuse it.
+    local pty_out=${out//$'\r'/}
+    fail "backgrounded write never landed (rank=$rank); looked up '$TESTDIR/work'; datafile: ${dump:-<empty>}; pty output: <<<${pty_out}>>>"
   fi
 }
 
