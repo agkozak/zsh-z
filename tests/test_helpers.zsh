@@ -68,6 +68,48 @@ zshz_seed() {
   print "${path}|${rank}|$(( EPOCHSECONDS - seconds_ago ))" >> "$ZSHZ_DATA"
 }
 
+# Drop-in replacement for `xargs -P NPROC -I {} CMD ARGS...'.
+#
+# Solaris (and other AT&T-derived) `xargs' don't support `-P'. Where the
+# system `xargs' has it, we use it -- the concurrency tests rely on
+# spawning external `zsh -c' processes to dodge zsh 4.3.11's `&'/`wait'
+# segfault under fork load. Where `-P' isn't available (Solaris with a
+# modern zsh), `&'+`wait' works and we fall back to that. The probe
+# result is cached in `_XARGS_P_OK'.
+#
+# NPROC is honored only on the `xargs -P' path; the fallback spawns
+# every item at once -- fine for the small N (<=30) the suite uses.
+xargs_P() {
+  local nproc=$1; shift
+  if _xargs_supports_P; then
+    xargs -P "$nproc" -I {} "$@"
+    return
+  fi
+  local line a
+  local -a pids cmd
+  while IFS= read -r line; do
+    cmd=()
+    for a in "$@"; do
+      cmd+=( "${a//\{\}/$line}" )
+    done
+    "${cmd[@]}" &
+    pids+=( $! )
+  done
+  (( ${#pids} )) && wait "${pids[@]}" 2>/dev/null
+}
+
+_xargs_supports_P() {
+  if [[ -z ${_XARGS_P_OK+set} ]]; then
+    typeset -gi _XARGS_P_OK
+    if : | xargs -P 1 -I {} true 2>/dev/null; then
+      _XARGS_P_OK=1
+    else
+      _XARGS_P_OK=0
+    fi
+  fi
+  (( _XARGS_P_OK ))
+}
+
 # Run BODY in a fresh `zsh --no-rcs -c` after binding Tab to expand-or-complete
 # and sourcing the plugin. Tests that need different setup before sourcing
 # (e.g. _Z_CMD=zoo, or a non-default Tab binding as captured baseline) must

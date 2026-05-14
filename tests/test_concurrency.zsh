@@ -21,7 +21,7 @@ test_concurrent_add_no_lost_updates() {
   local target="$TESTDIR/target"
   mkdir -p "$target"
 
-  seq 1 $n | xargs -P 4 -I{} \
+  seq 1 $n | xargs_P 4 \
     env ZSHZ_LOCK_TIMEOUT=30 zsh -c \
       "source '$PLUGIN_DIR/zsh-z.plugin.zsh'; zshz --add '$target'"
 
@@ -67,7 +67,7 @@ test_concurrent_add_two_paths_each_independent() {
       print -- "$a"
       print -- "$b"
     done
-  } | xargs -P 4 -I{} \
+  } | xargs_P 4 \
         env ZSHZ_LOCK_TIMEOUT=30 zsh -c \
           "source '$PLUGIN_DIR/zsh-z.plugin.zsh'; zshz --add '{}'"
 

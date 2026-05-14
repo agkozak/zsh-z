@@ -26,8 +26,24 @@ echo "writers:       $N"
 echo "parallel:      $PARALLEL"
 echo "lock timeout:  ${ZSHZ_LOCK_TIMEOUT}s"
 
-seq 1 "$N" | xargs -P "$PARALLEL" -I{} \
-  "$ZSH_BIN" -c "source '$PLUGIN'; zshz --add '$TARGET'"
+# Solaris (and other AT&T-derived) xargs don't support -P. Use it where
+# available; otherwise fall back to bash's own job control, throttled to
+# $PARALLEL by waiting on each batch.
+if : | xargs -P 1 -I {} true 2>/dev/null; then
+  seq 1 "$N" | xargs -P "$PARALLEL" -I{} \
+    "$ZSH_BIN" -c "source '$PLUGIN'; zshz --add '$TARGET'"
+else
+  pids=()
+  for ((i=1; i<=N; i++)); do
+    "$ZSH_BIN" -c "source '$PLUGIN'; zshz --add '$TARGET'" &
+    pids+=( $! )
+    if (( ${#pids[@]} >= PARALLEL )); then
+      wait "${pids[@]}"
+      pids=()
+    fi
+  done
+  (( ${#pids[@]} )) && wait "${pids[@]}"
+fi
 
 rank=$(awk -F'|' -v p="$TARGET" '$1==p { print $2 }' "$ZSHZ_DATA")
 echo "expected rank: $N"

@@ -19,9 +19,7 @@ source "$PLUGIN_DIR/zsh-z.plugin.zsh"
 source "$TESTS_DIR/test_helpers.zsh"
 
 typeset -ga _test_files
-while IFS= read -r _f; do
-  _test_files+=( "$_f" )
-done < <(find "$TESTS_DIR" -maxdepth 1 -type f -name 'test_*.zsh' | LC_ALL=C sort)
+_test_files=( "$TESTS_DIR"/test_*.zsh(.N) )
 typeset -ga _test_fns
 
 # Collect test functions from the sourced files, then sort by name so the
