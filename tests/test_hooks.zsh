@@ -135,10 +135,23 @@ test_precmd_does_not_emit_done_line_in_interactive_shell() {
   # session triggers precmd at every prompt (initial, after cd, after
   # the `:'), so the exact rank is whatever-precmd-fired-times rather
   # than 1. We only check that the write path worked at all.
-  local rank
-  rank=$(zshz_rank_of "$TESTDIR/work")
+  #
+  # The disowned `zshz --add' is reparented to init when zpty -d closes
+  # the inner zsh, and may not have finished writing by the time we
+  # reach this point on a slow host. Poll for up to 5s. On failure,
+  # dump the datafile so a path mismatch (e.g. /tmp resolving to a
+  # different canonical path inside the zpty session) is distinguishable
+  # from a missed-write timeout.
+  local rank deadline=$(( EPOCHSECONDS + 5 ))
+  while (( EPOCHSECONDS < deadline )); do
+    rank=$(zshz_rank_of "$TESTDIR/work")
+    [[ -n $rank ]] && (( rank >= 1 )) && break
+    sleep 0.1
+  done
   if [[ -z $rank ]] || (( rank < 1 )); then
-    fail "backgrounded write never landed (rank=$rank)"
+    local dump
+    dump=$(zshz_dump)
+    fail "backgrounded write never landed (rank=$rank); looked up '$TESTDIR/work'; datafile: ${dump:-<empty>}"
   fi
 }
 
