@@ -30,9 +30,9 @@ test_external_writer_during_our_add_serializes() {
   # external `zsh -c' processes (avoids zsh 4.3.11's `&'/`wait'
   # segfault under fork load). The high lock timeout keeps honest
   # contention from being mistaken for a regression.
-  printf '%s\n' "$a" "$b" | xargs_P 2 \
+  printf '%s\n' "$a" "$b" | ( xargs_P 2 \
     env ZSHZ_LOCK_TIMEOUT=30 zsh -c \
-      "source '$PLUGIN_DIR/zsh-z.plugin.zsh'; zshz --add {}"
+      "source '$PLUGIN_DIR/zsh-z.plugin.zsh'; zshz --add {}" )
 
   assert_eq "5" "$(zshz_rank_of "$seeded")" \
     "pre-seeded entry should survive two concurrent --add writers"
@@ -60,9 +60,9 @@ test_many_concurrent_writers_preserve_seeded_entries() {
     writer_paths+=( "$TESTDIR/w_$i" )
   done
 
-  printf '%s\n' "${writer_paths[@]}" | xargs_P 4 \
+  printf '%s\n' "${writer_paths[@]}" | ( xargs_P 4 \
     env ZSHZ_LOCK_TIMEOUT=30 zsh -c \
-      "source '$PLUGIN_DIR/zsh-z.plugin.zsh'; zshz --add {}"
+      "source '$PLUGIN_DIR/zsh-z.plugin.zsh'; zshz --add {}" )
 
   for ((i=1; i<=seeded_count; i++)); do
     assert_eq "$i" "$(zshz_rank_of "$TESTDIR/seed_$i")" \

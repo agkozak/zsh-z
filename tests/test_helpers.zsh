@@ -79,11 +79,18 @@ zshz_seed() {
 #
 # NPROC is honored only on the `xargs -P' path; the fallback spawns
 # every item at once -- fine for the small N (<=30) the suite uses.
+#
+# IMPORTANT: callers must invoke this inside `( ... )' on the right side
+# of a pipe, e.g. `producer | ( xargs_P 4 cmd args )'. Two reasons:
+# (1) zsh does NOT fork the right side of a pipe when it's a function or
+# block, so without the parens the `exec' below would replace the
+# caller's shell.  (2) On zsh 4.3.11, an internal `( ... )' inside a
+# function-on-pipe-right triggers SIGBUS at higher fork counts -- the
+# parens have to be at the call site, not in the function body.
 xargs_P() {
   local nproc=$1; shift
   if _xargs_supports_P; then
-    xargs -P "$nproc" -I {} "$@"
-    return
+    exec xargs -P "$nproc" -I {} "$@"
   fi
   local line a
   local -a pids cmd
@@ -100,11 +107,13 @@ xargs_P() {
 
 _xargs_supports_P() {
   if [[ -z ${_XARGS_P_OK+set} ]]; then
-    typeset -gi _XARGS_P_OK
-    if : | xargs -P 1 -I {} true 2>/dev/null; then
-      _XARGS_P_OK=1
+    # `< /dev/null' rather than `: | xargs ...': fewer forks per probe,
+    # which matters on zsh 4.3.11 where the fork machinery is fragile.
+    # `-gx' exports the cache so test subshells skip the re-probe.
+    if xargs -P 1 -I {} true < /dev/null 2>/dev/null; then
+      typeset -gx _XARGS_P_OK=1
     else
-      _XARGS_P_OK=0
+      typeset -gx _XARGS_P_OK=0
     fi
   fi
   (( _XARGS_P_OK ))

@@ -41,9 +41,9 @@ test_concurrent_add_and_remove_interleaved() {
     "-x $c"
   )
 
-  printf '%s\n' "${ops[@]}" | xargs_P 4 \
+  printf '%s\n' "${ops[@]}" | ( xargs_P 4 \
     env ZSHZ_LOCK_TIMEOUT=30 zsh -c \
-      "source '$PLUGIN_DIR/zsh-z.plugin.zsh'; zshz {} > /dev/null 2>&1"
+      "source '$PLUGIN_DIR/zsh-z.plugin.zsh'; zshz {} > /dev/null 2>&1" )
 
   # 1. Datafile is non-empty and every line is well-formed.
   [[ -s $ZSHZ_DATA ]] || fail "datafile is empty after ${#ops} operations"

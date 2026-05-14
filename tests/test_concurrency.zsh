@@ -21,9 +21,9 @@ test_concurrent_add_no_lost_updates() {
   local target="$TESTDIR/target"
   mkdir -p "$target"
 
-  seq 1 $n | xargs_P 4 \
+  seq 1 $n | ( xargs_P 4 \
     env ZSHZ_LOCK_TIMEOUT=30 zsh -c \
-      "source '$PLUGIN_DIR/zsh-z.plugin.zsh'; zshz --add '$target'"
+      "source '$PLUGIN_DIR/zsh-z.plugin.zsh'; zshz --add '$target'" )
 
   assert_eq "$n" "$(zshz_rank_of "$target")" "$n concurrent adds should produce rank $n"
 }
@@ -67,9 +67,9 @@ test_concurrent_add_two_paths_each_independent() {
       print -- "$a"
       print -- "$b"
     done
-  } | xargs_P 4 \
+  } | ( xargs_P 4 \
         env ZSHZ_LOCK_TIMEOUT=30 zsh -c \
-          "source '$PLUGIN_DIR/zsh-z.plugin.zsh'; zshz --add '{}'"
+          "source '$PLUGIN_DIR/zsh-z.plugin.zsh'; zshz --add '{}'" )
 
   assert_eq "$n" "$(zshz_rank_of "$a")" "$n concurrent adds to a"
   assert_eq "$n" "$(zshz_rank_of "$b")" "$n concurrent adds to b"

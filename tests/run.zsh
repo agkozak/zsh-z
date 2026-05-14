@@ -18,6 +18,10 @@ PLUGIN_DIR=$(builtin cd "$TESTS_DIR/.." && builtin pwd -P) || exit 2
 source "$PLUGIN_DIR/zsh-z.plugin.zsh"
 source "$TESTS_DIR/test_helpers.zsh"
 
+# Probe once and export the result so per-test subshells skip the
+# re-probe. The fork the probe avoids matters on zsh 4.3.11.
+_xargs_supports_P >/dev/null
+
 typeset -ga _test_files
 _test_files=( "$TESTS_DIR"/test_*.zsh(.N) )
 typeset -ga _test_fns
