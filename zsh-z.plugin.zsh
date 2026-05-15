@@ -1030,7 +1030,6 @@ add-zsh-hook chpwd _zshz_chpwd
 
 (( ${fpath[(ie)${0:A:h}]} <= ${#fpath} )) || fpath=( "${0:A:h}" "${fpath[@]}" )
 
-
 # Save the existing Tab binding so that the completion widget can invoke it,
 # but being careful not to create a situation where the widget ends up calling
 # itself and causing infinite recursion if this script is re-sourced.
