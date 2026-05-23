@@ -56,7 +56,12 @@ typeset -ga failures
 for fn in $_test_fns; do
   (( total++ ))
 
-  TESTDIR=$(mktemp -d -t zshz-test.XXXXXX) || { print -u 2 "mktemp failed"; exit 2; }
+  # `mktemp -d -t prefix' is non-portable: GNU substitutes the X's in
+  # `prefix' in place, but Solaris/BSD mktemp treats `prefix' as a
+  # literal and appends its own suffix, producing names like
+  # `/tmp/zshz-test..XXXX' -- the extra dot breaks tests that assert no
+  # `..' appears in stored paths. The direct-template form is portable.
+  TESTDIR=$(mktemp -d "${TMPDIR:-/tmp}/zshz-test.XXXXXX") || { print -u 2 "mktemp failed"; exit 2; }
   export ZSHZ_DATA="$TESTDIR/.z"
   STDERR_LOG="$TESTDIR/stderr.log"
   STDOUT_LOG="$TESTDIR/stdout.log"
