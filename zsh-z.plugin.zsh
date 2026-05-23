@@ -196,10 +196,9 @@ zshz() {
   # here would fork/exec /usr/bin/chmod and noticeably slow precmd on 4.3.11.
   [[ -f $datafile ]] || {
     mkdir -p "${datafile:h}"
-    local _saved_umask=$(umask)
-    umask 077
-    touch "$datafile"
-    umask "$_saved_umask"
+    # Subshell scopes the umask change so a `touch' failure (or any other
+    # abnormal exit) can't leave the caller's shell stuck at 077.
+    ( umask 077; touch "$datafile" )
     # When $ZSHZ_OWNER is set (e.g. under `sudo -s'), hand the freshly created
     # file off to that user immediately, so a query-only invocation can't leave
     # behind a root-owned .z that the normal-user shell can't read.
@@ -251,11 +250,15 @@ zshz() {
     # fact -- on zsh 4.3.11 there is no zf_chmod, and forking /usr/bin/chmod
     # inside the locked section noticeably increases the share of precmd
     # writes that miss the flock window. The always-block restores the
-    # caller's umask even on early return.
+    # caller's umask even on early return. The umask change happens INSIDE
+    # the try block so the always restore covers every code path after it
+    # -- a SIGINT between `umask 077' and entering the block would otherwise
+    # leave the caller's shell stuck at 077.
     local saved_umask=$(umask)
-    umask 077
 
     {
+      umask 077
+
       # Using zsystem flock
       if (( ZSHZ[USE_FLOCK] )); then
 
