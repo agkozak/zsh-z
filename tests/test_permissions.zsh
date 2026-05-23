@@ -27,12 +27,21 @@ _test_mode_of() {
   printf '%03o\n' $(( m & 8#777 ))
 }
 
-# Skip mode-checking tests on platforms where POSIX modes are unreliable
-# (msys) or where zsh/stat is unavailable. Returns 0 (skip) or 1 (run).
+# Skip mode-checking tests when zsh/stat is unavailable or when the
+# underlying filesystem ignores POSIX mode bits. The latter check is a
+# probe rather than an $OSTYPE match because MSYS2 reports
+# $OSTYPE=cygwin but (unlike real Cygwin) silently ignores chmod on its
+# Windows-backed filesystem; probing chmod's actual effect handles both
+# cases without false-skipping on platforms that do honor modes.
+# Returns 0 (skip) or 1 (run).
 _test_skip_mode_check() {
-  [[ $OSTYPE == msys ]] && return 0
   zmodload -F zsh/stat b:zstat 2>/dev/null
   (( ${+builtins[zstat]} )) || return 0
+  local probe=$TESTDIR/.mode-probe m
+  : > "$probe" && chmod 600 "$probe" 2>/dev/null
+  m=$(zstat -L +mode "$probe" 2>/dev/null)
+  rm -f "$probe"
+  (( (m & 8#777) == 8#600 )) || return 0
   return 1
 }
 
