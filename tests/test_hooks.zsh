@@ -225,10 +225,14 @@ test_repeated_precmd_under_prompt_spam() {
 
   # And several disowned writes must have landed. We don't expect rank
   # == n: the children all race for the lockfile, and ZSHZ_LOCK_TIMEOUT
-  # may legitimately drop a few. We expect a clear majority though.
-  local rank
+  # may legitimately drop a few. We expect a clear majority though --
+  # except on zsh 4.3.11, whose fork machinery is slow enough that most
+  # of the 30 children miss the 1s lock window. Relax the floor there
+  # to "the precmd path produced more than one write."
+  local rank min_rank=5
+  is-at-least 5 || min_rank=2
   rank=$(zshz_rank_of "$TESTDIR/work")
-  if [[ -z $rank ]] || (( rank < 5 )); then
+  if [[ -z $rank ]] || (( rank < min_rank )); then
     fail "expected several disowned writes to land; got rank=${rank:-(empty)}"
   fi
 }
