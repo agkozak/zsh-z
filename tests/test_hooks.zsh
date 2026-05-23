@@ -85,9 +85,14 @@ test_precmd_does_not_emit_done_line_in_interactive_shell() {
   #
   # The probe uses `zsh/zpty' to drive a real pty-backed interactive zsh.
   # Reads are timing-based -- pattern-matched reads (`zpty -r p v PAT')
-  # are unreliable on zsh 4.3.11. Linux-only because of /proc/$$/exe;
-  # the existing concurrency suite is similarly Linux-coupled via
-  # `xargs -P'.
+  # are unreliable on zsh 4.3.11, and the fixed sleeps below assume
+  # Linux pty timing. On Solaris the pty isn't ready quickly enough,
+  # eating the first character of `PS1=' and derailing the subsequent
+  # `cd' (the inner shell drops into a `>>>' continuation prompt and
+  # later precmd calls record $TESTDIR instead of $TESTDIR/work). The
+  # contract being tested -- that `&!' suppresses the "Done" line --
+  # is inherent to zsh's job control, so Linux coverage is enough.
+  [[ $OSTYPE == linux* ]] || { print "skip: non-Linux pty timing"; return 0 }
   zmodload zsh/zpty 2>/dev/null
   if ! (( ${+modules[zsh/zpty]} )); then
     print "skip: zsh/zpty unavailable"
