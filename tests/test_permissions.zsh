@@ -137,6 +137,13 @@ test_umask_unchanged_when_initial_touch_fails() {
   # zsh has the same contract and is enough to catch the regression.
   is-at-least 5 || { print "skip: zsh < 5"; return 0 }
 
+  # Skipped when ZSHZ[CHMOD] is set: that path uses `touch && zf_chmod'
+  # without an umask change, so there is no umask-leak contract to pin
+  # and the `touch { exit 1 }' stub below would just kill the test
+  # shell. The contract this test exists for only applies to the
+  # umask fallback used when zf_chmod is unavailable.
+  [[ -n ${ZSHZ[CHMOD]:-} ]] && { print "skip: chmod path (no umask change to leak)"; return 0 }
+
   umask 022
   local before=$(umask)
 
