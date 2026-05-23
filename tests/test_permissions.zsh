@@ -1,16 +1,14 @@
 # Datafile permission hardening (#92).
 #
 # `~/.z` must always end up at mode 0600 so a multi-user host can't read
-# another user's directory history. The plugin enforces this by setting
-# `umask 077' around the file-creation steps (the initial `touch' of
-# `.z' and every fresh tempfile), so each file is born at 0600 without
-# a follow-up chmod -- `mv' then atomically replaces `.z' with the
-# tempfile and preserves its 0600. These tests cover all the write
-# paths that could leak permissions: fresh creation, `--add' over a
-# preexisting 0644 file, `-x' (the remove branch), and the `ZSHZ_OWNER'
-# initial-creation chown that hands `.z' off to the right user under
-# `sudo -s'. A separate test pins the umask save/restore contract so
-# the writer can't permanently change the caller's umask.
+# another user's directory history. The plugin enforces this by calling
+# `${ZSHZ[CHMOD]} 600' after every file creation -- the in-process
+# `zf_chmod' on Zsh 5+ and the external `chmod' on Zsh 4.3.11. `mv'
+# then atomically replaces `.z' with the tempfile and preserves its
+# 0600. These tests cover all the write paths that could leak
+# permissions: fresh creation, `--add' over a preexisting 0644 file,
+# `-x' (the remove branch), and the `ZSHZ_OWNER' initial-creation
+# chown that hands `.z' off to the right user under `sudo -s'.
 #
 # MSYS2's filesystem semantics don't reliably reflect POSIX modes
 # (Windows ACLs are the source of truth there), so the mode-checking
@@ -130,66 +128,4 @@ test_initial_creation_does_not_chown_when_ZSHZ_OWNER_unset() {
     "no chown should fire on initial creation when ZSHZ_OWNER is unset"
 }
 
-test_umask_unchanged_when_initial_touch_fails() {
-  # Pins the subshell scoping of the initial-creation block: `umask 077'
-  # runs inside `( ... )' so a failed touch (or any other abnormal exit)
-  # can't leave the caller's shell stuck at 077. Stub touch to fail and
-  # confirm the parent's umask is untouched.
-  #
-  # A regression that inlines the umask change in the parent (e.g.
-  # `umask 077; touch; umask "$saved"') would leak here, since touch
-  # fails between the two umask calls.
-  #
-  # Skipped on zsh 4.3.11: there `$(< /missing)' kills the whole shell
-  # rather than just returning empty, so the follow-on datafile read
-  # exits the test subshell before the umask assertion runs. Modern
-  # zsh has the same contract and is enough to catch the regression.
-  is-at-least 5 || { print "skip: zsh < 5"; return 0 }
-
-  # Skipped when ZSHZ[CHMOD] is set: that path uses `touch && zf_chmod'
-  # without an umask change, so there is no umask-leak contract to pin
-  # and the `touch { exit 1 }' stub below would just kill the test
-  # shell. The contract this test exists for only applies to the
-  # umask fallback used when zf_chmod is unavailable.
-  [[ -n ${ZSHZ[CHMOD]:-} ]] && { print "skip: chmod path (no umask change to leak)"; return 0 }
-
-  umask 022
-  local before=$(umask)
-
-  # Stub touch to abort instead of just returning non-zero: the subshell
-  # scoping must contain a hard exit too. With the unhardened inline form,
-  # `umask 077; touch (exits); umask "$saved"' never reaches the restore
-  # and the caller's umask leaks. With the subshell form, the exit is
-  # confined to `( ... )' and the parent's umask is untouched.
-  function touch { exit 1; }
-  rm -f "$ZSHZ_DATA"
-  # zshz will fail to read the datafile that touch refused to create; the
-  # ensuing "no such file" is expected here, drop it on the floor so the
-  # runner's no-stderr policy doesn't fail the test.
-  zshz -l 2>/dev/null
-  unfunction touch
-
-  assert_eq "$before" "$(umask)" \
-    "umask must survive a touch failure during initial creation"
-}
-
-test_umask_restored_after_zshz() {
-  # The plugin temporarily sets umask 077 to birth .z and tempfiles at
-  # 0600. It must restore the caller's umask before returning -- a leak
-  # would leave the user's shell creating subsequent files at 0700/dir
-  # and 0600/file for the rest of the session, which the user would
-  # eventually notice but couldn't easily trace back to zsh-z. Cover
-  # both the initial-creation umask juggling and the writer block's
-  # `{ ... } always { umask ... }' restore.
-  umask 022
-  local before=$(umask)
-
-  rm -f "$ZSHZ_DATA"  # forces the initial-creation path
-  mkdir -p "$TESTDIR/work"
-  zshz --add "$TESTDIR/work" || return 1
-  assert_eq "$before" "$(umask)" "umask must be restored after zshz --add"
-
-  zshz -x "$TESTDIR/work" || return 1
-  assert_eq "$before" "$(umask)" "umask must be restored after zshz -x"
-}
 # vim: fdm=indent:ts=2:et:sts=2:sw=2:
