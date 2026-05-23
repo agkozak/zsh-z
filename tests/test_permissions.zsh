@@ -1,15 +1,20 @@
 # Datafile permission hardening (#92).
 #
 # `~/.z` must always end up at mode 0600 so a multi-user host can't read
-# another user's directory history. The plugin enforces this by chmodding
-# the file on initial creation and chmodding every tempfile before the
-# rename that replaces `.z'. These tests cover all the write paths that
-# could leak permissions: fresh creation, `--add' over a preexisting
-# 0644 file, `-x' (the remove branch), and the `ZSHZ_OWNER' initial-
-# creation chown that hands `.z' off to the right user under `sudo -s'.
+# another user's directory history. The plugin enforces this by setting
+# `umask 077' around the file-creation steps (the initial `touch' of
+# `.z' and every fresh tempfile), so each file is born at 0600 without
+# a follow-up chmod -- `mv' then atomically replaces `.z' with the
+# tempfile and preserves its 0600. These tests cover all the write
+# paths that could leak permissions: fresh creation, `--add' over a
+# preexisting 0644 file, `-x' (the remove branch), and the `ZSHZ_OWNER'
+# initial-creation chown that hands `.z' off to the right user under
+# `sudo -s'. A separate test pins the umask save/restore contract so
+# the writer can't permanently change the caller's umask.
 #
-# MSYS2 deliberately no-ops chmod (Windows filesystems don't honor
-# POSIX modes), so the mode-checking tests skip there.
+# MSYS2's filesystem semantics don't reliably reflect POSIX modes
+# (Windows ACLs are the source of truth there), so the mode-checking
+# tests skip on msys.
 
 # Octal regular-permission bits of $1 (e.g. "600"). Returns empty if the
 # `zsh/stat' module isn't loadable. Uses `8#777' rather than `0777' because
@@ -22,8 +27,8 @@ _test_mode_of() {
   printf '%03o\n' $(( m & 8#777 ))
 }
 
-# Skip mode-checking tests on platforms where chmod is intentionally a
-# no-op or where zsh/stat is unavailable. Returns 0 (skip) or 1 (run).
+# Skip mode-checking tests on platforms where POSIX modes are unreliable
+# (msys) or where zsh/stat is unavailable. Returns 0 (skip) or 1 (run).
 _test_skip_mode_check() {
   [[ $OSTYPE == msys ]] && return 0
   zmodload -F zsh/stat b:zstat 2>/dev/null
@@ -114,5 +119,25 @@ test_initial_creation_does_not_chown_when_ZSHZ_OWNER_unset() {
 
   assert_eq "" "$(< "$chown_log")" \
     "no chown should fire on initial creation when ZSHZ_OWNER is unset"
+}
+
+test_umask_restored_after_zshz() {
+  # The plugin temporarily sets umask 077 to birth .z and tempfiles at
+  # 0600. It must restore the caller's umask before returning -- a leak
+  # would leave the user's shell creating subsequent files at 0700/dir
+  # and 0600/file for the rest of the session, which the user would
+  # eventually notice but couldn't easily trace back to zsh-z. Cover
+  # both the initial-creation umask juggling and the writer block's
+  # `{ ... } always { umask ... }' restore.
+  umask 022
+  local before=$(umask)
+
+  rm -f "$ZSHZ_DATA"  # forces the initial-creation path
+  mkdir -p "$TESTDIR/work"
+  zshz --add "$TESTDIR/work" || return 1
+  assert_eq "$before" "$(umask)" "umask must be restored after zshz --add"
+
+  zshz -x "$TESTDIR/work" || return 1
+  assert_eq "$before" "$(umask)" "umask must be restored after zshz -x"
 }
 # vim: fdm=indent:ts=2:et:sts=2:sw=2:

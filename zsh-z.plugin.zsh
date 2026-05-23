@@ -116,24 +116,19 @@ With no ARGUMENT, list the directory history in ascending rank.
 typeset -gA ZSHZ
 
 # Fallback utilities in case Zsh lacks zsh/files (as is the case with MobaXterm)
-ZSHZ[CHMOD]='chmod'
 ZSHZ[CHOWN]='chown'
 ZSHZ[MV]='mv'
 ZSHZ[RM]='rm'
 # Try to load zsh/files utilities
-if [[ ${builtins[zf_chmod]-} != 'defined' ||
-      ${builtins[zf_chown]-} != 'defined' ||
+if [[ ${builtins[zf_chown]-} != 'defined' ||
       ${builtins[zf_mv]-}    != 'defined' ||
       ${builtins[zf_rm]-}    != 'defined' ]]; then
-  zmodload -F zsh/files b:zf_chmod b:zf_chown b:zf_mv b:zf_rm &> /dev/null
+  zmodload -F zsh/files b:zf_chown b:zf_mv b:zf_rm &> /dev/null
 fi
 # Use zsh/files, if it is available
-[[ ${builtins[zf_chmod]-} == 'defined' ]] && ZSHZ[CHMOD]='zf_chmod'
 [[ ${builtins[zf_chown]-} == 'defined' ]] && ZSHZ[CHOWN]='zf_chown'
 [[ ${builtins[zf_mv]-} == 'defined' ]] && ZSHZ[MV]='zf_mv'
 [[ ${builtins[zf_rm]-} == 'defined' ]] && ZSHZ[RM]='zf_rm'
-# MSYS2's chmod is a no-op on Windows filesystems; skip it there
-[[ $OSTYPE == msys ]] && ZSHZ[CHMOD]=':'
 
 # Load zsh/system, if necessary
 [[ ${modules[zsh/system]-} == 'loaded' ]] || zmodload zsh/system &> /dev/null
@@ -196,9 +191,15 @@ zshz() {
   fi
 
   # Make sure that the datafile exists before attempting to read it or lock it
-  # for writing
+  # for writing. The file is born at 0600 via a temporary umask change rather
+  # than a follow-up chmod: zf_chmod doesn't exist before zsh 5.x, so a chmod
+  # here would fork/exec /usr/bin/chmod and noticeably slow precmd on 4.3.11.
   [[ -f $datafile ]] || {
-    mkdir -p "${datafile:h}" && touch "$datafile" && ${ZSHZ[CHMOD]} 600 "$datafile"
+    mkdir -p "${datafile:h}"
+    local _saved_umask=$(umask)
+    umask 077
+    touch "$datafile"
+    umask "$_saved_umask"
     # When $ZSHZ_OWNER is set (e.g. under `sudo -s'), hand the freshly created
     # file off to that user immediately, so a query-only invocation can't leave
     # behind a root-owned .z that the normal-user shell can't read.
@@ -246,6 +247,14 @@ zshz() {
     local tempfile="${datafile}.${RANDOM}" lockfile="${datafile}.lock"
     integer lockfd=0
 
+    # Birth the tempfile at 0600 via umask rather than chmodding after the
+    # fact -- on zsh 4.3.11 there is no zf_chmod, and forking /usr/bin/chmod
+    # inside the locked section noticeably increases the share of precmd
+    # writes that miss the flock window. The always-block restores the
+    # caller's umask even on early return.
+    local saved_umask=$(umask)
+    umask 077
+
     {
       # Using zsystem flock
       if (( ZSHZ[USE_FLOCK] )); then
@@ -275,7 +284,6 @@ zshz() {
       case $action in
         --add)
           exec {tmpfd}>|"$tempfile"  # Open up tempfile for writing
-          ${ZSHZ[CHMOD]} 600 "$tempfile"
           _zshz_update_datafile $tmpfd "$*"
           local ret=$?
           ;;
@@ -308,7 +316,6 @@ zshz() {
             return 1  # The $PWD isn't in the datafile
           fi
           exec {tmpfd}>|"$tempfile"  # Open up tempfile for writing
-          ${ZSHZ[CHMOD]} 600 "$tempfile"
           print -u $tmpfd -l -- $lines
           local ret=$?
           ;;
@@ -376,6 +383,7 @@ zshz() {
         fi
       fi
     } always {
+      umask "$saved_umask"
       # zsystem flock -f opens a real fd; explicitly unlock it so repeated
       # foreground precmd writes don't leak lock descriptors and stall peers.
       (( lockfd != 0 )) && zsystem flock -u $lockfd 2> /dev/null
