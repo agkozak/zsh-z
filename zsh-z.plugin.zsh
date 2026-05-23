@@ -116,19 +116,24 @@ With no ARGUMENT, list the directory history in ascending rank.
 typeset -gA ZSHZ
 
 # Fallback utilities in case Zsh lacks zsh/files (as is the case with MobaXterm)
+ZSHZ[CHMOD]='chmod'
 ZSHZ[CHOWN]='chown'
 ZSHZ[MV]='mv'
 ZSHZ[RM]='rm'
 # Try to load zsh/files utilities
-if [[ ${builtins[zf_chown]-} != 'defined' ||
+if [[ ${builtins[zf_chmod]-} != 'defined' ||
+      ${builtins[zf_chown]-} != 'defined' ||
       ${builtins[zf_mv]-}    != 'defined' ||
       ${builtins[zf_rm]-}    != 'defined' ]]; then
-  zmodload -F zsh/files b:zf_chown b:zf_mv b:zf_rm &> /dev/null
+  zmodload -F zsh/files b:zf_chmod b:zf_chown b:zf_mv b:zf_rm &> /dev/null
 fi
 # Use zsh/files, if it is available
+[[ ${builtins[zf_chmod]-} == 'defined' ]] && ZSHZ[CHMOD]='zf_chmod'
 [[ ${builtins[zf_chown]-} == 'defined' ]] && ZSHZ[CHOWN]='zf_chown'
 [[ ${builtins[zf_mv]-} == 'defined' ]] && ZSHZ[MV]='zf_mv'
 [[ ${builtins[zf_rm]-} == 'defined' ]] && ZSHZ[RM]='zf_rm'
+# MSYS2's chmod is a no-op on Windows filesystems; skip it there
+[[ $OSTYPE == msys ]] && ZSHZ[CHMOD]=':'
 
 # Load zsh/system, if necessary
 [[ ${modules[zsh/system]-} == 'loaded' ]] || zmodload zsh/system &> /dev/null
@@ -192,7 +197,14 @@ zshz() {
 
   # Make sure that the datafile exists before attempting to read it or lock it
   # for writing
-  [[ -f $datafile ]] || { mkdir -p "${datafile:h}" && touch "$datafile" }
+  [[ -f $datafile ]] || {
+    mkdir -p "${datafile:h}" && touch "$datafile" && ${ZSHZ[CHMOD]} 600 "$datafile"
+    # When $ZSHZ_OWNER is set (e.g. under `sudo -s'), hand the freshly created
+    # file off to that user immediately, so a query-only invocation can't leave
+    # behind a root-owned .z that the normal-user shell can't read.
+    local _owner=${ZSHZ_OWNER:-${_Z_OWNER}}
+    [[ -n $_owner ]] && ${ZSHZ[CHOWN]} "${_owner}:$(id -ng ${_owner})" "$datafile"
+  }
 
   # Bail if we don't own the datafile and $ZSHZ_OWNER is not set
   [[ -z ${ZSHZ_OWNER:-${_Z_OWNER}} && -f $datafile && ! -O $datafile ]] &&
@@ -263,6 +275,7 @@ zshz() {
       case $action in
         --add)
           exec {tmpfd}>|"$tempfile"  # Open up tempfile for writing
+          ${ZSHZ[CHMOD]} 600 "$tempfile"
           _zshz_update_datafile $tmpfd "$*"
           local ret=$?
           ;;
@@ -295,6 +308,7 @@ zshz() {
             return 1  # The $PWD isn't in the datafile
           fi
           exec {tmpfd}>|"$tempfile"  # Open up tempfile for writing
+          ${ZSHZ[CHMOD]} 600 "$tempfile"
           print -u $tmpfd -l -- $lines
           local ret=$?
           ;;
