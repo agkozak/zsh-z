@@ -749,14 +749,23 @@ zshz() {
       fi
 
       # Escape characters that would cause "invalid subscript" errors
-      # when accessing the associative array.
-      escaped_path_field=${path_field//'\'/'\\'}
-      escaped_path_field=${escaped_path_field//'`'/'\`'}
-      escaped_path_field=${escaped_path_field//'('/'\('}
-      escaped_path_field=${escaped_path_field//')'/'\)'}
-      escaped_path_field=${escaped_path_field//'['/'\['}
-      escaped_path_field=${escaped_path_field//']'/'\]'}
-      escaped_path_field=${escaped_path_field//'$'/'\$'}
+      # when accessing the associative array. Most paths contain none of
+      # the seven offenders, so guard the substitutions with a single
+      # character-class glob and skip the whole chain for clean paths.
+      case $path_field in
+        *[]\\\`\(\)\[\$]*)
+          escaped_path_field=${path_field//'\'/'\\'}
+          escaped_path_field=${escaped_path_field//'`'/'\`'}
+          escaped_path_field=${escaped_path_field//'('/'\('}
+          escaped_path_field=${escaped_path_field//')'/'\)'}
+          escaped_path_field=${escaped_path_field//'['/'\['}
+          escaped_path_field=${escaped_path_field//']'/'\]'}
+          escaped_path_field=${escaped_path_field//'$'/'\$'}
+          ;;
+        *)
+          escaped_path_field=$path_field
+          ;;
+      esac
 
       if (( matches[$escaped_path_field] )) &&
          (( matches[$escaped_path_field] > hi_rank )); then
