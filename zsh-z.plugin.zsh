@@ -490,17 +490,25 @@ zshz() {
     # Replace spaces in the search string with asterisks for globbing
     1=${1//[[:space:]]/*}
 
+    # Hoist loop-invariants out of the per-line loop -- $1 and
+    # $ZSHZ_TRAILING_SLASH don't change inside the loop, so the
+    # lowercase comparison and the trailing-slash branch were pure
+    # waste when recomputed N times. `query_lower' lets the case-
+    # insensitive branch glob against a precompiled lowercase pattern.
+    local query_lower=${1:l}
+    local -i is_lowercase_query=0
+    [[ $1 == $query_lower ]] && is_lowercase_query=1
+    local -i trail=${ZSHZ_TRAILING_SLASH:-0}
+
     for line in $lines; do
 
       path_field=${line%%\|*}
 
       path_field_normalized=$path_field
-      if (( ZSHZ_TRAILING_SLASH )); then
-        path_field_normalized=${path_field%/}/
-      fi
+      (( trail )) && path_field_normalized=${path_field%/}/
 
       # If the search string is all lowercase, the search will be case-insensitive
-      if [[ $1 == "${1:l}" && ${path_field_normalized:l} == *${~1}* ]]; then
+      if (( is_lowercase_query )) && [[ ${path_field_normalized:l} == *${~query_lower}* ]]; then
         print -- $path_field
       # Otherwise, case-sensitive
       elif [[ $path_field_normalized == *${~1}* ]]; then
@@ -650,6 +658,18 @@ zshz() {
     local best_match ibest_match hi_rank=-9999999999 ihi_rank=-9999999999
     local -i keep
 
+    # Hoist loop-invariants. $fnd, $1, and $ZSHZ_TRAILING_SLASH don't
+    # change inside the per-line loop, so the space-to-glob
+    # substitution, the `${1:l} == $1' check, and the `:l' on $q were
+    # pure waste when recomputed N times. The `q_lower' precompute
+    # lets `${~q_lower}' replace `${~q:l}' in the case-insensitive
+    # branches: same expanded pattern, compiled once.
+    local q=${fnd//[[:space:]]/\*}
+    local q_lower=${q:l}
+    local -i is_lowercase_query=0
+    [[ ${1:l} == $1 ]] && is_lowercase_query=1
+    local -i trail=${ZSHZ_TRAILING_SLASH:-0}
+
     for line in $lines; do
       path_field=${line%%\|*}
 
@@ -683,14 +703,8 @@ zshz() {
           ;;
       esac
 
-      # Use spaces as wildcards
-      local q=${fnd//[[:space:]]/\*}
-
-      # If $ZSHZ_TRAILING_SLASH is set, use path_field with a trailing slash for matching.
       local path_field_normalized=$path_field
-      if (( ZSHZ_TRAILING_SLASH )); then
-        path_field_normalized=${path_field%/}/
-      fi
+      (( trail )) && path_field_normalized=${path_field%/}/
 
       # If $ZSHZ_CASE is 'ignore', be case-insensitive.
       #
@@ -699,12 +713,12 @@ zshz() {
       #
       # Otherwise, the default behavior of Zsh-z is to match case-sensitively if
       # possible, then to fall back on a case-insensitive match if possible.
-      if [[ $ZSHZ_CASE == 'smart' && ${1:l} == $1 &&
-            ${path_field_normalized:l} == ${~q:l} ]]; then
+      if [[ $ZSHZ_CASE == 'smart' ]] && (( is_lowercase_query )) &&
+         [[ ${path_field_normalized:l} == ${~q_lower} ]]; then
         imatches[$path_field]=$rank
       elif [[ $ZSHZ_CASE != 'ignore' && $path_field_normalized == ${~q} ]]; then
         matches[$path_field]=$rank
-      elif [[ $ZSHZ_CASE != 'smart' && ${path_field_normalized:l} == ${~q:l} ]]; then
+      elif [[ $ZSHZ_CASE != 'smart' && ${path_field_normalized:l} == ${~q_lower} ]]; then
         imatches[$path_field]=$rank
       fi
 
