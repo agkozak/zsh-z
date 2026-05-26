@@ -414,31 +414,35 @@ zshz() {
     # See https://github.com/rupa/z/issues/246
     local add_path=${(q)2}
 
-    local -a existing_paths
     local now=$EPOCHSECONDS line dir
     local path_field rank_field time_field count x
+    local -i keep
 
     rank[$add_path]=1
     time[$add_path]=$now
 
-    # Remove paths from database if they no longer exist
     for line in $lines; do
-      if [[ ! -d ${line%%\|*} ]]; then
+      path_field=${line%%\|*}
+
+      # Filter non-existent paths (honoring ZSHZ_KEEP_DIRS) inline so
+      # we walk $lines once instead of twice. The `keep=1; break' also
+      # fixes a latent bug: the previous existence-check loop had no
+      # `break' after appending, so a non-existent path matching
+      # multiple ZSHZ_KEEP_DIRS patterns was processed more than once.
+      if [[ ! -d $path_field ]]; then
+        keep=0
         for dir in ${(@)ZSHZ_KEEP_DIRS}; do
-          if [[ ${line%%\|*} == ${dir}/* ||
-                ${line%%\|*} == $dir     ||
-                $dir == '/' ]]; then
-            existing_paths+=( $line )
+          if [[ $path_field == ${dir}/* || $path_field == $dir || $dir == '/' ]]; then
+            keep=1
+            break
           fi
         done
-      else
-        existing_paths+=( $line )
+        (( keep )) || continue
       fi
-    done
-    lines=( $existing_paths )
 
-    for line in $lines; do
-      path_field=${(q)line%%\|*}
+      # Quote in place: assoc-array keys need shell-special chars
+      # backslash-escaped (rupa/z#246).
+      path_field=${(q)path_field}
       rank_field=${${line%\|*}#*\|}
       time_field=${line##*\|}
 
