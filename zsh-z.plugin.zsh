@@ -653,7 +653,7 @@ zshz() {
 
     local fnd=$1 method=$2 format=$3
 
-    local line dir path_field rank_field time_field rank dx escaped_path_field
+    local line dir path_field rank_field time_field rank dx
     local -A matches imatches
     local best_match ibest_match hi_rank=-9999999999 ihi_rank=-9999999999
     local -i keep
@@ -713,43 +713,34 @@ zshz() {
       #
       # Otherwise, the default behavior of Zsh-z is to match case-sensitively if
       # possible, then to fall back on a case-insensitive match if possible.
+      #
+      # Track best_match / ibest_match directly from $rank in each branch so
+      # we never have to math-subscript matches[] / imatches[] -- the math
+      # parser interprets shell-special chars in associative-array keys as
+      # syntax (rupa/z#246), and the workaround used to be a seven-char
+      # escape pass on every line. Comparing the $rank scalar to the running
+      # max sidesteps the subscript entirely.
       if [[ $ZSHZ_CASE == 'smart' ]] && (( is_lowercase_query )) &&
          [[ ${path_field_normalized:l} == ${~q_lower} ]]; then
         imatches[$path_field]=$rank
+        if (( rank > ihi_rank )); then
+          ibest_match=$path_field
+          ihi_rank=$rank
+          ZSHZ[CASE_INSENSITIVE]=1
+        fi
       elif [[ $ZSHZ_CASE != 'ignore' && $path_field_normalized == ${~q} ]]; then
         matches[$path_field]=$rank
+        if (( rank > hi_rank )); then
+          best_match=$path_field
+          hi_rank=$rank
+        fi
       elif [[ $ZSHZ_CASE != 'smart' && ${path_field_normalized:l} == ${~q_lower} ]]; then
         imatches[$path_field]=$rank
-      fi
-
-      # Escape characters that would cause "invalid subscript" errors
-      # when accessing the associative array. Most paths contain none of
-      # the seven offenders, so guard the substitutions with a single
-      # character-class glob and skip the whole chain for clean paths.
-      case $path_field in
-        *[]\\\`\(\)\[\$]*)
-          escaped_path_field=${path_field//'\'/'\\'}
-          escaped_path_field=${escaped_path_field//'`'/'\`'}
-          escaped_path_field=${escaped_path_field//'('/'\('}
-          escaped_path_field=${escaped_path_field//')'/'\)'}
-          escaped_path_field=${escaped_path_field//'['/'\['}
-          escaped_path_field=${escaped_path_field//']'/'\]'}
-          escaped_path_field=${escaped_path_field//'$'/'\$'}
-          ;;
-        *)
-          escaped_path_field=$path_field
-          ;;
-      esac
-
-      if (( matches[$escaped_path_field] )) &&
-         (( matches[$escaped_path_field] > hi_rank )); then
-        best_match=$path_field
-        hi_rank=${matches[$escaped_path_field]}
-      elif (( imatches[$escaped_path_field] )) &&
-           (( imatches[$escaped_path_field] > ihi_rank )); then
-        ibest_match=$path_field
-        ihi_rank=${imatches[$escaped_path_field]}
-        ZSHZ[CASE_INSENSITIVE]=1
+        if (( rank > ihi_rank )); then
+          ibest_match=$path_field
+          ihi_rank=$rank
+          ZSHZ[CASE_INSENSITIVE]=1
+        fi
       fi
     done
 
