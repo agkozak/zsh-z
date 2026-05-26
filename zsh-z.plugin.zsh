@@ -627,34 +627,31 @@ zshz() {
       list)
         local path_to_display
         for x in ${(k)output_matches}; do
-          if (( ${output_matches[$x]} )); then
-            path_to_display=$x
-            (( ZSHZ_TILDE )) &&
-              path_to_display=${path_to_display/#${HOME}/\~}
-            _zshz_printv -f "%-10d %s\n" ${output_matches[$x]} $path_to_display
-            output+=( ${(f)REPLY} )
-            REPLY=''
-          fi
+          (( ${output_matches[$x]} )) || continue
+          path_to_display=$x
+          (( ZSHZ_TILDE )) &&
+            path_to_display=${path_to_display/#${HOME}/\~}
+          # Right-pad the integer rank to 10 chars so the line sorts
+          # numerically by rank under `${(@on)output}'. Equivalent in
+          # output shape to `printf "%-10d %s\n"' but stays in parameter
+          # expansion -- avoids a per-entry `_zshz_printv' function call
+          # and the `${(f)REPLY}' round-trip those callers used to do.
+          # The `%.*' strip drops frecency's decimal tail ("30000.0" ->
+          # "30000") to match what `%-10d' produced.
+          output+=( "${(r:10:)${output_matches[$x]%.*}} $path_to_display" )
         done
         if [[ -n $common ]]; then
           (( ZSHZ_TILDE )) && common=${common/#${HOME}/\~}
           (( $#output > 1 )) && printf "%-10s %s\n" 'common:' $common
         fi
-        # -lt
-        if (( $+opts[-t] )); then
-          for x in ${(@On)output}; do
-            print -- $x
-          done
-        # -lr
-        elif (( $+opts[-r] )); then
-          for x in ${(@on)output}; do
-            print -- $x
-          done
-        # -l
-        else
-          for x in ${(@on)output}; do
-            print $x
-          done
+        if (( $#output )); then
+          # -lt: most-recent first (descending); -lr and default -l:
+          # ascending rank.
+          if (( $+opts[-t] )); then
+            print -l -- ${(@On)output}
+          else
+            print -l -- ${(@on)output}
+          fi
         fi
         ;;
 
