@@ -150,9 +150,6 @@ fi
 # Determine if zsystem flock is available
 zsystem supports flock &> /dev/null && ZSHZ[USE_FLOCK]=1
 
-# Determine if `print -v' is supported
-is-at-least 5.3.0 && ZSHZ[PRINTV]=1
-
 ############################################################
 # The Zsh-z Command
 #
@@ -512,50 +509,6 @@ zshz() {
   }
 
   ############################################################
-  # `print' or `printf' to REPLY
-  #
-  # Variable assignment through command substitution, of the
-  # form
-  #
-  #   foo=$( bar )
-  #
-  # requires forking a subshell; on Cygwin/MSYS2/WSL1 that can
-  # be surprisingly slow. Zsh-z avoids doing that by printing
-  # values to the variable REPLY. Since Zsh v5.3.0 that has
-  # been possible with `print -v'; for earlier versions of the
-  # shell, the values are placed on the editing buffer stack
-  # and then `read' into REPLY.
-  #
-  # Globals:
-  #   ZSHZ
-  #
-  # Arguments:
-  #   Options and parameters for `print'
-  ############################################################
-  _zshz_printv() {
-    # NOTE: For a long time, ZSH's `print -v' had a tendency
-    # to mangle multibyte strings:
-    #
-    #   https://www.zsh.org/mla/workers/2020/msg00307.html
-    #
-    # The bug was fixed in late 2020:
-    #
-    #   https://github.com/zsh-users/zsh/commit/b6ba74cd4eaec2b6cb515748cf1b74a19133d4a4#diff-32bbef18e126b837c87b06f11bfc61fafdaa0ed99fcb009ec53f4767e246b129
-    #
-    # In order to support shells with the bug, we must use a form of `printf`,
-    # which does not exhibit the undesired behavior. See
-    #
-    #   https://www.zsh.org/mla/workers/2020/msg00308.html
-
-    if (( ZSHZ[PRINTV] )); then
-      builtin print -v REPLY -f %s $@
-    else
-      builtin print -z $@
-      builtin read -rz REPLY
-    fi
-  }
-
-  ############################################################
   # If matches share a common root, find it, and put it in
   # REPLY for _zshz_output to use.
   #
@@ -580,7 +533,7 @@ zshz() {
       [[ $x != $short* ]] && return
     done
 
-    _zshz_printv -- $short
+    REPLY=$short
   }
 
   ############################################################
@@ -615,10 +568,13 @@ zshz() {
     case $format in
 
       completion)
+        # Build "rank|path" rows, then sort by leading numeric rank
+        # (descending) and strip the rank+'|' prefix to keep paths. The
+        # rank string is never user-visible -- `${...#*\|}' discards it
+        # -- so the old `%.2f' formatting is dropped: `(@On)' parses the
+        # leading number whether or not it has two decimal places.
         for k in ${(@k)output_matches}; do
-          _zshz_printv -f "%.2f|%s" ${output_matches[$k]} $k
-          descending_list+=( ${(f)REPLY} )
-          REPLY=''
+          descending_list+=( "${output_matches[$k]}|$k" )
         done
         descending_list=( ${${(@On)descending_list}#*\|} )
         print -l $descending_list
@@ -634,10 +590,8 @@ zshz() {
           # Right-pad the integer rank to 10 chars so the line sorts
           # numerically by rank under `${(@on)output}'. Equivalent in
           # output shape to `printf "%-10d %s\n"' but stays in parameter
-          # expansion -- avoids a per-entry `_zshz_printv' function call
-          # and the `${(f)REPLY}' round-trip those callers used to do.
-          # The `%.*' strip drops frecency's decimal tail ("30000.0" ->
-          # "30000") to match what `%-10d' produced.
+          # expansion. The `%.*' strip drops frecency's decimal tail
+          # ("30000.0" -> "30000") to match what `%-10d' produced.
           output+=( "${(r:10:)${output_matches[$x]%.*}} $path_to_display" )
         done
         if [[ -n $common ]]; then
@@ -657,9 +611,9 @@ zshz() {
 
       *)
         if (( ! ZSHZ_UNCOMMON )) && [[ -n $common ]]; then
-          _zshz_printv -- $common
+          REPLY=$common
         else
-          _zshz_printv -- ${(P)match}
+          REPLY=${(P)match}
         fi
         ;;
     esac
@@ -1131,7 +1085,6 @@ ZSHZ[FUNCTIONS]='_zshz_usage
                  _zshz_add_or_remove_path
                  _zshz_update_datafile
                  _zshz_legacy_complete
-                 _zshz_printv
                  _zshz_find_common_root
                  _zshz_output
                  _zshz_find_matches
