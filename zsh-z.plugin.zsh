@@ -641,29 +641,31 @@ zshz() {
 
     local fnd=$1 method=$2 format=$3
 
-    local -a existing_paths
     local line dir path_field rank_field time_field rank dx escaped_path_field
     local -A matches imatches
     local best_match ibest_match hi_rank=-9999999999 ihi_rank=-9999999999
-
-    # Remove paths from database if they no longer exist
-    for line in $lines; do
-      if [[ ! -d ${line%%\|*} ]]; then
-        for dir in ${(@)ZSHZ_KEEP_DIRS}; do
-          if [[ ${line%%\|*} == ${dir}/* ||
-                ${line%%\|*} == $dir     ||
-                $dir == '/' ]]; then
-            existing_paths+=( $line )
-          fi
-        done
-      else
-        existing_paths+=( $line )
-      fi
-    done
-    lines=( $existing_paths )
+    local -i keep
 
     for line in $lines; do
       path_field=${line%%\|*}
+
+      # Filter non-existent paths (honoring ZSHZ_KEEP_DIRS) inline so we
+      # walk $lines once instead of twice. The `keep=1; break' inside the
+      # inner loop also fixes a latent bug: the previous existence-check
+      # loop had no `break' after appending, so a non-existent path that
+      # matched multiple ZSHZ_KEEP_DIRS patterns was processed more than
+      # once.
+      if [[ ! -d $path_field ]]; then
+        keep=0
+        for dir in ${(@)ZSHZ_KEEP_DIRS}; do
+          if [[ $path_field == ${dir}/* || $path_field == $dir || $dir == '/' ]]; then
+            keep=1
+            break
+          fi
+        done
+        (( keep )) || continue
+      fi
+
       rank_field=${${line%\|*}#*\|}
       time_field=${line##*\|}
 
