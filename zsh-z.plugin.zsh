@@ -277,9 +277,22 @@ zshz() {
       integer tmpfd
       case $action in
         --add)
-          exec {tmpfd}>|"$tempfile"  # Open up tempfile for writing
-          ${ZSHZ[CHMOD]} 600 "$tempfile"
-          _zshz_update_datafile $tmpfd "$*"
+          # When zf_chmod isn't available (Zsh 4.3.11), avoid the
+          # ~900us fork+execve of external /usr/bin/chmod on every
+          # write. Create the tempfile with mode 0600 from the start
+          # via `umask 077' inside a subshell -- the umask change is
+          # contained to the forked child process and the OS prevents
+          # it from leaking back to the parent. Subshell fork without
+          # exec is ~50us, ~18x cheaper than the chmod fallback.
+          if [[ ${ZSHZ[CHMOD]} == 'zf_chmod' ]]; then
+            exec {tmpfd}>|"$tempfile"  # Open up tempfile for writing
+            ${ZSHZ[CHMOD]} 600 "$tempfile"
+            _zshz_update_datafile $tmpfd "$*"
+          else
+            ( umask 077
+              exec {tmpfd}>|"$tempfile"
+              _zshz_update_datafile $tmpfd "$*" )
+          fi
           local ret=$?
           ;;
         --remove)
@@ -310,9 +323,15 @@ zshz() {
           else
             return 1  # The $PWD isn't in the datafile
           fi
-          exec {tmpfd}>|"$tempfile"  # Open up tempfile for writing
-          ${ZSHZ[CHMOD]} 600 "$tempfile"
-          print -u $tmpfd -l -- $lines
+          # Same umask-subshell pattern as --add: avoid the external
+          # chmod when zf_chmod isn't available.
+          if [[ ${ZSHZ[CHMOD]} == 'zf_chmod' ]]; then
+            exec {tmpfd}>|"$tempfile"  # Open up tempfile for writing
+            ${ZSHZ[CHMOD]} 600 "$tempfile"
+            print -u $tmpfd -l -- $lines
+          else
+            ( umask 077; print -l -- $lines >| "$tempfile" )
+          fi
           local ret=$?
           ;;
       esac
