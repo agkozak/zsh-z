@@ -513,13 +513,13 @@ zshz() {
   # REPLY for _zshz_output to use.
   #
   # Arguments:
-  #   $1 Name of associative array of matches and ranks
+  #   $@ Candidate paths
   ############################################################
   _zshz_find_common_root() {
     local -a common_matches
     local x short
 
-    common_matches=( ${(@Pk)1} )
+    common_matches=( "$@" )
 
     for x in ${(@)common_matches}; do
       if [[ -z $short ]] || (( $#x < $#short )) || [[ $x != ${short}/* ]]; then
@@ -562,7 +562,7 @@ zshz() {
 
     output_matches=( ${(Pkv)match_array} )
 
-    _zshz_find_common_root $match_array
+    _zshz_find_common_root ${(k)output_matches}
     common=$REPLY
 
     case $format in
@@ -871,6 +871,70 @@ zshz() {
   if [[ ${@: -1} == /* ]] && (( ! $+opts[-e] && ! $+opts[-l] )); then
     # cd if possible; echo the new path if $ZSHZ_ECHO == 1
     [[ -d ${@: -1} ]] && zshz_cd ${@: -1} && _zshz_echo && return
+  fi
+
+  # Fast path: bare `zshz -l' (no query, list format). Skip the
+  # `_zshz_find_matches' / `_zshz_output' pipeline -- there is nothing
+  # to match against, no `matches[]'/`imatches[]' to maintain, no
+  # case-mode branching, no `${(Pkv)...}' copy. Build the formatted
+  # output array directly, then sort and print. Mirrors the list arm
+  # of `_zshz_output' but operates straight on $lines.
+  if [[ $output_format == 'list' && -z $fnd ]]; then
+    local line path_field rank_field time_field rank dx path_to_display dir
+    local common
+    local -a output paths
+    local -i keep
+
+    for line in $lines; do
+      path_field=${line%%\|*}
+
+      if [[ ! -d $path_field ]]; then
+        keep=0
+        for dir in ${(@)ZSHZ_KEEP_DIRS}; do
+          if [[ $path_field == ${dir}/* || $path_field == $dir || $dir == '/' ]]; then
+            keep=1
+            break
+          fi
+        done
+        (( keep )) || continue
+      fi
+
+      rank_field=${${line%\|*}#*\|}
+      time_field=${line##*\|}
+      case $method in
+        rank) rank=$rank_field ;;
+        time) (( rank = time_field - EPOCHSECONDS )) ;;
+        *)
+          (( dx = EPOCHSECONDS - time_field ))
+          rank=$(( 10000 * rank_field * (3.75/( (0.0001 * dx + 1) + 0.25)) ))
+          ;;
+      esac
+      (( rank )) || continue
+
+      paths+=( $path_field )
+      path_to_display=$path_field
+      (( ZSHZ_TILDE )) && path_to_display=${path_to_display/#${HOME}/\~}
+      output+=( "${(r:10:)${rank%.*}} $path_to_display" )
+    done
+
+    if (( $#paths )); then
+      _zshz_find_common_root $paths
+      common=$REPLY
+      REPLY=
+    fi
+
+    if [[ -n $common ]]; then
+      (( ZSHZ_TILDE )) && common=${common/#${HOME}/\~}
+      (( $#output > 1 )) && printf "%-10s %s\n" 'common:' $common
+    fi
+
+    if (( $#output )); then
+      if (( $+opts[-t] )); then print -l -- ${(@On)output}
+      else                      print -l -- ${(@on)output}
+      fi
+      return 0
+    fi
+    return 1
   fi
 
   # With option -c, make sure query string matches beginning of matches;
