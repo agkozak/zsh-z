@@ -688,6 +688,7 @@ zshz() {
     local -i is_lowercase_query=0
     [[ ${1:l} == $1 ]] && is_lowercase_query=1
     local -i trail=${ZSHZ_TRAILING_SLASH:-0}
+    local now=$EPOCHSECONDS
 
     for line in $lines; do
       path_field=${line%%\|*}
@@ -714,10 +715,10 @@ zshz() {
 
       case $method in
         rank) rank=$rank_field ;;
-        time) (( rank = time_field - EPOCHSECONDS )) ;;
+        time) (( rank = time_field - now )) ;;
         *)
           # Frecency routine
-          (( dx = EPOCHSECONDS - time_field ))
+          (( dx = now - time_field ))
           rank=$(( 10000 * rank_field * (3.75/( (0.0001 * dx + 1) + 0.25)) ))
           ;;
       esac
@@ -911,7 +912,7 @@ zshz() {
   # of `_zshz_output' but operates straight on $lines.
   if [[ $output_format == 'list' && -z $fnd ]]; then
     local line path_field rank_field time_field rank dx path_to_display dir
-    local common
+    local common now=$EPOCHSECONDS
     local -a output paths
     local -i keep
 
@@ -933,9 +934,9 @@ zshz() {
       time_field=${line##*\|}
       case $method in
         rank) rank=$rank_field ;;
-        time) (( rank = time_field - EPOCHSECONDS )) ;;
+        time) (( rank = time_field - now )) ;;
         *)
-          (( dx = EPOCHSECONDS - time_field ))
+          (( dx = now - time_field ))
           rank=$(( 10000 * rank_field * (3.75/( (0.0001 * dx + 1) + 0.25)) ))
           ;;
       esac
