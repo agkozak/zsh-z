@@ -478,16 +478,18 @@ zshz() {
       fi
       (( count += rank_field ))
     done
+    local -a out
     if (( count > ${ZSHZ_MAX_SCORE:-${_Z_MAX_SCORE:-9000}} )); then
       # Aging
       for x in ${(k)rank}; do
-        print -u $fd -- "$x|$(( 0.99 * rank[$x] ))|${time[$x]}" || return 1
+        out+=( "$x|$(( 0.99 * rank[$x] ))|${time[$x]}" )
       done
     else
       for x in ${(k)rank}; do
-        print -u $fd -- "$x|${rank[$x]}|${time[$x]}" || return 1
+        out+=( "$x|${rank[$x]}|${time[$x]}" )
       done
     fi
+    print -u $fd -l -- $out || return 1
   }
 
   ############################################################
