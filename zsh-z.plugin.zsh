@@ -959,8 +959,10 @@ zshz() {
     fi
 
     if (( $#output )); then
-      if (( $+opts[-t] )); then print -l -- ${(@On)output}
-      else                      print -l -- ${(@on)output}
+      if (( $+opts[-t] )); then
+        print -l -- ${(@On)output}
+      else
+        print -l -- ${(@on)output}
       fi
       return 0
     fi
