@@ -407,6 +407,37 @@ preserves them.
 - `test_common_root_single_match_returns_full_path` — degenerate
   single-match case.
 
+### `test_complete_aliases.zsh` — tab completion under `setopt COMPLETE_ALIASES`
+
+`compinit` parses the static `#compdef` tag in `_zshz` literally, so the
+`${ZSHZ_CMD:-...}` part of the tag is never expanded and only the literal
+`zshz` command gets registered. Without `COMPLETE_ALIASES` that's fine
+(zsh expands the alias to `zshz` before looking up `_comps[zshz]`); under
+`COMPLETE_ALIASES` the lookup is verbatim and would miss `_zshz`. The
+widget compensates by populating `_comps[$cmd]` on first invocation,
+guarded so a user-defined completer for the same name isn't clobbered.
+
+Tests stub `zle` to a no-op and invoke `_zshz_zle_completion_widget`
+directly (same pattern as `test_widget.zsh`) so the registration branch
+can be exercised without a real ZLE session.
+
+- `test_alias_is_defined_after_sourcing` — sanity: `aliases[z]` is
+  `zshz 2>&1` after the plugin is sourced.
+- `test_static_compdef_registers_zshz_literal` — sanity: `compinit`
+  picks up the literal `zshz` from the `#compdef` tag, which is what
+  makes completion work in the common no-`COMPLETE_ALIASES` case.
+- `test_widget_registers_alias_on_first_invocation` — without
+  `COMPLETE_ALIASES`, one widget call still binds `_comps[z]` to
+  `_zshz` (the registration runs regardless of the option).
+- `test_widget_registers_alias_under_complete_aliases` — the headline
+  scenario: `COMPLETE_ALIASES` set, one widget call leaves
+  `_comps[z] = _zshz`.
+- `test_widget_registers_alias_for_custom_ZSHZ_CMD` — with
+  `ZSHZ_CMD=zoo`, the widget binds `_comps[zoo]`, not `_comps[z]`.
+- `test_widget_does_not_overwrite_existing_comps_entry` — if the user
+  has pre-set `_comps[z]` to another completer, the
+  `(( ${+_comps[$cmd]} )) ||` guard must defer rather than clobber.
+
 ### `test_completion_legacy.zsh` — legacy completion mode
 
 - `test_legacy_complete_returns_matches` — `ZSHZ_COMPLETION=legacy`
