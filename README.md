@@ -124,11 +124,11 @@ This plugin can be installed simply by putting the various files in a directory 
 
     source /path/to/zsh-z.plugin.zsh
 
-For tab completion to work, `_zshz` *must* be in the same directory as `zsh-z.plugin.zsh`, and you will want to have loaded `compinit`. The frameworks handle this themselves. If you are not using a framework, put
+Tab completion requires `compinit`. `_zshz` *must* also be in the same directory as `zsh-z.plugin.zsh`. The frameworks handle both of these requirements, but if you are not using a framework, put
 
     autoload -U compinit; compinit
 
-in your `.zshrc` somewhere below where you source `zsh-z.plugin.zsh`.
+in your `.zshrc` somewhere below where you source `zsh-z.plugin.zsh` -- the plugin adds its directory to `fpath` at source time, and `compinit` needs to see it there in order to find `_zshz`.
 
 If you add
 

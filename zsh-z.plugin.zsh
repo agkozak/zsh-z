@@ -478,16 +478,18 @@ zshz() {
       fi
       (( count += rank_field ))
     done
+    local -a out
     if (( count > ${ZSHZ_MAX_SCORE:-${_Z_MAX_SCORE:-9000}} )); then
       # Aging
       for x in ${(k)rank}; do
-        print -u $fd -- "$x|$(( 0.99 * rank[$x] ))|${time[$x]}" || return 1
+        out+=( "$x|$(( 0.99 * rank[$x] ))|${time[$x]}" )
       done
     else
       for x in ${(k)rank}; do
-        print -u $fd -- "$x|${rank[$x]}|${time[$x]}" || return 1
+        out+=( "$x|${rank[$x]}|${time[$x]}" )
       done
     fi
+    print -u $fd -l -- $out || return 1
   }
 
   ############################################################
@@ -587,14 +589,19 @@ zshz() {
   _zshz_output() {
 
     local match_array=$1 match=$2 format=$3
-    local common k x
+    local common x v
     local -a descending_list output
-    local -A output_matches
 
-    output_matches=( ${(Pkv)match_array} )
-
-    _zshz_find_common_root ${(k)output_matches}
+    _zshz_find_common_root ${(@Pk)match_array}
     common=$REPLY
+
+    # Iterate the caller's matches/imatches array as flat key-value
+    # pairs via ${(@Pkv)...} instead of copying into a local
+    # associative array. Avoids the hash-table allocation and K
+    # inserts that the copy required.
+    local -a kv
+    local -i i
+    kv=( ${(@Pkv)match_array} )
 
     case $format in
 
@@ -604,8 +611,8 @@ zshz() {
         # rank string is never user-visible -- `${...#*\|}' discards it
         # -- so the old `%.2f' formatting is dropped: `(@On)' parses the
         # leading number whether or not it has two decimal places.
-        for k in ${(@k)output_matches}; do
-          descending_list+=( "${output_matches[$k]}|$k" )
+        for ((i=1; i<=${#kv}; i+=2)); do
+          descending_list+=( "${kv[i+1]}|${kv[i]}" )
         done
         descending_list=( ${${(@On)descending_list}#*\|} )
         print -l $descending_list
@@ -613,8 +620,9 @@ zshz() {
 
       list)
         local path_to_display
-        for x in ${(k)output_matches}; do
-          (( ${output_matches[$x]} )) || continue
+        for ((i=1; i<=${#kv}; i+=2)); do
+          x=${kv[i]} v=${kv[i+1]}
+          (( v )) || continue
           path_to_display=$x
           (( ZSHZ_TILDE )) &&
             path_to_display=${path_to_display/#${HOME}/\~}
@@ -623,7 +631,7 @@ zshz() {
           # output shape to `printf "%-10d %s\n"' but stays in parameter
           # expansion. The `%.*' strip drops frecency's decimal tail
           # ("30000.0" -> "30000") to match what `%-10d' produced.
-          output+=( "${(r:10:)${output_matches[$x]%.*}} $path_to_display" )
+          output+=( "${(r:10:)${v%.*}} $path_to_display" )
         done
         if [[ -n $common ]]; then
           (( ZSHZ_TILDE )) && common=${common/#${HOME}/\~}
@@ -960,8 +968,10 @@ zshz() {
     fi
 
     if (( $#output )); then
-      if (( $+opts[-t] )); then print -l -- ${(@On)output}
-      else                      print -l -- ${(@on)output}
+      if (( $+opts[-t] )); then
+        print -l -- ${(@On)output}
+      else
+        print -l -- ${(@on)output}
       fi
       return 0
     fi
