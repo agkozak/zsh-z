@@ -1140,6 +1140,13 @@ _zshz_zle_completion_widget() {
 
   local cmd=${ZSHZ_CMD:-${_Z_CMD:-z}}
 
+  # Ensure tab completion works under `setopt COMPLETE_ALIASES'. Under that
+  # option zsh looks up `_comps[$cmd]' verbatim rather than expanding the
+  # alias to `zshz' first; compinit's static `#compdef' tag in `_zshz' is
+  # parsed literally (no parameter expansion) and only covers the literal
+  # `zshz' command. Run once -- the guard short-circuits on subsequent Tabs.
+  (( ${+_comps[$cmd]} )) || compdef _zshz $cmd 2> /dev/null
+
   # If a trailing space was added after an already-completed absolute path
   # (e.g. `z /usr/local/bin '), a second Tab would otherwise re-trigger
   # completion on an empty word and insert a duplicate. Bail out early.

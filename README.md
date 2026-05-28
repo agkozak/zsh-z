@@ -358,12 +358,4 @@ If you are coming to Zsh-z (or even to the original `rupa/z`, for that matter) f
 
 ## `COMPLETE_ALIASES`
 
-`z`, or any alternative you set up using `$ZSHZ_CMD` or `$_Z_CMD`, is an alias. `setopt COMPLETE_ALIASES` divorces the tab completion for aliases from the underlying commands they invoke, so if you enable `COMPLETE_ALIASES`, tab completion for Zsh-z will be broken. You can get it working again, however, by adding under
-
-    setopt COMPLETE_ALIASES
-
-the line
-
-    compdef _zshz ${ZSHZ_CMD:-${_Z_CMD:-z}}
-
-That will re-bind `z` or the command of your choice to the underlying Zsh-z function.
+`z`, or any alternative you set up using `$ZSHZ_CMD` or `$_Z_CMD`, is an alias. `setopt COMPLETE_ALIASES` divorces the tab completion for aliases from the underlying commands they invoke, which historically broke Zsh-z's tab completion. Zsh-z now handles this automatically: the first Tab press registers the alias name with `_zshz` so completion works under `COMPLETE_ALIASES` without any extra setup.
