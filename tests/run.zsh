@@ -62,6 +62,11 @@ for fn in $_test_fns; do
   # `/tmp/zshz-test..XXXX' -- the extra dot breaks tests that assert no
   # `..' appears in stored paths. The direct-template form is portable.
   TESTDIR=$(mktemp -d "${TMPDIR:-/tmp}/zshz-test.XXXXXX") || { print -u 2 "mktemp failed"; exit 2; }
+  # Canonicalize: on macOS $TMPDIR lives under /var (a symlink to /private/var)
+  # and carries a trailing slash, so the raw path differs from the symlink- and
+  # slash-normalized one Zsh-z stores. Resolve it once here, the same way
+  # TESTS_DIR/PLUGIN_DIR are resolved above, so tests built from $TESTDIR match.
+  TESTDIR=$(builtin cd "$TESTDIR" && builtin pwd -P) || { print -u 2 "cd failed"; exit 2; }
   export ZSHZ_DATA="$TESTDIR/.z"
   STDERR_LOG="$TESTDIR/stderr.log"
   STDOUT_LOG="$TESTDIR/stdout.log"
