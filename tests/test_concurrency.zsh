@@ -15,6 +15,12 @@
 # bound is too tight and writers would time out and silently drop updates.
 # The tests bump the timeout via env so honest contention isn't mistaken
 # for a regression.
+#
+# `test_concurrent_add_no_lost_updates' below is the fast, CI-bounded
+# (n=20) regression gate. Its heavy, tunable, manual counterpart is
+# tests/stress.sh, which cranks N/PARALLEL high and can target an
+# arbitrary zsh binary. Keep the shared invariant (datafile format,
+# rank==N, ZSHZ_LOCK_TIMEOUT) in sync between the two.
 
 test_concurrent_add_no_lost_updates() {
   # Without `zsystem flock', the plugin's no-lock fallback can't

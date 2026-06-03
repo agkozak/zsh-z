@@ -2,6 +2,14 @@
 # Stress Zsh-z concurrent --add without relying on the harness shell's
 # fork-and-wait, which segfaults on zsh 4.3.11.
 #
+# This is the heavy, tunable, manual counterpart to the fast regression
+# gate `test_concurrent_add_no_lost_updates' in tests/test_concurrency.zsh:
+# both assert that N concurrent `--add's of one path yield rank N (no lost
+# updates), but that test is capped small (n=20) for CI while this one
+# cranks N/PARALLEL high and can target an arbitrary zsh binary. Keep the
+# shared invariant (datafile format, rank==N, ZSHZ_LOCK_TIMEOUT) in sync
+# between the two. Not part of `run.zsh'; invoke by hand.
+#
 # Usage:  stress.sh [zsh-binary]   (default: zsh)
 #         N=200 PARALLEL=8 stress.sh ~/bin/zsh-4.3.11
 set -eu
