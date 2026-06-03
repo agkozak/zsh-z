@@ -274,7 +274,13 @@ zshz() {
       # Discard entries that are incomplete or incorrectly formatted
       lines=( ${(M)lines:#/*\|[[:digit:]]##[.,]#[[:digit:]]#\|[[:digit:]]##} )
 
-      integer tmpfd
+      # Hold the fd in an *unset* scalar, not `integer tmpfd' (which seeds it
+      # with 0). On some Zsh builds, `exec {tmpfd}>|...' refuses to clobber a
+      # parameter already holding a number that names an open fd -- and 0 is
+      # stdin, always open -- yielding "can't clobber parameter tmpfd
+      # containing file descriptor 0". An empty scalar isn't a valid fd, so
+      # the guard never fires. See https://github.com/agkozak/zsh-z/issues/81
+      local tmpfd
       case $action in
         --add)
           # When zf_chmod isn't available (Zsh 4.3.11), avoid the
@@ -336,7 +342,7 @@ zshz() {
           ;;
       esac
 
-      if (( tmpfd != 0 )); then
+      if [[ -n $tmpfd ]]; then
         # Close tempfile
         exec {tmpfd}>&-
       fi
