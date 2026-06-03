@@ -5,6 +5,22 @@
 # 'smart':   case-insensitive only if query is all lowercase.
 # 'ignore':  always case-insensitive.
 
+# Skip tests that need two paths differing only in case to coexist. macOS's
+# default APFS (and HFS+) is case-insensitive, so `foo/bar' and `Foo/Bar'
+# collapse to a single directory there and the case-sensitive tie-break can't
+# be exercised. This is a probe rather than an $OSTYPE match because case
+# sensitivity is a per-volume property, not a per-OS one. Returns 0 (skip) or
+# 1 (run).
+_test_skip_case_insensitive_fs() {
+  local probe=$TESTDIR/.case-probe
+  mkdir -p "$probe" 2>/dev/null
+  local insensitive=1
+  [[ -d $TESTDIR/.CASE-PROBE ]] || insensitive=0
+  rmdir "$probe" 2>/dev/null
+  (( insensitive )) && return 0
+  return 1
+}
+
 test_case_default_falls_back_to_insensitive() {
   mkdir -p "$TESTDIR/Foo/Bar"
   zshz --add "$TESTDIR/Foo/Bar"
@@ -14,6 +30,7 @@ test_case_default_falls_back_to_insensitive() {
 }
 
 test_case_default_prefers_sensitive_when_both_available() {
+  _test_skip_case_insensitive_fs && return 0
   mkdir -p "$TESTDIR/Foo/Bar" "$TESTDIR/foo/bar"
   zshz --add "$TESTDIR/Foo/Bar"
   zshz --add "$TESTDIR/foo/bar"
