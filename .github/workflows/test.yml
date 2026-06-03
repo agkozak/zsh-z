@@ -1,0 +1,34 @@
+name: Tests
+
+on:
+  push:
+    branches: [master, develop]
+  pull_request:
+
+jobs:
+  test:
+    name: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install zsh (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y zsh
+
+      - name: Show zsh version
+        run: zsh --version
+
+      - name: Syntax check
+        run: |
+          zsh -n zsh-z.plugin.zsh
+          zsh -n _zshz
+
+      - name: Run tests
+        run: zsh tests/run.zsh
