@@ -249,6 +249,27 @@ zshz() {
       done
     fi
 
+    # Resolve the directory to be removed, and confirm a full-database wipe,
+    # *before* taking the lock. Both are independent of the datafile, and the
+    # confirmation is interactive: holding the lock across a `read -q' the user
+    # might walk away from would make concurrent writers in other shells time
+    # out on ZSHZ_LOCK_TIMEOUT and silently drop their adds while the prompt
+    # sits open. A lock should wrap the read-modify-write, never a question.
+    local xdir  # Directory to be removed
+    if [[ $action == '--remove' ]]; then
+      if (( ${ZSHZ_NO_RESOLVE_SYMLINKS:-${_Z_NO_RESOLVE_SYMLINKS}} )); then
+        [[ -d ${${*:-${PWD}}:a} ]] && xdir=${${*:-${PWD}}:a}
+      else
+        [[ -d ${${*:-${PWD}}:A} ]] && xdir=${${*:-${PWD}}:A}
+      fi
+
+      if (( ${+opts[-R]} )) && [[ $xdir == '/' ]]; then
+        if ! read -q "?Delete entire Zsh-z database? "; then
+          print && return 1
+        fi
+      fi
+    fi
+
     # A temporary file that gets copied over the datafile if all goes well
     local tempfile="${datafile}.${RANDOM}" lockfile="${datafile}.lock"
     integer lockfd=0
@@ -306,20 +327,10 @@ zshz() {
           local ret=$?
           ;;
         --remove)
-          local xdir  # Directory to be removed
-
-          if (( ${ZSHZ_NO_RESOLVE_SYMLINKS:-${_Z_NO_RESOLVE_SYMLINKS}} )); then
-            [[ -d ${${*:-${PWD}}:a} ]] && xdir=${${*:-${PWD}}:a}
-          else
-            [[ -d ${${*:-${PWD}}:A} ]] && xdir=${${*:-${PWD}}:A}
-          fi
-
+          # $xdir was resolved before the lock, and for `-xR /' the
+          # whole-database wipe was already confirmed there.
           local -a lines_to_keep
           if (( ${+opts[-R]} )); then
-            # Prompt user before deleting entire database
-            if [[ $xdir == '/' ]] && ! read -q "?Delete entire Zsh-z database? "; then
-              print && return 1
-            fi
             # All of the lines that don't match the directory to be deleted
             lines_to_keep=( ${lines:#${xdir}\|*} )
             # Or its subdirectories
