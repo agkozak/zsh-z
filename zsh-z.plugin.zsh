@@ -231,12 +231,16 @@ zshz() {
 
     if [[ $action == '--add' ]]; then
 
-      # TODO: The following tasks are now handled by _agkozak_precmd. Dead code?
+      # These $HOME / $ZSHZ_EXCLUDE_DIRS guards mirror the ones in
+      # _zshz_precmd, but they are not redundant: precmd filters $PWD as an
+      # early-out (skip the background fork), whereas --add is now a public
+      # entry point and must enforce the same policies as the precmd functin.
+      #Keep both in sync.
 
       # Don't add $HOME
       [[ $* == $HOME ]] && return
 
-      # Don't track directory trees excluded in ZSHZ_EXCLUDE_DIRS
+      # Don't track directory trees excluded in $ZSHZ_EXCLUDE_DIRS
       local exclude
       for exclude in ${(@)ZSHZ_EXCLUDE_DIRS:-${(@)_Z_EXCLUDE_DIRS}}; do
         case $* in
