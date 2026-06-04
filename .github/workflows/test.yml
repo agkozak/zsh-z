@@ -79,5 +79,10 @@ jobs:
       # No `zsh -n' syntax check here: parse-only mode aborts on this old build
       # (a munmap abort on the `typeset -gA ZSHZ' line) even though the plugin
       # sources and runs cleanly. The modern-zsh job above covers the syntax check.
+      #
+      # Prepend the build to PATH so the child `zsh' processes the suite spawns
+      # (zshz_in_fresh_shell, the concurrency/lock tests) resolve to 4.3.11 too,
+      # not a system zsh -- otherwise those tests would silently exercise the
+      # wrong interpreter, or fail outright if no system zsh is installed.
       - name: Run tests
-        run: ZSHZ_HEAVY_TESTS=1 $ZSH_PREFIX/bin/zsh tests/run.zsh
+        run: PATH="$ZSH_PREFIX/bin:$PATH" ZSHZ_HEAVY_TESTS=1 "$ZSH_PREFIX/bin/zsh" tests/run.zsh

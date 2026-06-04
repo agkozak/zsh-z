@@ -14,13 +14,23 @@ zsh tests/run.zsh                              # everything (fast tests)
 zsh tests/run.zsh test_concurrent_add_no_lost_updates  # one test
 zsh tests/run.zsh 'test_concurrent_*'          # glob match
 ZSHZ_HEAVY_TESTS=1 zsh tests/run.zsh 'test_large_*'    # opt-in heavy tests
-~/zsh/4.3.11/bin/zsh tests/run.zsh             # against an alternate zsh
+PATH=~/zsh/4.3.11/bin:$PATH zsh tests/run.zsh  # against an alternate zsh (see note)
 tests/stress.sh ~/bin/zsh-4.3.11               # cross-process stress driver
 ```
 
-The runner invokes whichever `zsh` it was started under, so to
-exercise both supported versions you run it twice (CI does this on
-ubuntu and macOS via `.github/workflows/test.yml`).
+The runner itself uses whichever `zsh` invoked it, so to exercise both
+supported versions you run it twice (CI does this on ubuntu and macOS
+via `.github/workflows/test.yml`).
+
+**Put the zsh under test on `PATH`, not just in the command.** Several
+tests spawn *child* `zsh` processes — `zshz_in_fresh_shell`, and the
+concurrency and lock-timeout tests — and invoke them as a bare `zsh`
+resolved through `PATH`. So `~/zsh/4.3.11/bin/zsh tests/run.zsh` runs
+4.3.11 only for the in-process tests; the spawned children fall back to
+whatever `zsh` is first on `PATH` (or fail outright if none is
+installed). Prepend the build so the runner and its children are the
+same interpreter — `PATH=~/zsh/4.3.11/bin:$PATH zsh tests/run.zsh` —
+which is what the 4.3.11 CI job does.
 
 The suite has been verified on WSL2 Ubuntu (zsh 5.9 and 4.3.11),
 Solaris 11.4, FreeBSD, and MSYS2. Cygwin runs cleanly modulo one
