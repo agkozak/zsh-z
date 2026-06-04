@@ -226,7 +226,7 @@ zshz() {
   #   $2 The path to add
   ############################################################
   _zshz_add_or_remove_path() {
-    local action=${1}
+    local action=$1
     shift
 
     if [[ $action == '--add' ]]; then
