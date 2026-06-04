@@ -29,7 +29,7 @@ assert_contains() {
   needle="$1"
   haystack="$2"
   msg="${3:-}"
-  [[ $haystack == *$needle* ]] && return 0
+  [[ $haystack == *"$needle"* ]] && return 0
   fail "${msg:+$msg: }expected '$haystack' to contain '$needle'"
 }
 
@@ -38,7 +38,7 @@ assert_not_contains() {
   needle="$1"
   haystack="$2"
   msg="${3:-}"
-  [[ $haystack != *$needle* ]] && return 0
+  [[ $haystack != *"$needle"* ]] && return 0
   fail "${msg:+$msg: }expected '$haystack' not to contain '$needle'"
 }
 

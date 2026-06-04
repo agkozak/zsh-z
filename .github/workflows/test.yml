@@ -31,4 +31,4 @@ jobs:
           zsh -n _zshz
 
       - name: Run tests
-        run: zsh tests/run.zsh
+        run: ZSHZ_HEAVY_TESTS=1 zsh tests/run.zsh
