@@ -194,18 +194,29 @@ test_repeated_precmd_under_prompt_spam() {
   mkdir -p "$TESTDIR/work"
   cd "$TESTDIR/work"
 
+  # Give the disowned children a generous window to acquire the lock, so a
+  # slow or contended CI runner doesn't drop writes against the 1s default and
+  # leave us under the floor. We are checking that the precmd write path works,
+  # not the contention drop-rate (test_lock_timeout covers that). `&!' forks
+  # the current shell, so the child `zshz --add' inherits this local; no export.
+  local ZSHZ_LOCK_TIMEOUT=30
+
   local i n=30
   for ((i=0; i<n; i++)); do
     _zshz_precmd
   done
 
-  # Drain: wait until the rank stops growing for one tick.
-  local deadline=$(( EPOCHSECONDS + 6 ))
-  local prev=-1 cur=
+  local rank min_rank=5
+  is-at-least 5 || min_rank=2
+
+  # Drain: poll until at least min_rank writes have landed, or give up after a
+  # generous deadline. (The previous "stop when the rank holds steady for one
+  # 0.1s tick" exited early on a transient stall while disowned children were
+  # still landing -- the cause of the rank=3 flake on a loaded CI runner.)
+  local deadline=$(( EPOCHSECONDS + 20 ))
   while (( EPOCHSECONDS < deadline )); do
-    cur=$(zshz_rank_of "$TESTDIR/work")
-    [[ -n $cur && $cur == $prev ]] && break
-    prev=${cur:-0}
+    rank=$(zshz_rank_of "$TESTDIR/work")
+    [[ -n $rank ]] && (( rank >= min_rank )) && break
     sleep 0.1
   done
 
@@ -228,14 +239,10 @@ test_repeated_precmd_under_prompt_spam() {
     fail "calling shell holds lockfile fds: ${(j:; :)leaks}"
   fi
 
-  # And several disowned writes must have landed. We don't expect rank
-  # == n: the children all race for the lockfile, and ZSHZ_LOCK_TIMEOUT
-  # may legitimately drop a few. We expect a clear majority though --
-  # except on zsh 4.3.11, whose fork machinery is slow enough that most
-  # of the 30 children miss the 1s lock window. Relax the floor there
-  # to "the precmd path produced more than one write."
-  local rank min_rank=5
-  is-at-least 5 || min_rank=2
+  # And several disowned writes must have landed. We don't require rank == n
+  # (a child can still lose the lock race), only a clear sign the precmd write
+  # path worked: min_rank on modern zsh, relaxed on 4.3.11 whose fork machinery
+  # is slow enough that fewer children land within the window.
   rank=$(zshz_rank_of "$TESTDIR/work")
   if [[ -z $rank ]] || (( rank < min_rank )); then
     fail "expected several disowned writes to land; got rank=${rank:-(empty)}"
