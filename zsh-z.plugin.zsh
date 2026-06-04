@@ -206,7 +206,7 @@ zshz() {
     # file off to that user immediately, so a query-only invocation can't leave
     # behind a root-owned .z that the normal-user shell can't read.
     local _owner=${ZSHZ_OWNER:-${_Z_OWNER}}
-    [[ -n $_owner ]] && ${ZSHZ[CHOWN]} "${_owner}:$(id -ng ${_owner})" "$datafile"
+    [[ -n $_owner ]] && ${ZSHZ[CHOWN]} "${_owner}:$(id -ng "${_owner}")" "$datafile"
   }
 
   # Bail if we don't own the datafile and $ZSHZ_OWNER is not set
@@ -363,13 +363,7 @@ zshz() {
         if [[ -f '/.dockerenv' || ( -r '/proc/1/cgroup' && "$(< '/proc/1/cgroup')" == *docker* ) ]]; then
           print -- "$(< "$tempfile")" >| "$datafile" 2> /dev/null
           write_ret=$?
-          # Unlike the `mv' path, which swaps in a fresh 0600 tempfile, `>|'
-          # truncates the existing datafile in place and leaves its mode
-          # untouched -- so re-assert 0600 to keep permissions an invariant of
-          # every write path. `umask' can't help here: it only governs newly
-          # created files, and we deliberately reuse the existing inode so the
-          # bind mount stays valid. Best-effort: the content already landed, so
-          # a chmod hiccup must not turn a good write into a failed return.
+          # Reassert 0600 permissions
           (( write_ret == 0 )) && ${ZSHZ[CHMOD]} 600 "$datafile" 2> /dev/null
           ${ZSHZ[RM]} -f "$tempfile" 2> /dev/null
         # All other cases
@@ -387,7 +381,7 @@ zshz() {
           # O_RDWR, so if root creates it first under sudo -s, the unprivileged
           # $ZSHZ_OWNER user's flock attempts would fail with EACCES (silently
           # swallowed), turning --add and -x into no-ops.
-          ${ZSHZ[CHOWN]} ${owner}:"$(id -ng ${owner})" "$datafile" "$lockfile"
+          ${ZSHZ[CHOWN]} "${owner}:$(id -ng "${owner}")" "$datafile" "$lockfile"
           chown_ret=$?
           # Surface post-write chown failures too: the current write landed, but a
           # wrong owner can break the next locked write.
@@ -395,7 +389,7 @@ zshz() {
         fi
       else
         if [[ -n $owner ]]; then
-          ${ZSHZ[CHOWN]} "${owner}":"$(id -ng "${owner}")" "$tempfile"
+          ${ZSHZ[CHOWN]} "${owner}:$(id -ng "${owner}")" "$tempfile"
           chown_ret=$?
           if (( chown_ret != 0 )); then
             # In the no-flock path, chown happens before the move, so clean up the
