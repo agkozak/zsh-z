@@ -32,6 +32,9 @@ so the tests gate on `(( ZSHZ[USE_FLOCK] ))`. MSYS2 reports
 `$OSTYPE=cygwin` but ignores `chmod` on its Windows-backed
 filesystem, so the four mode-checking tests in `test_permissions.zsh`
 skip there via a runtime probe rather than an `$OSTYPE` match.
+macOS's default case-insensitive volumes (APFS, HFS+) likewise skip
+the one case-sensitive tie-break test in `test_case.zsh`, again via a
+filesystem probe rather than an `$OSTYPE` match.
 
 ## How `tests/run.zsh` runs a test
 
@@ -46,7 +49,11 @@ skip there via a runtime probe rather than an `$OSTYPE` match.
    function names** (each arg is matched independently, ANY-match
    semantics).
 4. For each test the runner does:
-   - `mktemp -d` to a fresh `$TESTDIR`,
+   - `mktemp -d` to a fresh `$TESTDIR`, then canonicalizes it with
+     `cd && pwd -P` so the path matches what Zsh-z stores. On macOS
+     `$TMPDIR` lives under `/var` (a symlink to `/private/var`) and
+     carries a trailing slash, so the raw `mktemp` path would differ
+     from the symlink- and slash-normalized form tests assert against.
    - exports `ZSHZ_DATA="$TESTDIR/.z"`,
    - runs the function inside `( ZSHZ_DEBUG=1; cd "$TESTDIR"; "$fn" )`
      so cd / env / option changes never leak,
@@ -340,7 +347,12 @@ sub-1 drop threshold survive aging; the time field is preserved.
   case-sensitive first, then case-insensitive when nothing matched.
 - `test_case_default_prefers_sensitive_when_both_available` — given
   both a case-matching and a case-folded match, default mode picks
-  the case-matching one.
+  the case-matching one. Skips on case-insensitive volumes (macOS's
+  default APFS, HFS+), where `Foo/Bar` and `foo/bar` collapse to one
+  directory and the tie-break can't be set up. The guard
+  (`_test_skip_case_insensitive_fs`) probes the live filesystem
+  rather than matching `$OSTYPE`, since case sensitivity is a
+  per-volume property, not a per-OS one.
 - `test_case_ignore_always_insensitive` — `ZSHZ_CASE=ignore` matches
   regardless of case.
 - `test_case_smart_lowercase_query_is_insensitive` — `smart` with
@@ -460,7 +472,14 @@ serialize cross-process writers, so the contract isn't testable
 there.
 
 - `test_concurrent_add_no_lost_updates` — 20 writers add the same
-  path in parallel; the final rank is exactly 20 (none lost).
+  path in parallel; the final rank is exactly 20 (none lost). Retries
+  up to three times, starting from an empty datafile each attempt, and
+  passes if any attempt reaches the full count. On real POSIX locks the
+  first attempt yields 20 every run; MSYS2's emulated locks (over a
+  Windows filesystem) very rarely drop one update under contention — a
+  ~3% environmental flake. An honest locking regression loses updates
+  on essentially every run, so it fails all three attempts, while the
+  emulation hiccup clears on a re-run.
 - `test_lock_fd_does_not_leak_across_repeated_adds` — two synchronous
   `--add`s in the runner shell, then an external probe with a 1 s
   timeout that would fail if the runner had leaked an open lock fd
