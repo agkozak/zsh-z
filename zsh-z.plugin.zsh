@@ -363,6 +363,14 @@ zshz() {
         if [[ -f '/.dockerenv' || ( -r '/proc/1/cgroup' && "$(< '/proc/1/cgroup')" == *docker* ) ]]; then
           print -- "$(< "$tempfile")" >| "$datafile" 2> /dev/null
           write_ret=$?
+          # Unlike the `mv' path, which swaps in a fresh 0600 tempfile, `>|'
+          # truncates the existing datafile in place and leaves its mode
+          # untouched -- so re-assert 0600 to keep permissions an invariant of
+          # every write path. `umask' can't help here: it only governs newly
+          # created files, and we deliberately reuse the existing inode so the
+          # bind mount stays valid. Best-effort: the content already landed, so
+          # a chmod hiccup must not turn a good write into a failed return.
+          (( write_ret == 0 )) && ${ZSHZ[CHMOD]} 600 "$datafile" 2> /dev/null
           ${ZSHZ[RM]} -f "$tempfile" 2> /dev/null
         # All other cases
         else
