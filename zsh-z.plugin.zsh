@@ -627,6 +627,9 @@ zshz() {
         ;;
 
       list)
+        # The bare `z -l' fast path (no query) inlines an equivalent
+        # formatting block straight on $lines to skip this pipeline --
+        # keep the two list formatters in sync.
         local path_to_display
         for ((i=1; i<=${#kv}; i+=2)); do
           x=${kv[i]} v=${kv[i+1]}
@@ -733,7 +736,12 @@ zshz() {
         rank) rank=$rank_field ;;
         time) (( rank = time_field - now )) ;;
         *)
-          # Frecency routine
+          # Frecency routine: weight a path's stored frequency (rank_field)
+          # by how recently it was visited (dx seconds ago). 10000 scales
+          # the result into integer-comparable territory; the 3.75 / (...)
+          # term decays from 3 (just now) toward 0 as dx grows, so older
+          # paths lose rank. This is the canonical copy; the bare `z -l'
+          # fast path inlines the same formula -- keep the two in sync.
           (( dx = now - time_field ))
           rank=$(( 10000 * rank_field * (3.75/( (0.0001 * dx + 1) + 0.25)) ))
           ;;
@@ -952,6 +960,8 @@ zshz() {
         rank) rank=$rank_field ;;
         time) (( rank = time_field - now )) ;;
         *)
+          # Frecency routine -- see _zshz_find_matches for the canonical
+          # copy and the constants' rationale; keep the two in sync.
           (( dx = now - time_field ))
           rank=$(( 10000 * rank_field * (3.75/( (0.0001 * dx + 1) + 0.25)) ))
           ;;
