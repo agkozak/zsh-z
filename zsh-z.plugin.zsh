@@ -288,6 +288,13 @@ zshz() {
         # so a stuck holder can't freeze precmd's foreground `zshz --add'. Once
         # the holder dies, the kernel frees the lock and the next add succeeds
         # automatically -- no manual `rm ~/.z.lock' needed.
+        #
+        # On timeout we return silently and on purpose: the precmd add is
+        # best-effort and runs backgrounded (`&!'), so there is nowhere useful
+        # to report to -- a message would land on the terminal asynchronously,
+        # mid-keystroke, possibly every prompt. To diagnose a database that has
+        # stopped updating, run a foreground `z --add .' and check `$?'; see
+        # the README.
         [[ -f $lockfile ]] || touch "$lockfile"
         zsystem flock -t ${ZSHZ_LOCK_TIMEOUT:-1} -f lockfd "$lockfile" 2> /dev/null || return
 
