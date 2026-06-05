@@ -19,8 +19,9 @@ tests/stress.sh ~/bin/zsh-4.3.11               # cross-process stress driver
 ```
 
 The runner itself uses whichever `zsh` invoked it, so to exercise both
-supported versions you run it twice (CI does this on ubuntu and macOS
-via `.github/workflows/test.yml`).
+supported versions locally you run it twice. CI covers both versions
+plus the Windows POSIX layers as separate jobs — see the
+`.github/workflows/test.yml` section below.
 
 **Put the zsh under test on `PATH`, not just in the command.** Several
 tests spawn *child* `zsh` processes — `zshz_in_fresh_shell`, and the
@@ -1102,10 +1103,25 @@ lock correctness under heavy load and on multiple zsh versions.
 
 ### `.github/workflows/test.yml`
 
-Minimal CI matrix: `ubuntu-latest` and `macos-latest`. Each runner
-installs zsh (Linux only — macOS ships zsh by default), syntax-
-checks both `zsh-z.plugin.zsh` and `_zshz`, then runs
-`zsh tests/run.zsh`. The default suite (no `ZSHZ_HEAVY_TESTS`) is
-expected to complete in well under a minute.
+Four CI jobs, all running the suite with `ZSHZ_HEAVY_TESTS=1`:
+
+- **`test`** — `ubuntu-latest` and `macos-latest` on the system zsh
+  (5.x). Installs zsh (Linux only — macOS ships it), syntax-checks
+  `zsh-z.plugin.zsh` and `_zshz`, then runs the suite.
+- **`test-zsh-4-3-11`** — `ubuntu-latest`. Builds Zsh 4.3.11 (the
+  supported floor) from the upstream archive (`-fcommon`,
+  `--with-tcsetpgrp`), caches the binary, and runs the suite with the
+  build prepended to `PATH` so spawned children are 4.3.11 too. No
+  `zsh -n` syntax check there — parse-only mode aborts on that old build.
+- **`test-msys2`** — `windows-latest` via `msys2/setup-msys2` (zsh 5.9,
+  MSYS subsystem). The symlink-resolution tests skip there: a stock
+  MSYS2 has no native symlinks (see `_test_skip_no_symlinks`).
+- **`test-cygwin`** — `windows-latest` via `cygwin/cygwin-install-action`
+  (zsh 5.8). Same Cygwin-family layer, but its default `ln -s` resolves,
+  so those symlink-resolution tests run rather than skip.
+
+The Linux jobs complete in well under a minute; the slow-fork Windows
+jobs take a few minutes. Both Windows jobs set `core.autocrlf input`
+before checkout so the plugin and tests arrive with LF endings.
 
 <!-- vim: ft=markdown:tw=72: -->

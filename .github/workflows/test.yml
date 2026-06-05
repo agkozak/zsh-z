@@ -122,3 +122,38 @@ jobs:
 
       - name: Run tests
         run: ZSHZ_HEAVY_TESTS=1 zsh tests/run.zsh
+
+  # Cygwin is the other supported Windows POSIX layer. It shares MSYS2's
+  # runtime lineage ($OSTYPE=cygwin) but isn't redundant: it ships a different
+  # zsh (5.8 vs 5.9) and, unlike a stock MSYS2, its default `ln -s' produces
+  # resolvable symlinks -- so the five symlink-resolution tests that skip on
+  # MSYS2 actually run here. Verified locally on real Cygwin zsh 5.8 (194/194).
+  test-cygwin:
+    name: zsh on Cygwin (Windows)
+    runs-on: windows-latest
+    env:
+      # Keep the Cygwin login shell in the workspace instead of cd'ing to $HOME.
+      CHERE_INVOKING: '1'
+    defaults:
+      run:
+        # `-o igncr' tolerates CRLF in the step script; `--login' sets up the
+        # Cygwin PATH/mounts. Cygwin installs to C:\cygwin by default.
+        shell: C:\cygwin\bin\bash.exe --login --norc -eo pipefail -o igncr '{0}'
+    steps:
+      # Host shell (Git Bash, available before Cygwin exists), so the plugin and
+      # tests land with LF endings rather than the CRLF checkout applies on Windows.
+      - name: Keep LF line endings on checkout
+        shell: bash
+        run: git config --global core.autocrlf input
+
+      - uses: actions/checkout@v4
+
+      - uses: cygwin/cygwin-install-action@v6
+        with:
+          packages: zsh gawk sed grep coreutils findutils
+
+      - name: Show zsh version
+        run: zsh --version
+
+      - name: Run tests
+        run: ZSHZ_HEAVY_TESTS=1 zsh tests/run.zsh
