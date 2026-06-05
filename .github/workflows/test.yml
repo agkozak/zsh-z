@@ -86,3 +86,39 @@ jobs:
       # wrong interpreter, or fail outright if no system zsh is installed.
       - name: Run tests
         run: PATH="$ZSH_PREFIX/bin:$PATH" ZSHZ_HEAVY_TESTS=1 "$ZSH_PREFIX/bin/zsh" tests/run.zsh
+
+  # MSYS2 (the Cygwin-family POSIX layer on Windows) is a supported platform with
+  # its own quirks: $OSTYPE reports `cygwin', chmod is ignored on the Windows-
+  # backed filesystem (the mode tests skip via a runtime probe), and the precmd
+  # path runs under a slow fork. Exercise it on a windows-latest runner via the
+  # official setup-msys2 action so those paths don't regress unnoticed. The full
+  # heavy suite has been verified locally on MSYS2 zsh 5.9 (194/194).
+  test-msys2:
+    name: zsh on MSYS2 (Windows)
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      # Run on the host shell, before checkout, so the plugin and tests land with
+      # LF endings -- MSYS2 zsh chokes on the CRLF that checkout would apply by
+      # default on Windows.
+      - name: Keep LF line endings on checkout
+        shell: bash
+        run: git config --global core.autocrlf input
+
+      - uses: actions/checkout@v4
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          # The MSYS subsystem is the POSIX-emulation layer ($OSTYPE=cygwin)
+          # where zsh-z's Cygwin-family behavior lives -- not a MinGW variant.
+          msystem: MSYS
+          update: true
+          install: zsh gawk sed grep coreutils findutils
+
+      - name: Show zsh version
+        run: zsh --version
+
+      - name: Run tests
+        run: ZSHZ_HEAVY_TESTS=1 zsh tests/run.zsh
