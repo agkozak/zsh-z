@@ -47,6 +47,26 @@ assert_file_exists() {
   fail "expected file '$1' to exist"
 }
 
+# Probe whether this filesystem/environment can create real POSIX symlinks
+# that resolve to their target. On MSYS2 without native-symlink support
+# `ln -s' silently produces a copy or a Windows stub, so the symlink-
+# *resolution* tests can't run meaningfully there. Returns 0 (skip) when
+# symlinks don't resolve, 1 (run) when they do -- a runtime probe rather than
+# an `$OSTYPE' match, matching how the chmod and case-sensitivity skips work.
+_test_skip_no_symlinks() {
+  local d link target
+  d=$(mktemp -d "${TMPDIR:-/tmp}/zshz-symprobe.XXXXXX") || return 0
+  link="$d/link" target="$d/target"
+  mkdir -p "$target"
+  ln -s "$target" "$link" 2> /dev/null
+  if [[ -L $link && ${link:A} == ${target:A} ]]; then
+    rm -rf "$d"
+    return 1   # real, resolvable symlinks -> run the test
+  fi
+  rm -rf "$d"
+  return 0     # no resolvable symlinks here -> skip
+}
+
 # Read the rank for $1 from the current $ZSHZ_DATA
 zshz_rank_of() {
   local p=$1

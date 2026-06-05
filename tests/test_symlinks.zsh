@@ -29,6 +29,7 @@ test_symlink_add_remove_parity_no_resolve() {
 }
 
 test_symlink_add_default_stores_resolved_target() {
+  _test_skip_no_symlinks && { print "skip: filesystem has no resolvable symlinks"; return 0 }
   local target="$TESTDIR/target" link="$TESTDIR/link"
   mkdir -p "$target"
   ln -s "$target" "$link"

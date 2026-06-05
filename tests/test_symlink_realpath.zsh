@@ -15,6 +15,7 @@
 #     symlinks to the same target are *not* the same key.
 
 test_two_symlinks_to_same_target_share_a_db_entry() {
+  _test_skip_no_symlinks && { print "skip: filesystem has no resolvable symlinks"; return 0 }
   # Default mode resolves symlinks. Adding through link1 and removing
   # through link2 should both refer to the same canonical entry.
   local target="$TESTDIR/target/inner"
@@ -32,6 +33,7 @@ test_two_symlinks_to_same_target_share_a_db_entry() {
 }
 
 test_add_via_symlink_remove_via_target() {
+  _test_skip_no_symlinks && { print "skip: filesystem has no resolvable symlinks"; return 0 }
   local target="$TESTDIR/target/inner"
   mkdir -p "$target"
   ln -s "$TESTDIR/target" "$TESTDIR/link"
@@ -43,6 +45,7 @@ test_add_via_symlink_remove_via_target() {
 }
 
 test_add_via_target_remove_via_symlink() {
+  _test_skip_no_symlinks && { print "skip: filesystem has no resolvable symlinks"; return 0 }
   local target="$TESTDIR/target/inner"
   mkdir -p "$target"
   ln -s "$TESTDIR/target" "$TESTDIR/link"
@@ -54,6 +57,7 @@ test_add_via_target_remove_via_symlink() {
 }
 
 test_chained_symlinks_resolve_to_final_target() {
+  _test_skip_no_symlinks && { print "skip: filesystem has no resolvable symlinks"; return 0 }
   # link_outer -> link_inner -> target. `:A' walks the whole chain.
   local target="$TESTDIR/target/dest"
   mkdir -p "$target"

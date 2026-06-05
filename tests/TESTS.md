@@ -44,7 +44,13 @@ filesystem, so the four mode-checking tests in `test_permissions.zsh`
 skip there via a runtime probe rather than an `$OSTYPE` match.
 macOS's default case-insensitive volumes (APFS, HFS+) likewise skip
 the one case-sensitive tie-break test in `test_case.zsh`, again via a
-filesystem probe rather than an `$OSTYPE` match.
+filesystem probe rather than an `$OSTYPE` match. MSYS2 without
+native-symlink support (e.g. a stock GitHub Actions runner) makes
+`ln -s` produce a copy or a Windows stub rather than a resolvable
+POSIX symlink, so the five symlink-*resolution* tests in
+`test_symlinks.zsh` and `test_symlink_realpath.zsh` skip via the
+`_test_skip_no_symlinks` probe — they still run wherever symlinks
+actually resolve, including MSYS2 with Developer Mode.
 
 ## How `tests/run.zsh` runs a test
 
@@ -173,6 +179,16 @@ on failure (which the runner reports under `--- stderr ---`).
   `-P`. Caches the result in `_XARGS_P_OK` (exported, so per-test
   subshells inherit it). `run.zsh` calls this once at startup so
   each test subshell skips the re-probe.
+
+### Capability probes
+
+- `_test_skip_no_symlinks` — returns 0 (skip) when the filesystem
+  can't create a real POSIX symlink that resolves to its target — as
+  on MSYS2 without native-symlink support, where `ln -s` yields a copy
+  or a Windows stub — and 1 (run) when it can. A runtime probe, not an
+  `$OSTYPE` match. Gates the symlink-resolution tests in
+  `test_symlinks.zsh` and `test_symlink_realpath.zsh`; callers skip
+  with `_test_skip_no_symlinks && { print "skip: ..."; return 0 }`.
 
 ## Cross-file helpers
 
@@ -904,6 +920,12 @@ chained symlinks, `..` traversal collapsing, and the negative case
 under `ZSHZ_NO_RESOLVE_SYMLINKS=1` where two symlinks to the same
 target are *not* the same database key.
 
+The four resolution-dependent tests below skip via
+`_test_skip_no_symlinks` where `ln -s` can't produce a resolvable
+symlink (MSYS2 without native symlinks). `test_dotdot_traversal_is_canonicalised`
+and `test_no_resolve_keeps_two_symlinks_distinct` don't need real
+symlinks and always run.
+
 - `test_two_symlinks_to_same_target_share_a_db_entry` — under
   default mode, `--add` via `link1/inner` and `-x` via
   `link2/inner` round-trip via the canonical resolved target.
@@ -930,7 +952,10 @@ symlink resolution mode.
 - `test_symlink_add_remove_parity_no_resolve` — same with
   `ZSHZ_NO_RESOLVE_SYMLINKS=1`.
 - `test_symlink_add_default_stores_resolved_target` — the stored
-  path is the symlink target under default mode.
+  path is the symlink target under default mode. Skips via
+  `_test_skip_no_symlinks` where `ln -s` can't make a resolvable
+  symlink; the two parity tests and the no-resolve test don't need
+  real symlinks and always run.
 - `test_symlink_add_no_resolve_does_not_store_target` — the stored
   path is the symlink itself when resolution is off.
 
