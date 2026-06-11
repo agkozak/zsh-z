@@ -1157,6 +1157,11 @@ add-zsh-hook chpwd _zshz_chpwd
 
 (( ${fpath[(ie)${0:A:h}]} <= ${#fpath} )) || fpath=( "${0:A:h}" "${fpath[@]}" )
 
+# Capture the plugin directory while $0 still names this file: inside the
+# unload function, $0 is the function name (FUNCTION_ARGZERO), which `:A'
+# would resolve against $PWD.
+ZSHZ[PLUGIN_DIR]=${0:A:h}
+
 # Save the existing Tab binding so that the completion widget can invoke it,
 # but being careful not to create a situation where the widget ends up calling
 # itself and causing infinite recursion if this script is re-sourced.
@@ -1291,9 +1296,11 @@ zsh-z_plugin_unload() {
     (( ${+functions[$x]} )) && unfunction $x
   done
 
-  unset ZSHZ
+  # The directory captured at source time -- $0 here is the function name,
+  # not the plugin file. Read it before ZSHZ is unset.
+  fpath=( "${(@)fpath:#${ZSHZ[PLUGIN_DIR]}}" )
 
-  fpath=( "${(@)fpath:#${0:A:h}}" )
+  unset ZSHZ
 
   (( ${+aliases[${ZSHZ_CMD:-${_Z_CMD:-z}}]} )) &&
     unalias ${ZSHZ_CMD:-${_Z_CMD:-z}}

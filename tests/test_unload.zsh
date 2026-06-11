@@ -69,6 +69,37 @@ test_unload_removes_hooks() {
   assert_contains "chpwd=none" "$out" "_zshz_chpwd hook should be gone"
 }
 
+test_unload_removes_plugin_dir_from_fpath() {
+  local out
+  out=$(zshz_in_fresh_shell "
+    zsh-z_plugin_unload
+    if (( \${fpath[(ie)$PLUGIN_DIR]} <= \${#fpath} )); then
+      print in
+    else
+      print out
+    fi
+  ")
+  assert_eq "out" "$out" "plugin directory should be gone from fpath after unload"
+}
+
+test_unload_keeps_fpath_entry_matching_pwd() {
+  # Inside a function, \$0 is the function name, which `:A' resolves relative
+  # to \$PWD -- so an unload that recomputes \${0:A:h} strips the current
+  # directory from fpath instead of the plugin directory. An entry that merely
+  # equals \$PWD must survive unload.
+  local out
+  out=$(zshz_in_fresh_shell "
+    fpath+=( '$TESTDIR' )
+    zsh-z_plugin_unload
+    if (( \${fpath[(ie)$TESTDIR]} <= \${#fpath} )); then
+      print kept
+    else
+      print dropped
+    fi
+  ")
+  assert_eq "kept" "$out" "an fpath entry equal to PWD must survive unload"
+}
+
 test_unload_then_reload_restores_function_and_widget() {
   local out
   local -a lines
