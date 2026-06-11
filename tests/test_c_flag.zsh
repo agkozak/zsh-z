@@ -1,4 +1,4 @@
-# -c flag: restrict matches to subdirectories of $PWD.
+# The -c option: restrict matches to subdirectories of $PWD.
 #
 # The `-c` path prefixes the query with "$PWD " and then matches only from the
 # start of candidate paths, so results must stay within the current subtree.
@@ -24,5 +24,37 @@ test_c_flag_excludes_paths_outside_pwd() {
   local rc=$?
   assert_ne "0" "$rc" "-c should not match outside PWD subtree"
   assert_eq "" "$out" "no output when nothing under PWD matches"
+}
+
+# A mirrored tree (e.g. `rsync --relative' to a backup root) stores paths that
+# embed $PWD as an interior substring. The -c option must anchor its pattern at
+# the start of each candidate path, or such mirrors slip through.
+
+test_c_flag_excludes_mirror_embedding_pwd() {
+  mkdir -p "$TESTDIR/projects" "$TESTDIR/backup$TESTDIR/projects/api"
+  zshz --add "$TESTDIR/backup$TESTDIR/projects/api"
+
+  cd "$TESTDIR/projects"
+  local out
+  out=$(zshz -ce api 2> /dev/null)
+  local rc=$?
+  assert_ne "0" "$rc" "-c should not match a mirror that embeds PWD mid-path"
+  assert_eq "" "$out" "no output when the only candidate embeds PWD mid-path"
+}
+
+test_c_flag_prefers_real_subdir_over_higher_ranked_mirror() {
+  mkdir -p "$TESTDIR/projects/api" "$TESTDIR/backup$TESTDIR/projects/api"
+  zshz --add "$TESTDIR/projects/api"
+  # Give the mirror the higher rank: anchoring, not frecency, must exclude it
+  local i
+  for i in 1 2 3; do
+    zshz --add "$TESTDIR/backup$TESTDIR/projects/api"
+  done
+
+  cd "$TESTDIR/projects"
+  local out
+  out=$(zshz -ce api)
+  assert_eq "$TESTDIR/projects/api" "$out" \
+      "-c should pick the real subdirectory, not a higher-ranked mirror"
 }
 # vim: fdm=indent:ts=2:et:sts=2:sw=2:
