@@ -69,6 +69,19 @@ test_unload_removes_hooks() {
   assert_contains "chpwd=none" "$out" "_zshz_chpwd hook should be gone"
 }
 
+test_unload_leaves_no_plugin_functions_behind() {
+  # zshz defines its helper functions (including zshz_cd and _zshz_echo) the
+  # first time it runs, so run it once before unloading; then sweep the
+  # function table for anything plugin-shaped that unload failed to remove.
+  local out
+  out=$(zshz_in_fresh_shell '
+    zshz -l > /dev/null 2>&1
+    zsh-z_plugin_unload
+    print -r -- ${(M)${(k)functions}:#(zshz*|_zshz*|zsh-z*)}
+  ')
+  assert_eq "" "$out" "no plugin functions should remain after unload"
+}
+
 test_unload_removes_plugin_dir_from_fpath() {
   local out
   out=$(zshz_in_fresh_shell "
