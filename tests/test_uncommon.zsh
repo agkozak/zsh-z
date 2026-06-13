@@ -37,6 +37,28 @@ test_uncommon_trim_terminates_at_root() {
   fi
 }
 
+test_uncommon_case_sensitive_winner_trims_case_sensitively() {
+  # Regression: ZSHZ[CASE_INSENSITIVE] was set during the scan by any leading
+  # case-insensitive candidate, even when a case-sensitive match ultimately
+  # won. Under ZSHZ_UNCOMMON that stale flag forced the trim through the
+  # case-insensitive branch, shortening by the wrong amount.
+  #
+  # Here "$TESTDIR/foo/Foo" wins case-sensitively for the query `foo', while
+  # "$TESTDIR/FOO" is a case-insensitive-only decoy that used to set the flag.
+  # The correct, case-sensitive trim drops the trailing "Foo" (it does not
+  # contain `foo') and yields "$TESTDIR/foo"; the buggy case-insensitive trim
+  # would keep the whole "$TESTDIR/foo/Foo".
+  _test_skip_case_insensitive_fs && return 0
+  mkdir -p "$TESTDIR/foo/Foo" "$TESTDIR/FOO"
+  zshz --add "$TESTDIR/foo/Foo"
+  zshz --add "$TESTDIR/FOO"
+  ZSHZ_UNCOMMON=1
+  local out
+  out=$(zshz -e foo)
+  assert_eq "$TESTDIR/foo" "$out" \
+      "a case-sensitive winner must be trimmed by the case-sensitive rule"
+}
+
 test_default_with_single_match_returns_full_path() {
   mkdir -p "$TESTDIR/foo/bar/foo/bar"
   zshz --add "$TESTDIR/foo/bar/foo/bar"

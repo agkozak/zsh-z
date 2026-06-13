@@ -756,6 +756,14 @@ zshz() {
     local -i trail=${ZSHZ_TRAILING_SLASH:-0}
     local now=$EPOCHSECONDS
 
+    # This flag is consumed by the ZSHZ_UNCOMMON trimming block, which must know
+    # whether the match it is about to trim was found case-insensitively. Clear
+    # it at the start of every search so a value left over from a previous call
+    # -- e.g. a tab-completion, which sets it but never runs the trimming block
+    # that would reset it -- can't steer this search into the wrong branch. The
+    # authoritative value is set below, from whichever match actually wins.
+    ZSHZ[CASE_INSENSITIVE]=0
+
     for line in $lines; do
       path_field=${line%%\|*}
 
@@ -817,7 +825,6 @@ zshz() {
         if (( rank > ihi_rank )); then
           ibest_match=$path_field
           ihi_rank=$rank
-          ZSHZ[CASE_INSENSITIVE]=1
         fi
       elif [[ $ZSHZ_CASE != 'ignore' && $path_field_normalized == ${~q} ]]; then
         matches[$path_field]=$rank
@@ -830,7 +837,6 @@ zshz() {
         if (( rank > ihi_rank )); then
           ibest_match=$path_field
           ihi_rank=$rank
-          ZSHZ[CASE_INSENSITIVE]=1
         fi
       fi
     done
@@ -841,6 +847,10 @@ zshz() {
     if [[ -n $best_match ]]; then
       _zshz_output matches best_match $format
     elif [[ -n $ibest_match ]]; then
+      # The winning match is the case-insensitive one; tell the ZSHZ_UNCOMMON
+      # trimmer to count case-insensitively. A case-sensitive winner (the branch
+      # above) correctly leaves the flag at the 0 set at the top of the search.
+      ZSHZ[CASE_INSENSITIVE]=1
       _zshz_output imatches ibest_match $format
     fi
   }
