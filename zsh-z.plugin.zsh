@@ -367,9 +367,13 @@ zshz() {
           if [[ ${ZSHZ[CHMOD]} == 'zf_chmod' ]]; then
             exec {tmpfd}>|"$tempfile"  # Open up tempfile for writing
             ${ZSHZ[CHMOD]} 600 "$tempfile"
-            print -u $tmpfd -l -- $lines
+            # `-r': $lines are verbatim on-disk lines (the datafile stores
+            # literal paths), so they must be written back unchanged. Without
+            # `-r', print would collapse an escape -- e.g. a literal `\t' in a
+            # path into a tab -- silently corrupting bystander entries.
+            print -u $tmpfd -rl -- $lines
           else
-            ( umask 077; print -l -- $lines >| "$tempfile" )
+            ( umask 077; print -rl -- $lines >| "$tempfile" )
           fi
           local ret=$?
           ;;
@@ -394,7 +398,8 @@ zshz() {
         # An unusual case: if inside Docker container where datafile could be bind
         # mounted
         if [[ -f '/.dockerenv' || ( -r '/proc/1/cgroup' && "$(< '/proc/1/cgroup')" == *docker* ) ]]; then
-          print -- "$(< "$tempfile")" >| "$datafile" 2> /dev/null
+          # `-r': re-emit the tempfile's already-literal contents byte-for-byte.
+          print -r -- "$(< "$tempfile")" >| "$datafile" 2> /dev/null
           write_ret=$?
           # Reassert 0600 permissions
           (( write_ret == 0 )) && ${ZSHZ[CHMOD]} 600 "$datafile" 2> /dev/null
@@ -530,6 +535,15 @@ zshz() {
         out+=( "$x|${rank[$x]}|${time[$x]}" )
       done
     fi
+    # Deliberately NO `-r' here, unlike every other datafile write. The keys in
+    # $out are `${(q)}'-quoted (assoc-array keys need shell-special chars
+    # backslash-escaped -- rupa/z#246), and a plain `print' strips exactly one
+    # backslash level back off, so what lands on disk is the literal path the
+    # rest of the code expects. Adding `-r' would store the still-quoted form
+    # (e.g. `/foo\ bar'), which the read path -- it does not unquote -- would
+    # then fail to match. The verbatim-passthrough writes in
+    # `_zshz_add_or_remove_path' DO use `-r' because their input is already
+    # literal; this one is not.
     print -u $fd -l -- $out || return 1
   }
 
@@ -571,10 +585,10 @@ zshz() {
 
       # If the search string is all lowercase, the search will be case-insensitive
       if (( is_lowercase_query )) && [[ ${path_field_normalized:l} == *${~query_lower}* ]]; then
-        print -- $path_field
+        print -r -- $path_field
       # Otherwise, case-sensitive
       elif [[ $path_field_normalized == *${~1}* ]]; then
-        print -- $path_field
+        print -r -- $path_field
       fi
 
     done
@@ -656,7 +670,7 @@ zshz() {
           descending_list+=( "${kv[i+1]}|${kv[i]}" )
         done
         descending_list=( ${${(@On)descending_list}#*\|} )
-        print -l $descending_list
+        print -rl -- $descending_list
         ;;
 
       list)
@@ -685,9 +699,9 @@ zshz() {
           # -lt: most-recent first (descending); -lr and default -l:
           # ascending rank.
           if (( $+opts[-t] )); then
-            print -l -- ${(@On)output}
+            print -rl -- ${(@On)output}
           else
-            print -l -- ${(@on)output}
+            print -rl -- ${(@on)output}
           fi
         fi
         ;;
@@ -949,9 +963,9 @@ zshz() {
   _zshz_echo() {
     if (( ZSHZ_ECHO )); then
       if (( ZSHZ_TILDE )); then
-        print ${PWD/#${HOME}/\~}
+        print -r -- ${PWD/#${HOME}/\~}
       else
-        print $PWD
+        print -r -- $PWD
       fi
     fi
   }
@@ -1020,9 +1034,9 @@ zshz() {
 
     if (( $#output )); then
       if (( $+opts[-t] )); then
-        print -l -- ${(@On)output}
+        print -rl -- ${(@On)output}
       else
-        print -l -- ${(@on)output}
+        print -rl -- ${(@on)output}
       fi
       return 0
     fi
@@ -1083,7 +1097,7 @@ zshz() {
   if (( ret2 == 0 )) && [[ -n $cd ]]; then
     if (( $+opts[-e] )); then               # echo
       (( ZSHZ_TILDE )) && cd=${cd/#${HOME}/\~}
-      print -- "$cd"
+      print -r -- "$cd"
     else
       # cd if possible; echo the new path if $ZSHZ_ECHO == 1
       [[ -d $cd ]] && zshz_cd "$cd" && _zshz_echo

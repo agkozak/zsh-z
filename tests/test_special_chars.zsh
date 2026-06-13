@@ -105,6 +105,71 @@ test_path_with_dollar_sign_round_trip() {
   assert_eq "" "$(zshz_rank_of "$p")" "remove should clear path with \$"
 }
 
+test_path_with_backslash_round_trip() {
+  # A literal backslash is the acid test for the `print -r' discipline: the
+  # datafile stores literal paths, so any emission without `-r' silently
+  # collapses an escape (`\t' -> a real tab) on the way back out or on the
+  # next rewrite. `\there' is backslash + "there", NOT a tab.
+  #
+  # Note: `zshz_rank_of' can't be used here -- its `awk -v' itself turns a
+  # `\t' in the path into a tab -- so the on-disk checks read the datafile
+  # directly and compare with quoted (literal) assertions.
+  _test_skip_no_backslash_in_filename && { print "skip: no backslash-in-filename support"; return 0 }
+  local p="$TESTDIR/back\there/inner"
+  mkdir -p "$p"
+  zshz --add "$p"
+  assert_contains "$p|1|" "$(< $ZSHZ_DATA)" "add should land the backslash path verbatim"
+
+  local out
+  out=$(zshz -e there)
+  assert_eq "$p" "$out" "search should return the backslash path verbatim"
+
+  zshz -x "$p"
+  # The entry was the only one, so a correct remove empties the datafile;
+  # a corrupting remove would leave a mangled residue behind.
+  assert_eq "" "$(< $ZSHZ_DATA)" "remove should clear the backslash path with no residue"
+}
+
+test_path_with_backslash_survives_rewrite() {
+  # Adding a second directory rewrites the whole datafile, carrying the
+  # backslash entry through `_zshz_update_datafile'. It must come out byte-
+  # identical, not with its escape collapsed.
+  _test_skip_no_backslash_in_filename && { print "skip: no backslash-in-filename support"; return 0 }
+  local p="$TESTDIR/keep\there/inner" q="$TESTDIR/other"
+  mkdir -p "$p" "$q"
+  zshz --add "$p"
+  zshz --add "$q"
+  assert_contains "$p|1|" "$(< $ZSHZ_DATA)" \
+      "backslash path should survive an add-triggered rewrite verbatim"
+}
+
+test_path_with_backslash_survives_unrelated_remove() {
+  # `z -x' of a *different* directory rewrites the datafile, carrying every
+  # other line through the remove path verbatim. A backslash entry that is
+  # merely a bystander must not have its escape collapsed.
+  _test_skip_no_backslash_in_filename && { print "skip: no backslash-in-filename support"; return 0 }
+  local p="$TESTDIR/stay\there/inner" q="$TESTDIR/gone"
+  mkdir -p "$p" "$q"
+  zshz --add "$p"
+  zshz --add "$q"
+  zshz -x "$q"
+  assert_contains "$p|1|" "$(< $ZSHZ_DATA)" \
+      "backslash bystander should survive an unrelated remove verbatim"
+}
+
+test_path_with_backslash_listed_verbatim() {
+  # `zshz -l' is a different emission path from `-e'; make sure it, too,
+  # prints the backslash literally rather than collapsing it.
+  _test_skip_no_backslash_in_filename && { print "skip: no backslash-in-filename support"; return 0 }
+  local p="$TESTDIR/list\there/inner"
+  mkdir -p "$p"
+  zshz --add "$p"
+
+  local out
+  out=$(zshz -l)
+  assert_contains "$p" "$out" "list output should contain the backslash path verbatim"
+}
+
 test_path_with_mixed_special_chars_round_trip() {
   # All seven special chars in one path. We search by a substring that
   # avoids the chars themselves so the search-side glob doesn't have

@@ -67,6 +67,25 @@ _test_skip_no_symlinks() {
   return 0     # no resolvable symlinks here -> skip
 }
 
+# Probe whether this filesystem can hold a literal backslash in a filename.
+# On Windows-family layers (Cygwin, MSYS2) the backslash is a path separator,
+# so `mkdir 'a\b'' creates `a/b'' and `:A'' canonicalizes to forward slashes --
+# a directory whose *name* contains a backslash cannot exist there. Returns 0
+# (skip) when the backslash does not survive as a name character, 1 (run) when
+# it does. A runtime probe, like `_test_skip_no_symlinks'.
+_test_skip_no_backslash_in_filename() {
+  local d p
+  d=$(mktemp -d "${TMPDIR:-/tmp}/zshz-bsprobe.XXXXXX") || return 0
+  p="$d/back\there"          # back + literal backslash + there
+  mkdir -p "$p" 2> /dev/null
+  if [[ -d $p && ${p:A} == *'\'* ]]; then
+    rm -rf "$d"
+    return 1   # backslash is a real filename character here -> run the test
+  fi
+  rm -rf "$d"
+  return 0     # backslash collapses to a separator here -> skip
+}
+
 # Read the rank for $1 from the current $ZSHZ_DATA
 zshz_rank_of() {
   local p=$1
