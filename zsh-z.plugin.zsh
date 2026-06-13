@@ -24,9 +24,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 #
-# z (https://github.com/rupa/z) is copyright (c) 2009 rupa deadwyler and
-# licensed under the WTFPL license, Version 2.
-#
 # Zsh-z maintains a jump-list of the directories you actually use.
 #
 # INSTALL:
@@ -245,8 +242,8 @@ zshz() {
       # These $HOME / $ZSHZ_EXCLUDE_DIRS guards mirror the ones in
       # _zshz_precmd, but they are not redundant: precmd filters $PWD as an
       # early-out (skip the background fork), whereas --add is now a public
-      # entry point and must enforce the same policies as the precmd functin.
-      #Keep both in sync.
+      # entry point and must enforce the same policies as the precmd function.
+      # Keep both in sync.
 
       # Don't add $HOME
       [[ $* == $HOME ]] && return
