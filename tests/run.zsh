@@ -39,11 +39,25 @@ done
 _test_fns=( ${(o)_test_fns} )
 
 # If names were passed on the command line, run only those tests. Each arg is
-# matched as a glob against test function names, so prefixes work too:
+# matched as a glob against test function names, so prefixes work too, and
+# several patterns may be combined -- a test runs if it matches any of them:
 #   zsh tests/run.zsh test_concurrent_add_no_lost_updates
 #   zsh tests/run.zsh 'test_concurrent_*'
+#   zsh tests/run.zsh 'test_uncommon_*' 'test_special_chars_*'
 if (( $# )); then
-  _test_fns=( ${(M)_test_fns:#${~^@}} )
+  # Keep each test whose name matches at least one pattern (a union). A single
+  # `${(M)_test_fns:#${~^@}}' can't express that -- with several patterns it
+  # selects nothing -- so walk the patterns explicitly. `${~_pat}' forces
+  # pattern interpretation, which Zsh 4.3.11 needs: there a bare `$_pat' on the
+  # right of `==' is matched literally, not as a glob.
+  typeset -a _selected
+  typeset _fn _pat
+  for _fn in $_test_fns; do
+    for _pat in "$@"; do
+      [[ $_fn == ${~_pat} ]] && { _selected+=( $_fn ); break }
+    done
+  done
+  _test_fns=( $_selected )
   if (( ! ${#_test_fns} )); then
     print -u 2 "No tests matched: $*"
     exit 2
