@@ -1079,6 +1079,10 @@ zshz() {
         # Try dropping directory elements from the right; stop when it affects
         # how many times the search pattern appears
         until (( ( ${#cd:h} - ${#${${cd:h}//${~q}/}} ) != q_chars )); do
+          # ${cd:h} of `/' is `/', so without this guard the trim could spin
+          # forever once it reaches the root (e.g. `/' in the database with a
+          # pattern that matches zero characters there).
+          [[ ${cd:h} == $cd ]] && break
           cd=${cd:h}
         done
 
@@ -1086,6 +1090,9 @@ zshz() {
       else
         local q_chars=$(( ${#cd} - ${#${${cd:l}//${~${q:l}}/}} ))
         until (( ( ${#cd:h} - ${#${${${cd:h}:l}//${~${q:l}}/}} ) != q_chars )); do
+          # See the case-sensitive branch: guard against ${cd:h} no longer
+          # changing once the trim reaches the root.
+          [[ ${cd:h} == $cd ]] && break
           cd=${cd:h}
         done
       fi

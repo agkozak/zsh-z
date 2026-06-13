@@ -13,6 +13,30 @@ test_uncommon_shrinks_to_keep_pattern_count() {
   assert_eq "$TESTDIR/foo/bar/foo" "$out" "UNCOMMON should keep both 'foo' occurrences"
 }
 
+test_uncommon_trim_terminates_at_root() {
+  # Regression: with ZSHZ_UNCOMMON=1 and `/' in the database, `z -e /' trimmed
+  # the destination down to `/' and then spun forever -- `${cd:h}' of `/' is
+  # `/', so the trim made no progress while the loop's stop condition never
+  # flipped. Run the call in a backgrounded subshell behind a watchdog so a
+  # regression fails this test by timeout instead of hanging the whole suite.
+  ZSHZ_UNCOMMON=1
+  zshz_seed '/' 5
+
+  local outfile="$TESTDIR/uncommon_root.out"
+  ( zshz -e / > "$outfile" 2>&1 ) &
+  local worker=$!
+  ( sleep 10; kill -9 $worker 2> /dev/null ) &
+  local watchdog=$!
+
+  if wait $worker; then
+    kill $watchdog 2> /dev/null   # cancel the watchdog; the call finished
+    assert_eq '/' "$(< "$outfile")" "z -e / under UNCOMMON should return the root match"
+  else
+    fail "z -e / under ZSHZ_UNCOMMON did not terminate within the watchdog window"
+    return 1
+  fi
+}
+
 test_default_with_single_match_returns_full_path() {
   mkdir -p "$TESTDIR/foo/bar/foo/bar"
   zshz --add "$TESTDIR/foo/bar/foo/bar"
