@@ -47,9 +47,10 @@ _test_fns=( ${(o)_test_fns} )
 if (( $# )); then
   # Keep each test whose name matches at least one pattern (a union). A single
   # `${(M)_test_fns:#${~^@}}' can't express that -- with several patterns it
-  # selects nothing -- so walk the patterns explicitly. `${~_pat}' forces
-  # pattern interpretation, which Zsh 4.3.11 needs: there a bare `$_pat' on the
-  # right of `==' is matched literally, not as a glob.
+  # selects nothing -- so walk the patterns explicitly. `${~_pat}' is required:
+  # a bare parameter on the right of `==' is matched *literally* (its glob
+  # metacharacters are inert unless GLOB_SUBST is set), so `${~}' forces it to
+  # be read as a pattern. This holds on every Zsh, 4.3.11 included.
   typeset -a _selected
   typeset _fn _pat
   for _fn in $_test_fns; do
