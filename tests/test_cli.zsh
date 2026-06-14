@@ -58,4 +58,56 @@ test_complete_help_combo_is_silent() {
   assert_not_contains "Usage: z" "$out" "'--complete --help' must not print usage to stdout"
   assert_not_contains "Usage: z" "$err" "'--complete --help' must not print usage to stderr"
 }
+
+test_rank_and_recent_combo_is_rejected() {
+  # -r (rank) and -t (recent) are mutually exclusive sort keys; combining them
+  # is contradictory and must be rejected, not resolved by arbitrary opt order.
+  # All spellings -- spaced and clustered, either order -- must fail alike.
+  local form out rc
+  for form in '-r -t' '-t -r' '-rt' '-tr'; do
+    out=$(zshz ${=form} foo 2>&1)
+    rc=$?
+    assert_ne "0" "$rc" "'z $form' should fail"
+    assert_contains "cannot be combined" "$out" "'z $form' should explain the conflict"
+  done
+}
+
+test_rank_or_recent_alone_still_works() {
+  # The rejection must not catch a single sort option.
+  mkdir -p "$TESTDIR/foobar"
+  zshz --add "$TESTDIR/foobar"
+  local out rc
+  out=$(zshz -r -e foobar); rc=$?
+  assert_eq "0" "$rc" "'z -r' alone should succeed"
+  assert_eq "$TESTDIR/foobar" "$out" "'z -r' should find the match"
+  out=$(zshz -t -e foobar); rc=$?
+  assert_eq "0" "$rc" "'z -t' alone should succeed"
+  assert_eq "$TESTDIR/foobar" "$out" "'z -t' should find the match"
+}
+
+test_complete_list_combo_yields_completion_format() {
+  # Completing `z -l foo' reaches zshz as `zshz --complete -l foo'. --complete
+  # must win over -l regardless of the order ${(k)opts} visits them, so the
+  # output stays completion format (bare paths), not the rank-padded list rows.
+  mkdir -p "$TESTDIR/foobar"
+  zshz --add "$TESTDIR/foobar"
+  local with_l plain
+  with_l=$(zshz --complete -l foobar)
+  plain=$(zshz --complete foobar)
+  assert_eq "$plain" "$with_l" "'--complete -l' must equal plain '--complete' output"
+  assert_eq "$TESTDIR/foobar" "$with_l" "'--complete -l' should emit the bare path, not a list row"
+}
+
+test_complete_rank_recent_combo_is_not_rejected() {
+  # The -r/-t rejection is suppressed under --complete: completion ordering is
+  # cosmetic and an error must never reach the terminal mid-completion.
+  mkdir -p "$TESTDIR/foobar"
+  zshz --add "$TESTDIR/foobar"
+  local out err rc
+  out=$(zshz --complete -r -t foobar 2> /dev/null); rc=$?
+  err=$(zshz --complete -r -t foobar 2>&1 > /dev/null)
+  assert_eq "0" "$rc" "'--complete -r -t' must not be rejected"
+  assert_eq "" "$err" "'--complete -r -t' must not emit an error"
+  assert_contains "$TESTDIR/foobar" "$out" "'--complete -r -t' should still produce completions"
+}
 # vim: fdm=indent:ts=2:et:sts=2:sw=2:

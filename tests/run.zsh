@@ -51,8 +51,10 @@ if (( $# )); then
   # a bare parameter on the right of `==' is matched *literally* (its glob
   # metacharacters are inert unless GLOB_SUBST is set), so `${~}' forces it to
   # be read as a pattern. This holds on every Zsh, 4.3.11 included.
+  # No `typeset _fn _pat' here: `_fn' already exists from the collection loop
+  # above, and `typeset' on an already-set parameter at script scope echoes it
+  # ("_fn=..."). Reuse the bare loop variables, as the rest of this file does.
   typeset -a _selected
-  typeset _fn _pat
   for _fn in $_test_fns; do
     for _pat in "$@"; do
       [[ $_fn == ${~_pat} ]] && { _selected+=( $_fn ); break }

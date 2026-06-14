@@ -877,6 +877,17 @@ zshz() {
     return 1
   fi
 
+  # -r (rank) and -t (recent) name different, mutually exclusive sort keys, so
+  # asking for both is contradictory. Reject it rather than letting an arbitrary
+  # one win -- the options loop below visits ${(k)opts} in hash order, so a
+  # silent winner would not even be predictable. Skipped when --complete is set:
+  # the completion widget always passes it, an error must not reach the terminal
+  # mid-completion, and the sort order is merely cosmetic for a completion list.
+  if (( ${+opts[-r]} && ${+opts[-t]} && ! ${+opts[--complete]} )); then
+    print "${ZSHZ_CMD:-${_Z_CMD:-z}}: options -r and -t cannot be combined." >&2
+    return 1
+  fi
+
   local opt output_format method='frecency' fnd prefix req
 
   for opt in ${(k)opts}; do
@@ -915,7 +926,10 @@ zshz() {
         _zshz_usage
         return
         ;;
-      -l) output_format='list' ;;
+      # --complete (completion mode) always wins over -l, independent of the
+      # order ${(k)opts} happens to visit them: completing `z -l ...' must still
+      # emit bare paths for compadd, never the rank-padded rows of a list.
+      -l) (( ${+opts[--complete]} )) || output_format='list' ;;
       -r) method='rank' ;;
       -t) method='time' ;;
       -x)
@@ -1160,6 +1174,14 @@ _zshz_precmd() {
   # and ZSHZ_LOCK_TIMEOUT (default 1s) bounds contention so a stuck holder
   # can't pile up writers. `&!' is zsh background + disown: no wrapper
   # subshell, no job-table entry, no "Done" line at the next prompt.
+  #
+  # Do not restore the old foreground carve-out for Cygwin/MSYS2. It was
+  # right when backgrounding meant a subshell plus a job (two forks) and
+  # writes were line-by-line; with one disowned fork and batched writes,
+  # measurement (June 2026, Cygwin zsh 5.8 and MSYS2 zsh 5.9) shows ~10-12ms
+  # at the prompt for `&!' vs. ~30ms for a foreground add at 300 datafile
+  # entries -- and ~300ms at 1,000 entries, since the foreground cost grows
+  # with the datafile while the fork cost stays flat.
   zshz --add "$PWD" &!
 
   # See https://github.com/rupa/z/pull/247/commits/081406117ea42ccb8d159f7630cfc7658db054b6
