@@ -646,6 +646,11 @@ zshz() {
 
     _zshz_find_common_root ${(@Pk)match_array}
     common=$REPLY
+    # Clear REPLY once the common root is captured: the caller reads REPLY as
+    # the jump target, so a value left over here would make `z -l <query>'
+    # change directory after listing. The default arm below overwrites REPLY
+    # deliberately; the completion and list arms must leave it empty.
+    REPLY=''
 
     # Iterate the caller's matches/imatches array as flat key-value
     # pairs via ${(@Pkv)...} instead of copying into a local
