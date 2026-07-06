@@ -1084,7 +1084,12 @@ zshz() {
   local ret2=$?
 
   local cd
-  cd=$REPLY
+  # Only the default (jump/echo) format communicates a destination through
+  # REPLY; list and completion print their results directly and leave REPLY
+  # empty. Checking the format here is a second line of defense: even if a
+  # future edit to `_zshz_output' lets a stray REPLY escape again, a listing
+  # must never turn into a directory change.
+  [[ -z $output_format ]] && cd=$REPLY
 
   # New experimental "uncommon" behavior
   #
