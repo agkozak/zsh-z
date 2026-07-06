@@ -698,13 +698,20 @@ zshz() {
     case $format in
 
       completion)
-        # Build "rank|path" rows, then sort by leading numeric rank
-        # (descending) and strip the rank+'|' prefix to keep paths. The
-        # rank string is never user-visible -- `${...#*\|}' discards it
-        # -- so the old `%.2f' formatting is dropped: `(@On)' parses the
-        # leading number whether or not it has two decimal places.
+        # Build "sortkey|path" rows, sort by the leading key descending, then
+        # strip the key+'|' prefix to keep just the paths (the key is never
+        # user-visible). The key MUST be an integer: `${(@On)}' numeric sort
+        # compares each run of digits on its own, so a raw float rank orders by
+        # its fractional digit-run rather than its value -- "100.5" would sort
+        # below "100.25" (5 < 25). Scale by 100 and drop the decimal so two
+        # digits of resolution survive (what the old `%.2f' rows preserved) as a
+        # single integer digit-run. (Negative `-t' ranks still sort by
+        # magnitude, since `n' ignores the sign -- unchanged from the `%.2f'
+        # rows, i.e. a pre-existing quirk, not introduced here.)
+        local sortkey
         for ((i=1; i<=${#kv}; i+=2)); do
-          descending_list+=( "${kv[i+1]}|${kv[i]}" )
+          sortkey=$(( kv[i+1] * 100 ))
+          descending_list+=( "${sortkey%.*}|${kv[i]}" )
         done
         descending_list=( ${${(@On)descending_list}#*\|} )
         print -rl -- $descending_list

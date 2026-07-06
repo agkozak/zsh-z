@@ -477,6 +477,13 @@ can be exercised without a real ZLE session.
   has pre-set `_comps[z]` to another completer, the
   `(( ${+_comps[$cmd]} )) ||` guard must defer rather than clobber.
 
+### `test_completion.zsh` — frecent completion ordering
+
+- `test_completion_orders_near_equal_ranks_by_value` — the completion
+  list sorts on an integer key, so near-equal ranks whose fractional
+  tails differ in width (100.5 vs 100.25) order by value, not by a
+  raw-float digit-run comparison.
+
 ### `test_completion_legacy.zsh` — legacy completion mode
 
 - `test_legacy_complete_returns_matches` — `ZSHZ_COMPLETION=legacy`
