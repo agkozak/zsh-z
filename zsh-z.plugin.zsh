@@ -69,9 +69,14 @@
 ################################################################################
 
 # Minimalistic solution to allow this plugin to keep running under sh/bash/ksh
-# emulation while continuing to use Zsh-only syntax features
+# emulation while continuing to use Zsh-only syntax features. `emulate zsh -c'
+# evaluates its argument as code, so the script's own path -- `${(%):-%N}' --
+# must be `${(q)}'-quoted; otherwise an install directory containing spaces or
+# other shell-special characters (common on Cygwin/MSYS2 and macOS, where a
+# home directory can be "C:\Users\John Smith" or "/Users/John Smith") would be
+# word-split and the plugin would silently fail to re-source.
 if [[ -o KSH_ARRAYS || -o SH_WORD_SPLIT ]]; then
-  emulate zsh -c "source ${(%):-%N}"
+  emulate zsh -c "source ${(q)${(%):-%N}}"
   return $?
 fi
 

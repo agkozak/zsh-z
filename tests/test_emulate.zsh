@@ -62,6 +62,34 @@ test_source_under_emulate_ksh() {
   _zshz_test_emulate_round_trip 'emulate ksh'
 }
 
+test_source_from_path_with_spaces_under_emulate_sh() {
+  # Regression: the emulation gate re-sources the plugin with
+  # `emulate zsh -c "source ${(q)${(%):-%N}}"'. Without the `${(q)}'
+  # quoting the script's own path is word-split, so an install directory
+  # containing a space makes `source' receive several arguments and the
+  # plugin silently fails to load. Copy the plugin into a spaced
+  # directory and confirm a full round-trip still works under emulate sh.
+  local zsh_bin
+  zsh_bin=$(_zshz_test_zsh_bin)
+  local spaced="$TESTDIR/dir with spaces"
+  mkdir -p "$spaced" "$TESTDIR/work"
+  cp "$PLUGIN_DIR/zsh-z.plugin.zsh" "$PLUGIN_DIR/_zshz" "$spaced/"
+
+  local out
+  out=$("$zsh_bin" --no-rcs -c "
+    emulate sh
+    source '$spaced/zsh-z.plugin.zsh'
+    zshz --add '$TESTDIR/work'
+    zshz -l
+  " 2>&1)
+  local rc=$?
+
+  assert_eq "0" "$rc" \
+    "emulate sh from spaced path: round-trip should succeed (output: $out)"
+  assert_contains "$TESTDIR/work" "$out" \
+    "emulate sh from spaced path: list output should contain the added path"
+}
+
 test_emulate_gate_does_not_fire_under_pure_zsh() {
   # Under pure zsh the gate's option check should be false and the
   # plugin should source directly without recursing through
