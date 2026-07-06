@@ -54,6 +54,10 @@
 #   ZSHZ_COMPLETION -> completion method (default: 'frecent'; 'legacy' for
 #     alphabetic sorting)
 #   ZSHZ_DATA -> name of datafile (default: ~/.z)
+#   ZSHZ_DEBUG -> if set, turn on debugging aids: WARN_CREATE_GLOBAL while the
+#     command runs and per-function warnings (functions -W) at load time
+#     (default: unset)
+#   ZSHZ_ECHO -> if 1, print the directory name after jumping to it (default: 0)
 #   ZSHZ_EXCLUDE_DIRS -> array of directories to exclude from your database
 #     (default: empty)
 #   ZSHZ_KEEP_DIRS -> array of directories that should not be removed from the
@@ -64,6 +68,10 @@
 #     before beginning to age (default: 9000)
 #   ZSHZ_NO_RESOLVE_SYMLINKS -> '1' prevents symlink resolution
 #   ZSHZ_OWNER -> your username (if you want use Zsh-z while using sudo -s)
+#   ZSHZ_TILDE -> if 1, display ~ in place of the full $HOME path in output
+#     (default: 0)
+#   ZSHZ_TRAILING_SLASH -> if 1, a query ending in / matches at the end of a
+#     directory path (default: 0)
 #   ZSHZ_UNCOMMON -> if 1, do not jump to "common directories," but rather drop
 #     subdirectories based on what the search string was (default: 0)
 ################################################################################
@@ -164,6 +172,7 @@ zsystem supports flock &> /dev/null && ZSHZ[USE_FLOCK]=1
 #   ZSHZ_DEBUG
 #   ZSHZ_EXCLUDE_DIRS
 #   ZSHZ_KEEP_DIRS
+#   ZSHZ_LOCK_TIMEOUT
 #   ZSHZ_MAX_SCORE
 #   ZSHZ_OWNER
 #
@@ -232,6 +241,8 @@ zshz() {
   # Globals:
   #   ZSHZ
   #   ZSHZ_EXCLUDE_DIRS
+  #   ZSHZ_LOCK_TIMEOUT
+  #   ZSHZ_NO_RESOLVE_SYMLINKS
   #   ZSHZ_OWNER
   #
   # Arguments:
@@ -307,8 +318,11 @@ zshz() {
         # best-effort and runs backgrounded (`&!'), so there is nowhere useful
         # to report to -- a message would land on the terminal asynchronously,
         # mid-keystroke, possibly every prompt. To diagnose a database that has
-        # stopped updating, run a foreground `z --add .' and check `$?'; see
-        # the README.
+        # stopped updating, run a foreground `z --add .' and check `$?': a
+        # nonzero status means the write did not happen -- 2 is a lock-
+        # acquisition timeout (contention, or a raised ZSHZ_LOCK_TIMEOUT is
+        # still too low), 1 is a permissions or ownership problem (e.g. a stale
+        # root-owned lockfile left by an earlier `sudo -s' session).
         # Create the lockfile 0600-from-birth and silently (umask in a
         # subshell), mirroring the datafile creation above rather than a bare
         # `touch' under the ambient umask with unsuppressed stderr. zsystem
@@ -665,6 +679,7 @@ zshz() {
   #   3) Put a common root or best match into REPLY
   #
   # Globals:
+  #   ZSHZ_TILDE
   #   ZSHZ_UNCOMMON
   #
   # Arguments:
@@ -769,13 +784,13 @@ zshz() {
   #   ZSHZ
   #   ZSHZ_CASE
   #   ZSHZ_KEEP_DIRS
-  #   ZSHZ_OWNER
+  #   ZSHZ_TRAILING_SLASH
   #
   # Arguments:
-  #   #1 Pattern to match
+  #   $1 Pattern to match
   #   $2 Matching method (rank, time, or [default] frecency)
   #   $3 Output format (completion, list, or [default] store
-  #     in REPLY
+  #     in REPLY)
   ############################################################
   _zshz_find_matches() {
     setopt LOCAL_OPTIONS NO_EXTENDED_GLOB
@@ -1027,6 +1042,10 @@ zshz() {
   # If $ZSHZ_ECHO == 1, display paths as you jump to them.
   # If it is also the case that $ZSHZ_TILDE == 1, display
   # the home directory as a tilde.
+  #
+  # Globals:
+  #   ZSHZ_ECHO
+  #   ZSHZ_TILDE
   #########################################################
   _zshz_echo() {
     if (( ZSHZ_ECHO )); then
