@@ -298,9 +298,10 @@ zshz() {
         # has a new inode -- so a separate, stable lockfile is needed.
         #
         # Bound the lock acquisition (default 1s, override with ZSHZ_LOCK_TIMEOUT)
-        # so a stuck holder can't freeze precmd's foreground `zshz --add'. Once
-        # the holder dies, the kernel frees the lock and the next add succeeds
-        # automatically -- no manual `rm ~/.z.lock' needed.
+        # so a stuck holder can't stall the backgrounded precmd add or freeze a
+        # user's foreground `z --add' / `z -x'. Once the holder dies, the kernel
+        # frees the lock and the next add succeeds automatically -- no manual
+        # `rm ~/.z.lock' needed.
         #
         # On timeout we return silently and on purpose: the precmd add is
         # best-effort and runs backgrounded (`&!'), so there is nowhere useful
@@ -308,7 +309,23 @@ zshz() {
         # mid-keystroke, possibly every prompt. To diagnose a database that has
         # stopped updating, run a foreground `z --add .' and check `$?'; see
         # the README.
-        [[ -f $lockfile ]] || touch "$lockfile"
+        # Create the lockfile 0600-from-birth and silently (umask in a
+        # subshell), mirroring the datafile creation above rather than a bare
+        # `touch' under the ambient umask with unsuppressed stderr. zsystem
+        # flock opens the lockfile O_RDWR, so under `sudo -s' with $ZSHZ_OWNER
+        # the unprivileged user must be able to open it: hand it off at
+        # creation, not only after a successful write -- a timed-out or failed
+        # first write by root would skip the post-write chown and leave a
+        # root-owned lockfile, turning every later user --add / -x into a
+        # silently-swallowed EACCES no-op. The lockfile is deliberately never
+        # removed: unlinking one a waiter has already opened reintroduces the
+        # two-inodes race the stable lockfile exists to prevent.
+        if [[ ! -f $lockfile ]]; then
+          ( umask 077; : >> "$lockfile" ) 2> /dev/null
+          local _lock_owner=${ZSHZ_OWNER:-${_Z_OWNER}}
+          [[ -n $_lock_owner ]] &&
+            ${ZSHZ[CHOWN]} "${_lock_owner}:$(id -ng "${_lock_owner}")" "$lockfile"
+        fi
         zsystem flock -t ${ZSHZ_LOCK_TIMEOUT:-1} -f lockfd "$lockfile" 2> /dev/null || return
 
       fi
@@ -447,7 +464,9 @@ zshz() {
       fi
     } always {
       # zsystem flock -f opens a real fd; explicitly unlock it so repeated
-      # foreground precmd writes don't leak lock descriptors and stall peers.
+      # foreground `z --add' / `z -x' invocations in the interactive shell
+      # don't leak lock descriptors and stall peers. (A backgrounded precmd
+      # child releases its fd on exit regardless; this matters for the parent.)
       (( lockfd != 0 )) && zsystem flock -u $lockfd 2> /dev/null
     }
 

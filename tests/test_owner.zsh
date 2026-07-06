@@ -29,6 +29,38 @@ test_owner_set_chowns_both_datafile_and_lockfile() {
     "chown must cover datafile and lockfile together when ZSHZ_OWNER is set"
 }
 
+test_owner_set_chowns_lockfile_at_creation() {
+  # The owner handoff must happen when the lockfile is *created*, not only
+  # after a successful write -- otherwise a timed-out or failed first write by
+  # root under `sudo -s' leaves a root-owned lockfile that makes every later
+  # unprivileged --add / -x a silently-swallowed EACCES no-op. The creation
+  # handoff logs a chown of the lockfile ALONE, distinct from the post-write
+  # chown that covers both files together.
+  (( ZSHZ[USE_FLOCK] )) || return 0
+
+  local chown_log="$TESTDIR/chown.log"
+  : > "$chown_log"
+
+  ZSHZ[CHOWN]=_test_log_chown
+  _test_log_chown() { print -- "$@" >> "$chown_log"; }
+
+  rm -f "${ZSHZ_DATA}.lock"
+  local sub="$TESTDIR/sub"
+  mkdir -p "$sub"
+  ZSHZ_OWNER=$(id -un) zshz --add "$sub"
+
+  local -a logged
+  logged=( ${(f)"$(< $chown_log)"} )
+  local l found=0
+  for l in $logged; do
+    # A standalone lockfile chown: ends with the lockfile and does not also
+    # carry the datafile (which the post-write both-files chown would).
+    [[ $l == *" ${ZSHZ_DATA}.lock" && $l != *"$ZSHZ_DATA "* ]] && found=1
+  done
+  assert_eq "1" "$found" \
+    "lockfile must be chowned at creation (standalone), not only after a write"
+}
+
 test_owner_unset_does_not_chown() {
   (( ZSHZ[USE_FLOCK] )) || return 0
 

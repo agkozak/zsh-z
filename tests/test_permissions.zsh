@@ -92,6 +92,23 @@ test_repeated_writes_keep_0600() {
   done
 }
 
+test_lockfile_created_at_0600() {
+  # The lockfile is a shared resource just like the datafile: it must be
+  # created 0600-from-birth (umask subshell), not with a bare `touch' under
+  # the ambient umask, so a multi-user host can't tamper with another user's
+  # lock.
+  (( ZSHZ[USE_FLOCK] )) || return 0   # no lockfile without flock
+  _test_skip_mode_check && return 0
+
+  rm -f "${ZSHZ_DATA}.lock"
+  local d="$TESTDIR/work"
+  mkdir -p "$d"
+  zshz --add "$d" || return 1
+  assert_file_exists "${ZSHZ_DATA}.lock"
+  assert_eq "600" "$(_test_mode_of "${ZSHZ_DATA}.lock")" \
+    "lockfile must be created at mode 0600, like the datafile"
+}
+
 test_initial_creation_chowns_when_ZSHZ_OWNER_set() {
   # Under `sudo -s' with ZSHZ_OWNER=user, a query-only `z foo' would
   # otherwise leave a root-owned .z behind that the normal-user shell
