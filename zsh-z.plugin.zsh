@@ -517,8 +517,13 @@ zshz() {
       (( rank_field < 1 )) && continue
 
       if [[ $path_field == $add_path ]]; then
-        rank[$path_field]=$rank_field
-        (( rank[$path_field]++ ))
+        # Compute the new rank with a scalar expression, not `(( rank[$key]++ ))'.
+        # The keys are `${(q)}'-quoted (rupa/z#246); a math-context subscript
+        # runs its key through the arithmetic lexer, which strips a backslash
+        # level and so misses any key containing `$ \ [ ] ( )' or a backtick --
+        # incrementing a phantom raw-keyed entry and leaving the real one stuck.
+        # An assignment subscript expands the key literally, so it is safe.
+        rank[$path_field]=$(( rank_field + 1 ))
         time[$path_field]=$now
       else
         rank[$path_field]=$rank_field
@@ -530,7 +535,13 @@ zshz() {
     if (( count > ${ZSHZ_MAX_SCORE:-${_Z_MAX_SCORE:-9000}} )); then
       # Aging
       for x in ${(k)rank}; do
-        out+=( "$x|$(( 0.99 * rank[$x] ))|${time[$x]}" )
+        # `${rank[$x]}', not a bare `rank[$x]' math subscript: the keys are
+        # `${(q)}'-quoted (rupa/z#246), and a math-context subscript would run
+        # the key through the arithmetic lexer, stripping a backslash level and
+        # missing any key with `$ \ [ ] ( )' or a backtick -- yielding 0, which
+        # the `rank_field < 1' drop above then erases on the next write. The
+        # expansion substitutes the numeric value before the math parser runs.
+        out+=( "$x|$(( 0.99 * ${rank[$x]} ))|${time[$x]}" )
       done
     else
       for x in ${(k)rank}; do

@@ -170,6 +170,41 @@ test_path_with_backslash_listed_verbatim() {
   assert_contains "$p" "$out" "list output should contain the backslash path verbatim"
 }
 
+test_dollar_sign_path_rank_increments_on_readd() {
+  # Re-adding a path must raise its rank. The `rank'/`time' keys in
+  # `_zshz_update_datafile' are `${(q)}'-quoted, so the increment has to use a
+  # scalar assignment rather than a math-context subscript: `(( rank[$key]++ ))'
+  # runs the key through the arithmetic lexer, which strips a backslash level
+  # and misses any `$'-containing key -- leaving the rank stuck at 1 and
+  # persisting a malformed duplicate line. Frecency accounting for such paths
+  # depends on this.
+  local p="$TESTDIR"'/readd$dollar/inner'
+  mkdir -p "$p"
+  zshz --add "$p"
+  zshz --add "$p"
+  assert_eq "2" "$(zshz_rank_of "$p")" "re-adding a \$-path should bump its rank to 2"
+  assert_eq "1" "$(grep -c -F "$p|" "$ZSHZ_DATA")" \
+    "re-add must not leave a malformed duplicate line for a \$-path"
+}
+
+test_dollar_sign_path_survives_aging() {
+  # Aging rewrites each entry as `0.99 * rank'. The multiplication must read the
+  # rank with an expansion (`${rank[$x]}'), not a bare `rank[$x]' math subscript
+  # -- the latter strips a backslash level off the `${(q)}'-quoted key, misses a
+  # `$'-containing key, and evaluates to 0, which the `rank_field < 1' drop then
+  # erases on the next write (silent data loss). A `$'-path seeded well above
+  # the drop threshold must survive aging at a positive rank.
+  local p="$TESTDIR"'/age$dollar/inner'
+  mkdir -p "$p" "$TESTDIR/trigger"
+  zshz_seed "$p" 100
+  ZSHZ_MAX_SCORE=50 zshz --add "$TESTDIR/trigger"
+
+  local r
+  r=$(zshz_rank_of "$p")
+  assert_ne "" "$r" "aging must not delete a \$-containing path"
+  assert_eq "1" "$(( r >= 1 ))" "aged \$-path rank should stay >= 1, got '$r'"
+}
+
 test_path_with_mixed_special_chars_round_trip() {
   # All seven special chars in one path. We search by a substring that
   # avoids the chars themselves so the search-side glob doesn't have
