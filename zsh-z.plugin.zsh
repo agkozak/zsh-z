@@ -1,6 +1,6 @@
 ################################################################################
-# Zsh-z - jump around with Zsh - A native Zsh version of z without awk, sort,
-# date, or sed
+# Zsh-z - jump around with Zsh - A native Zsh version of rupa/z without awk,
+# sort, date, or sed
 #
 # https://github.com/agkozak/zsh-z
 #
