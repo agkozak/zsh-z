@@ -40,4 +40,25 @@ test_list_prints_common_root_line() {
   assert_contains "common:" "$lines[1]" "-l should print a common-root summary when multiple matches share one"
   assert_contains "$TESTDIR/foo" "$lines[1]" "common-root summary should show the shared root"
 }
+test_list_with_query_does_not_change_directory() {
+  mkdir -p "$TESTDIR/proj/sub" "$TESTDIR/lone"
+  zshz_seed "$TESTDIR/proj" 10
+  zshz_seed "$TESTDIR/proj/sub" 5
+  zshz_seed "$TESTDIR/lone" 3
+
+  # Run -l in the current shell, not inside a `$( )' capture: the regression
+  # this guards against (a REPLY value leaking out of _zshz_output into the
+  # jump block) moves the calling shell, and a command substitution subshell
+  # can never observe that.
+  cd "$TESTDIR"
+  local before=$PWD
+
+  # Multiple matches sharing a common root
+  zshz -l proj > /dev/null
+  assert_eq "$before" "$PWD" "-l with a query must not change directory when matches share a common root"
+
+  # A single match -- its own common root, the everyday trigger
+  zshz -l lone > /dev/null
+  assert_eq "$before" "$PWD" "-l with a single match must not change directory"
+}
 # vim: fdm=indent:ts=2:et:sts=2:sw=2:
