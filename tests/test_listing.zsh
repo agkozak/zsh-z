@@ -5,7 +5,21 @@ test_no_args_matches_list_output() {
   zshz_seed "$TESTDIR/a" 5 60
   zshz_seed "$TESTDIR/b" 10 120
 
-  assert_eq "$(zshz -l)" "$(zshz)" "calling zshz with no args should behave like -l"
+  # Each invocation caches its own $EPOCHSECONDS, so if the clock ticks
+  # between the two captures every frecency rank drifts by one part in
+  # ~10^4 and the byte comparison fails -- seen on Cygwin CI, where the
+  # two command-substitution forks are slow. Retry only when a tick
+  # landed inside the capture window; a genuine behavioral difference
+  # fails on every attempt.
+  local list no_args before
+  integer attempt
+  for attempt in 1 2 3; do
+    before=$EPOCHSECONDS
+    list=$(zshz -l)
+    no_args=$(zshz)
+    [[ $list == "$no_args" || $EPOCHSECONDS == $before ]] && break
+  done
+  assert_eq "$list" "$no_args" "calling zshz with no args should behave like -l"
 }
 
 test_list_rank_and_time_modes_order_entries() {
