@@ -192,7 +192,7 @@ zshz() {
   local custom_datafile="${ZSHZ_DATA:-$_Z_DATA}"
 
   # If a datafile was provided as a standalone file without a directory path
-  # print a warning and exit
+  # print a warning and return
   if [[ -n ${custom_datafile} && ${custom_datafile} != */* ]]; then
     print "ERROR: You configured a custom Zsh-z datafile (${custom_datafile}), but have not specified its directory." >&2
     return 1
@@ -202,7 +202,7 @@ zshz() {
   # If the datafile is a symlink, it gets dereferenced
   local datafile=${${custom_datafile:-$HOME/.z}:A}
 
-  # If the datafile is a directory, print a warning and exit
+  # If the datafile is a directory, print a warning and return
   if [[ -d $datafile ]]; then
     print "ERROR: Zsh-z's datafile (${datafile}) is a directory." >&2
     return 1
