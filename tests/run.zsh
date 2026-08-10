@@ -38,6 +38,20 @@ for _fn in ${(k)functions}; do
 done
 _test_fns=( ${(o)_test_fns} )
 
+# A run that discovers nothing is a failure, not a success. Without this guard
+# the `(( failed == 0 ))' at the end of this file exits 0 having asserted
+# nothing at all -- and several ordinary mishaps land here looking exactly like
+# a clean run: the `(.N)' qualifier on the collection glob above yields an empty
+# array rather than an error when no test file matches, and the two `source'
+# lines at the top of this file are unchecked, so a checkout missing tests/, a
+# packaging slip, or a rename that stops matching `test_*.zsh' would all report
+# green in CI. Mirrors the "No tests matched" guard below, which already covers
+# the command-line-pattern case.
+if (( ! ${#_test_fns} )); then
+  print -u 2 "No tests found in $TESTS_DIR"
+  exit 2
+fi
+
 # If names were passed on the command line, run only those tests. Each arg is
 # matched as a glob against test function names, so prefixes work too, and
 # several patterns may be combined -- a test runs if it matches any of them:
