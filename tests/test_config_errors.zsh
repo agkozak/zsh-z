@@ -13,6 +13,17 @@
 # below probe the stronger property: a sentinel placed *after* the
 # failing call must still print, which only happens if the calling
 # shell stayed alive.
+#
+# Surviving the error is only half of it. Once `zshz' returns instead
+# of exiting, a bad $ZSHZ_DATA persists -- and `_zshz_precmd' runs
+# `zshz --add' before every prompt, so the same diagnostic came back
+# once per prompt for the life of the shell. The fork can't warn just
+# once: `&!' means it cannot record "already warned" anywhere its
+# parent will see. `_zshz_precmd' therefore marks its own call with a
+# `local _zshz_quiet_add' and `zshz' skips the diagnostic when it sees
+# it. The second group of tests pins down all three halves of that
+# bargain: the hook is silent, a hand-typed `z --add' is not, and the
+# marker never escapes into the surrounding shell.
 
 # Same self-locator used in test_emulate.zsh / test_strict_options.zsh.
 _zshz_test_zsh_bin() {
@@ -81,5 +92,98 @@ test_directory_ZSHZ_DATA_returns_does_not_exit() {
     "directory ZSHZ_DATA should produce the user-facing error"
   assert_contains "POST_DIR_SENTINEL" "$out" \
     "calling shell should survive a directory ZSHZ_DATA"
+}
+
+# The disowned `&!' add can't be waited for -- `wait' doesn't see it --
+# and a misconfigured datafile means there's no file to poll, either.
+# Give the forks a moment to produce output they shouldn't produce.
+# Generous rather than tight: a false PASS from sampling too early is
+# worse than half a second, and forks are slow on Cygwin/MSYS2.
+_ZSHZ_FORK_SETTLE=0.5
+
+test_precmd_add_is_silent_when_ZSHZ_DATA_is_a_directory() {
+  # Five prompts' worth of hook must produce nothing at all.
+  local zsh_bin out
+  zsh_bin=$(_zshz_test_zsh_bin)
+  mkdir -p "$TESTDIR/data-dir" "$TESTDIR/work"
+
+  out=$("$zsh_bin" --no-rcs -c "
+    source '$PLUGIN_DIR/zsh-z.plugin.zsh'
+    ZSHZ_DATA='$TESTDIR/data-dir'
+    builtin cd '$TESTDIR/work'
+    for i in 1 2 3 4 5; do _zshz_precmd; done
+    sleep $_ZSHZ_FORK_SETTLE
+    print POST_PRECMD_SENTINEL
+  " 2>&1)
+
+  assert_not_contains "is a directory" "$out" \
+    "the pre-prompt add must not report a bad datafile at every prompt"
+  assert_contains "POST_PRECMD_SENTINEL" "$out" \
+    "calling shell should survive a directory ZSHZ_DATA at precmd time"
+}
+
+test_precmd_add_is_silent_when_ZSHZ_DATA_is_a_bare_filename() {
+  local zsh_bin out
+  zsh_bin=$(_zshz_test_zsh_bin)
+  mkdir -p "$TESTDIR/work"
+
+  out=$("$zsh_bin" --no-rcs -c "
+    source '$PLUGIN_DIR/zsh-z.plugin.zsh'
+    ZSHZ_DATA=barefile
+    builtin cd '$TESTDIR/work'
+    for i in 1 2 3 4 5; do _zshz_precmd; done
+    sleep $_ZSHZ_FORK_SETTLE
+    print POST_PRECMD_SENTINEL
+  " 2>&1)
+
+  assert_not_contains "have not specified its directory" "$out" \
+    "the pre-prompt add must not report a bare-filename datafile at every prompt"
+  assert_contains "POST_PRECMD_SENTINEL" "$out" \
+    "calling shell should survive a bare-filename ZSHZ_DATA at precmd time"
+}
+
+test_manual_add_still_reports_a_bad_ZSHZ_DATA() {
+  # Only the hook's add is quiet. `z --add' typed by hand is a direct
+  # request and must still explain why it failed -- otherwise silencing
+  # the hook would have cost the user a diagnostic they asked for.
+  local zsh_bin out
+  zsh_bin=$(_zshz_test_zsh_bin)
+  mkdir -p "$TESTDIR/data-dir" "$TESTDIR/work"
+
+  out=$("$zsh_bin" --no-rcs -c "
+    source '$PLUGIN_DIR/zsh-z.plugin.zsh'
+    ZSHZ_DATA='$TESTDIR/data-dir' zshz --add '$TESTDIR/work'
+    print POST_MANUAL_ADD_SENTINEL
+  " 2>&1)
+
+  assert_contains "is a directory" "$out" \
+    "a hand-typed 'z --add' should still report a bad datafile"
+  assert_contains "POST_MANUAL_ADD_SENTINEL" "$out" \
+    "calling shell should survive a hand-typed 'z --add'"
+}
+
+test_precmd_quiet_marker_does_not_leak_into_the_shell() {
+  # `_zshz_quiet_add' is a `local' in `_zshz_precmd', reached by dynamic
+  # scope. Were it ever to become a global, the first prompt would
+  # silence every later `zshz' call in that shell -- including the
+  # interactive ones this whole file exists to protect. Run the hook
+  # against a *good* datafile, then check both halves.
+  local zsh_bin out
+  zsh_bin=$(_zshz_test_zsh_bin)
+  mkdir -p "$TESTDIR/data-dir" "$TESTDIR/work"
+
+  out=$("$zsh_bin" --no-rcs -c "
+    source '$PLUGIN_DIR/zsh-z.plugin.zsh'
+    builtin cd '$TESTDIR/work'
+    _zshz_precmd
+    sleep $_ZSHZ_FORK_SETTLE
+    print \"MARKER=[\${_zshz_quiet_add-unset}]\"
+    ZSHZ_DATA='$TESTDIR/data-dir' zshz -l
+  " 2>&1)
+
+  assert_contains "MARKER=[unset]" "$out" \
+    "the precmd quiet marker must not survive into the calling shell"
+  assert_contains "is a directory" "$out" \
+    "an interactive call after a precmd add must still report a bad datafile"
 }
 # vim: fdm=indent:ts=2:et:sts=2:sw=2:

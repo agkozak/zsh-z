@@ -191,10 +191,23 @@ zshz() {
   # Allow the user to specify a custom datafile in $ZSHZ_DATA (or legacy $_Z_DATA)
   local custom_datafile="${ZSHZ_DATA:-$_Z_DATA}"
 
+  # $_zshz_quiet_add marks the automatic bookkeeping add that _zshz_precmd
+  # runs in a `&!' fork before every prompt (_zshz_precmd declares it `local',
+  # so it is visible here only through that one call). A fork cannot
+  # record anything in the parent shell, so it has no way to warn just once:
+  # an unusable $ZSHZ_DATA would otherwise put the same diagnostic on the
+  # terminal at every prompt for the life of the shell. Stay quiet on that
+  # path and leave the complaining to the entry points the user actually
+  # invoked -- including a hand-typed `z --add', which is not marked and so
+  # still reports.
+  local quiet
+  [[ -n ${_zshz_quiet_add-} ]] && quiet=1
+
   # If a datafile was provided as a standalone file without a directory path
   # print a warning and return
   if [[ -n ${custom_datafile} && ${custom_datafile} != */* ]]; then
-    print "ERROR: You configured a custom Zsh-z datafile (${custom_datafile}), but have not specified its directory." >&2
+    (( quiet )) ||
+      print "ERROR: You configured a custom Zsh-z datafile (${custom_datafile}), but have not specified its directory." >&2
     return 1
   fi
 
@@ -204,7 +217,8 @@ zshz() {
 
   # If the datafile is a directory, print a warning and return
   if [[ -d $datafile ]]; then
-    print "ERROR: Zsh-z's datafile (${datafile}) is a directory." >&2
+    (( quiet )) ||
+      print "ERROR: Zsh-z's datafile (${datafile}) is a directory." >&2
     return 1
   fi
 
@@ -1253,6 +1267,7 @@ _zshz_precmd() {
   # at the prompt for `&!' vs. ~30ms for a foreground add at 300 datafile
   # entries -- and ~300ms at 1,000 entries, since the foreground cost grows
   # with the datafile while the fork cost stays flat.
+  local _zshz_quiet_add=1
   zshz --add "$PWD" &!
 
   # See https://github.com/rupa/z/pull/247/commits/081406117ea42ccb8d159f7630cfc7658db054b6
