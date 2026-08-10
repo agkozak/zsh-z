@@ -1155,11 +1155,8 @@ zshz() {
   fi
 
   # With option -c, make sure query string matches beginning of matches;
-  # otherwise look for matches anywhere in paths
-
-  # The braces in ${+opts[-c]} keep the subscript inside parameter expansion,
-  # where the math evaluator can never see `-c' as arithmetic -- zpm-zsh/colors
-  # defines a global $c that a bare math subscript would pick up.
+  # otherwise look for matches anywhere in paths. A bug long prevented this
+  # option from working.
   if (( ${+opts[-c]} )); then
     _zshz_find_matches "$fnd*" $method $output_format
   else
