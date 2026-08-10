@@ -2,6 +2,8 @@
 
 [![MIT License](img/mit_license.svg)](https://opensource.org/licenses/MIT)
 ![Zsh version 4.3.11 and higher](img/zsh_4.3.11_plus.svg)
+![Version](https://img.shields.io/github/v/release/agkozak/zsh-z)
+![Workflow Status](https://github.com/agkozak/zsh-z/actions/workflows/test.yml/badge.svg)
 [![GitHub stars](https://img.shields.io/github/stars/agkozak/zsh-z.svg)](https://github.com/agkozak/zsh-z/stargazers)
 
 ![Zsh-z demo](img/demo.gif)
@@ -12,9 +14,13 @@ Zsh-z is a native Zsh port of [`rupa/z`](https://github.com/rupa/z), a tool writ
 
 There is also a significant stability improvement. Race conditions have always been a problem with `rupa/z`, and users of that utility occasionally lose their `~/.z` databases. By having Zsh-z only use Zsh (`rupa/z` uses a hybrid shell code standard that works on `bash` as well), I have been able to implement a `zsh/system`-based file-locking mechanism similar to [the one @mafredri once proposed for `rupa/z`](https://github.com/rupa/z/pull/199). It is now nearly impossible to crash the database.
 
-There are other, smaller improvements which I document below in [Improvements and Fixes](#improvements-and-fixes). For instance, tab completions are now sorted by frecency by default rather than alphabetically (the latter behavior can be restored if you like it -- [see below](#settings)).
+There are other, smaller improvements which I document below in [Other Improvements to the Original Functionality of `rupa/z`](#other-improvements-to-the-original-functionality-of-rupa-z). For instance, tab completions are now sorted by frecency by default rather than alphabetically (the latter behavior can be restored if you like it -- [see below](#settings)).
 
 Zsh-z is a drop-in replacement for `rupa/z` and will, by default, use the same database (`~/.z`, or whatever database file you specify), so you can go on using `rupa/z` when you launch `bash`.
+
+> ### Zsh-z v2.0
+>
+> **v2.0 is the most significant release in the project's history.** It beasts or ties `rupa/z` on *every* operation, on both modern Zsh and the oldest supported Zsh (4.3.11); it never makes your prompt wait on database writes -- on any platform; it hardens those writes against corruption and against prying eyes; and it makes tab completion "just work" even under `setopt COMPLETE_ALIASES`. See [**v2.0**](#v20) in the News below for the full rundown, and [Performance](#performance) for the benchmarks.
 
 ## Table of Contents
 - [News](#news)
@@ -24,14 +30,30 @@ Zsh-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
 - [Case Sensitivity](#case-sensitivity)
 - [`ZSHZ_UNCOMMON`](#zshz_uncommon)
 - [Making `--add` work for you](#making---add-work-for-you)
+- [Performance](#performance)
 - [Other Improvements to the Original Functionality of `rupa/z`](#other-improvements-to-the-original-functionality-of-rupa-z)
 - [Migrating from Other Tools](#migrating-from-other-tools)
 - [`COMPLETE_ALIASES`](#complete_aliases)
 
 ## News
 
+### v2.0
+
+Version **2.0** is a major step forward, and these are the changes most worth knowing about:
+
+- **Zsh-z is now faster than `rupa/z` across the board.** A thorough read- and write-path optimization sweep means that Zsh-z now *beats or ties* `rupa/z`'s `z.sh` on every operation, on both modern Zsh (5.9) and the oldest supported Zsh (4.3.11). On modern Zsh, listing is ~1.35× faster than `z.sh`, searching ~1.37× faster, adding ~1.77× faster, and removing ~1.92× faster. Compared with the previous generation of Zsh-z, listing is roughly 60% faster and searching roughly 40% faster. See [Performance](#performance) for the numbers.
+- **Database writes never block your prompt** -- on any platform. The per-prompt `--add` has long run in the background on most systems, but Cygwin and MSYS2 did the write in the foreground, because backgrounding there cost a wrapper subshell plus a job. `--add` now runs as a single disowned job (`&!`) everywhere: one fork, no wrapper subshell, no job-control noise. On Cygwin and MSYS2 that turns a foreground write whose cost grows with your datafile (~30 ms at 300 entries, ~300 ms at 1,000) into a flat ~10-12 ms fork. Elsewhere it halves the forks per prompt.
+- **Safer, crash-resistant concurrent writes.** Writes are now guarded by a dedicated, stable lockfile using `zsh/system` file locking, with a bounded wait for lock acquisition (the new [`ZSHZ_LOCK_TIMEOUT`](#settings), default `1` second). Write errors are handled gracefully and will not clobber your database, and locks are always released even if a write is interrupted.
+- **Your database file now has `600` permissions** -- readable and writable only by you -- so that other users on a shared system cannot read your directory history ([#92](https://github.com/agkozak/zsh-z/issues/92)). On Zsh 5+ this uses the in-process `zf_chmod` builtin; on Zsh 4.3.11 it uses a `umask`-in-a-subshell technique that avoids the fork-and-exec of an external `chmod`.
+- **`COMPLETE_ALIASES` just works.** Tab completion no longer breaks when you have `setopt COMPLETE_ALIASES` enabled. Zsh-z registers the alias automatically on the first Tab press, so the manual `compdef` line that earlier versions required is no longer necessary. [See below](#complete_aliases).
+- **Fixed a `can't clobber parameter tmpfd` error on some Zsh builds.** On certain Zsh builds, every database write could fail with `can't clobber parameter tmpfd containing file descriptor 0`, leaving an error at each new prompt. The file descriptor used for the temporary database file is now held in an unset scalar rather than one seeded with `0`, so the write never trips Zsh's file-descriptor-clobber guard ([#81](https://github.com/agkozak/zsh-z/issues/81)).
+- **A misconfigured database file no longer closes your shell -- or nags you at every prompt.** When `ZSHZ_DATA` points at a directory, or names a file without a directory, Zsh-z now reports the problem and returns instead of calling `exit`. The per-prompt `--add` stays quiet about it, so you are told once, when you actually run `z`, rather than at every prompt ([#103](https://github.com/agkozak/zsh-z/issues/103); props @ahjota).
+- **More robust startup and operation.** A version check on an unsupported Zsh no longer risks exiting your interactive shell, and Zsh-z runs cleanly under `setopt NO_UNSET`.
+
+The dated entries below remain the historical record of changes leading up to v2.0.
+
 <details>
-    <summary>Here are the latest features and updates.</summary>
+    <summary>Here are the older features and updates.</summary>
 
 - May 6, 2026
     + Zsh-z will now handle paths with dollar signs (`$`) in them.
@@ -198,7 +220,7 @@ Add a backslash to the end of the last line and add `'zsh-z'` to the list, e.g.,
 Then relaunch `zsh`.
 
 ### For [zcomet](https://github.com/agkozak/zcomet) users
-        
+
 Simply add
 
     zcomet load agkozak/zsh-z
@@ -277,6 +299,7 @@ to install Zsh-z.
 
 Zsh-z has environment variables (they all begin with `ZSHZ_`) that change its behavior if you set them. You can also keep your old ones if you have been using `rupa/z` (whose environment variables begin with `_Z_`).
 
+* `ZSHZ_CASE` can be `ignore`, for case-insensitive matching, or `smart`, for Vim-like `smartcase` matching; [see below](#case-sensitivity) (default: empty, i.e., a case-sensitive match is tried first, then a case-insensitive one)
 * `ZSHZ_CMD` changes the command name (default: `z`)
 * `ZSHZ_CD` specifies the default directory-changing command (default: `builtin cd`)
 * `ZSHZ_COMPLETION` can be `'frecent'` (default) or `'legacy'`, depending on whether you want your completion results sorted according to frecency or simply sorted alphabetically
@@ -284,6 +307,7 @@ Zsh-z has environment variables (they all begin with `ZSHZ_`) that change its be
 * `ZSHZ_ECHO` displays the new path name when changing directories (default: `0`)
 * `ZSHZ_EXCLUDE_DIRS` is an array of directories to keep out of the database (default: empty)
 * `ZSHZ_KEEP_DIRS` is an array of directories that should not be removed from the database, even if they are not currently available (useful when a drive is not always mounted) (default: empty)
+* `ZSHZ_LOCK_TIMEOUT` is the number of seconds to wait for the database lockfile before giving up on a write (default: `1`). A write that times out is dropped silently -- the automatic `precmd` add is best-effort -- so if the database seems to stop updating, the lock is probably contended: run `z --add .` by hand and check `$?` (a non-zero value confirms it), then look for a stale process holding `~/.z.lock`.
 * `ZSHZ_MAX_SCORE` is the maximum combined score the database entries can have before they begin to age and potentially drop out of the database (default: 9000)
 * `ZSHZ_NO_RESOLVE_SYMLINKS` prevents symlink resolution (default: `0`)
 * `ZSHZ_OWNER` allows usage when in `sudo -s` mode (default: empty)
@@ -333,6 +357,21 @@ A good example might involve a directory tree that has Git repositories within i
     done
 
 (As a Zsh user, I tend to use `**` instead of `find`, but it is good to see how deep your directory trees go before doing that.)
+
+## Performance
+
+One of the goals of the rewrite that culminated in v2.0 was to make Zsh-z simultanously more stable and faster. Zsh-z beats or ties `rupa/z`'s `z.sh` on every operation, on both modern Zsh and the oldest supported Zsh (4.3.11). Representative figures (N = 200 database entries, WSL2):
+
+**Modern Zsh (5.9) -- Zsh-z vs. `rupa/z`:**
+
+| Operation | `rupa/z` (`z.sh`) | Zsh-z       | Winner            |
+| --------- | ----------------- | ----------- | ----------------- |
+| `add`     |  3.67 ms/op       |  2.07 ms/op | **Zsh-z** ~1.77×  |
+| `search`  |  5.16 ms/op       |  3.76 ms/op | **Zsh-z** ~1.37×  |
+| `list`    |  6.21 ms/op       |  4.61 ms/op | **Zsh-z** ~1.35×  |
+| `remove`  |  1.16 ms/op       |  0.60 ms/op | **Zsh-z** ~1.92×  |
+
+On Zsh 4.3.11, the oldest supported release, Zsh-z now wins on `add`, `search`, and `remove`, and is within roughly 1% of `z.sh` on `list` (effectively tied). Relative to the previous generation of Zsh-z, the v2.0 read path is dramatically faster -- on modern Zsh, listing is about 60% faster and searching about 40% faster.
 
 ## Other Improvements to the Original Functionality of `rupa/z`
 
