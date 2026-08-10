@@ -1277,8 +1277,20 @@ _zshz_precmd() {
   # at the prompt for `&!' vs. ~30ms for a foreground add at 300 datafile
   # entries -- and ~300ms at 1,000 entries, since the foreground cost grows
   # with the datafile while the fork cost stays flat.
+  #
+  # `2> /dev/null' is what actually enforces the "stay quiet at every prompt"
+  # rule that $_zshz_quiet_add describes. That marker can only gate Zsh-z's own
+  # `print's; it cannot reach the external and builtin commands further down the
+  # --add path -- `mkdir -p', `id -ng', ${ZSHZ[CHOWN]}, the deliberately loud
+  # datafile-creation retry, or Zsh's own redirection diagnostics -- and any of
+  # those can fail when $ZSHZ_DATA sits on an unwritable or unmounted directory,
+  # or when $ZSHZ_OWNER names a user `id' can't resolve. Suppressing at the fork
+  # covers every such site at once, including ones added later, whereas
+  # suppressing site by site has to be kept in sync forever. Nothing actionable
+  # is lost: a foreground `z --add .' still reports in full, which is exactly
+  # the diagnostic the lock comment above tells the user to run.
   local _zshz_quiet_add=1
-  zshz --add "$PWD" &!
+  zshz --add "$PWD" 2> /dev/null &!
 
   # See https://github.com/rupa/z/pull/247/commits/081406117ea42ccb8d159f7630cfc7658db054b6
   : $RANDOM
