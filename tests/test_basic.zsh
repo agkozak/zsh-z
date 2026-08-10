@@ -58,6 +58,18 @@ test_remove_R_drops_subtree() {
   assert_eq "1" "$(zshz_rank_of "$c")" "$c (sibling) should remain"
 }
 
+test_remove_R_missing_path_leaves_database_alone() {
+  local a="$TESTDIR/a" b="$TESTDIR/a/b"
+  mkdir -p "$b"
+  zshz --add "$a"
+  zshz --add "$b"
+  zshz -xR "$TESTDIR/does-not-exist" 2> /dev/null
+  local rc=$?
+  assert_ne "0" "$rc" "-xR on a missing path should report failure"
+  assert_eq "1" "$(zshz_rank_of "$a")" "$a must survive -xR on a missing path"
+  assert_eq "1" "$(zshz_rank_of "$b")" "$b must survive -xR on a missing path"
+}
+
 test_list_shows_added_paths() {
   local a="$TESTDIR/alpha" b="$TESTDIR/beta"
   mkdir -p "$a" "$b"

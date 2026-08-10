@@ -301,6 +301,16 @@ zshz() {
         [[ -d ${${*:-${PWD}}:A} ]] && xdir=${${*:-${PWD}}:A}
       fi
 
+      # An argument that does not name an existing directory leaves $xdir
+      # empty, and an empty $xdir is not a harmless no-op: under `-R' it
+      # collapses the subtree filter below into `${lines_to_keep:#/**}', which
+      # matches every line in the datafile and erases the lot -- silently, since
+      # the whole-database confirmation just below tests for `/' rather than for
+      # emptiness. Bail out here, before the lock is taken. Plain `-x' already
+      # returned 1 for such an argument (nothing matched, so nothing changed),
+      # so only the `-xR' case behaves differently now.
+      [[ -n $xdir ]] || return 1
+
       if (( ${+opts[-R]} )) && [[ $xdir == '/' ]]; then
         if ! read -q "?Delete entire Zsh-z database? "; then
           print && return 1
