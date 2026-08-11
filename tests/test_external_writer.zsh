@@ -46,12 +46,24 @@ test_external_writer_during_our_add_serializes() {
   # timeout, 1 a write or permissions failure, and 0 the interesting
   # case, a writer that believes it succeeded, which would mean the lock
   # did not serialize the two of them at all.
-  local writers="$TESTDIR/writers.log"
-  printf '%s\n' "$a" "$b" | ( xargs_P 2 \
-    env ZSHZ_LOCK_TIMEOUT=30 zsh -c \
-      "source '$PLUGIN_DIR/zsh-z.plugin.zsh'
-       err=\$(zshz --add {} 2>&1)
-       print -r -- \"writer {} rc=\$? err='\$err'\" >> '$writers'" )
+  #
+  # The writer is a generated script rather than an inline `zsh -c'
+  # string, and the input is bare names rather than full paths, because
+  # BSD `xargs' caps what an `-I' line may expand to -- 255 bytes, raisable
+  # only with `-S', which GNU `xargs' does not accept. macOS's $TMPDIR
+  # paths are long enough that an inline script goes over that cap and
+  # `xargs' fails the whole run with "command line cannot be assembled,
+  # too long". This keeps the assembled line at roughly 120 bytes on the
+  # longest-pathed platform we test.
+  local writers="$TESTDIR/writers.log" writer="$TESTDIR/writer.zsh"
+  cat > "$writer" <<WRITER
+source '$PLUGIN_DIR/zsh-z.plugin.zsh'
+err=\$(zshz --add "$TESTDIR/\$1" 2>&1)
+print -r -- "writer \$1 rc=\$? err='\$err'" >> '$writers'
+WRITER
+
+  printf '%s\n' "${a:t}" "${b:t}" | ( xargs_P 2 \
+    env ZSHZ_LOCK_TIMEOUT=30 zsh "$writer" {} )
 
   local rank_seeded rank_a rank_b
   rank_seeded=$(zshz_rank_of "$seeded")
