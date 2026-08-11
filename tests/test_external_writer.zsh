@@ -56,10 +56,13 @@ test_external_writer_during_our_add_serializes() {
   # too long". This keeps the assembled line at roughly 120 bytes on the
   # longest-pathed platform we test.
   local writers="$TESTDIR/writers.log" writer="$TESTDIR/writer.zsh"
-  cat > "$writer" <<WRITER
-source '$PLUGIN_DIR/zsh-z.plugin.zsh'
-err=\$(zshz --add "$TESTDIR/\$1" 2>&1)
-print -r -- "writer \$1 rc=\$? err='\$err'" >> '$writers'
+  export ZSHZ_TEST_WRITER_PLUGIN="$PLUGIN_DIR/zsh-z.plugin.zsh"
+  export ZSHZ_TEST_WRITER_ROOT="$TESTDIR"
+  export ZSHZ_TEST_WRITER_LOG="$writers"
+  cat > "$writer" <<'WRITER'
+source "$ZSHZ_TEST_WRITER_PLUGIN"
+err=$(zshz --add "$ZSHZ_TEST_WRITER_ROOT/$1" 2>&1)
+print -r -- "writer $1 rc=$? err='$err'" >> "$ZSHZ_TEST_WRITER_LOG"
 WRITER
 
   printf '%s\n' "${a:t}" "${b:t}" | ( xargs_P 2 \

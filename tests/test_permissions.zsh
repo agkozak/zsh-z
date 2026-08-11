@@ -1,9 +1,9 @@
 # Datafile permission hardening (#92).
 #
 # `~/.z` must always end up at mode 0600 so a multi-user host can't read
-# another user's directory history. The plugin enforces this by calling
-# `${ZSHZ[CHMOD]} 600' after every file creation -- the in-process
-# `zf_chmod' on Zsh 5+ and the external `chmod' on Zsh 4.3.11. `mv'
+# another user's directory history. The plugin uses the in-process `zf_chmod'
+# when available and otherwise creates files under `umask 077' in a subshell,
+# avoiding an external `chmod'. `mv'
 # then atomically replaces `.z' with the tempfile and preserves its
 # 0600. These tests cover all the write paths that could leak
 # permissions: fresh creation, `--add' over a preexisting 0644 file,

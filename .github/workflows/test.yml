@@ -92,7 +92,8 @@ jobs:
   # backed filesystem (the mode tests skip via a runtime probe), and the precmd
   # path runs under a slow fork. Exercise it on a windows-latest runner via the
   # official setup-msys2 action so those paths don't regress unnoticed. The full
-  # heavy suite has been verified locally on MSYS2 zsh 5.9 (194/194).
+  # heavy suite currently contains 231 tests; capability-dependent cases are
+  # reported explicitly as skips.
   test-msys2:
     name: zsh on MSYS2 (Windows)
     runs-on: windows-latest
@@ -127,7 +128,8 @@ jobs:
   # runtime lineage ($OSTYPE=cygwin) but isn't redundant: it ships a different
   # zsh (5.8 vs 5.9) and, unlike a stock MSYS2, its default `ln -s' produces
   # resolvable symlinks -- so the five symlink-resolution tests that skip on
-  # MSYS2 actually run here. Verified locally on real Cygwin zsh 5.8 (194/194).
+  # MSYS2 actually run here. The 231-test heavy suite reports unsupported
+  # capability-dependent cases explicitly as skips.
   test-cygwin:
     name: zsh on Cygwin (Windows)
     runs-on: windows-latest

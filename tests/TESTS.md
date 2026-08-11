@@ -867,6 +867,23 @@ name and recurse infinitely on Tab; see commit 62569dd).
 - `test_first_source_preserves_non_default_tab_binding` — a user's
   custom Tab binding (e.g. `menu-complete`) is captured verbatim.
 
+### `test_runner.zsh` — test-runner contract fixtures
+
+Builds isolated minimal runner trees under each test's temporary
+directory, so deliberate source failures cannot interfere with the
+real suite.
+
+- `test_runner_reports_plugin_source_failure` — a nonzero plugin
+  source status exits 2 and names the plugin.
+- `test_runner_reports_helper_source_failure` — the same contract
+  for `test_helpers.zsh`.
+- `test_runner_reports_test_file_source_failure` — the same contract
+  for a discovered `test_*.zsh` file.
+- `test_runner_reports_explicit_skip` — an explicit `skip: ` marker
+  produces a SKIP line and increments only the skipped count.
+- `test_runner_failure_takes_precedence_over_skip_marker` — a
+  nonzero test that also prints a skip marker remains a failure.
+
 ### `test_scale.zsh` — large-datafile smoke tests (gated)
 
 Run with `ZSHZ_HEAVY_TESTS=1`. Catches accidental quadratic blowups,
