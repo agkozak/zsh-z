@@ -37,15 +37,52 @@ test_external_writer_during_our_add_serializes() {
   # external `zsh -c' processes (avoids zsh 4.3.11's `&'/`wait'
   # segfault under fork load). The high lock timeout keeps honest
   # contention from being mistaken for a regression.
+  #
+  # Each writer records its exit status and anything it wrote to stderr.
+  # A lost add is otherwise indistinguishable from its causes, and this
+  # test has failed intermittently on the MSYS2 CI runner without being
+  # reproducible anywhere else -- so the log is dumped on failure below.
+  # The status says which of them it was: 2 is a lock-acquisition
+  # timeout, 1 a write or permissions failure, and 0 the interesting
+  # case, a writer that believes it succeeded, which would mean the lock
+  # did not serialize the two of them at all.
+  local writers="$TESTDIR/writers.log"
   printf '%s\n' "$a" "$b" | ( xargs_P 2 \
     env ZSHZ_LOCK_TIMEOUT=30 zsh -c \
-      "source '$PLUGIN_DIR/zsh-z.plugin.zsh'; zshz --add {}" )
+      "source '$PLUGIN_DIR/zsh-z.plugin.zsh'
+       err=\$(zshz --add {} 2>&1)
+       print -r -- \"writer {} rc=\$? err='\$err'\" >> '$writers'" )
 
-  assert_eq "5" "$(zshz_rank_of "$seeded")" \
+  local rank_seeded rank_a rank_b
+  rank_seeded=$(zshz_rank_of "$seeded")
+  rank_a=$(zshz_rank_of "$a")
+  rank_b=$(zshz_rank_of "$b")
+
+  # Dump the evidence before the assertions, so a failure on a platform
+  # that cannot be reproduced locally still arrives with its cause
+  # attached. Silent on success: run.zsh fails any test that writes to
+  # stderr at all.
+  if [[ $rank_seeded != 5 || $rank_a != 1 || $rank_b != 1 ]]; then
+    local line
+    print -u 2 "  --- writer exit statuses ---"
+    if [[ -f $writers ]]; then
+      while IFS= read -r line; do print -u 2 "    $line"; done < "$writers"
+    else
+      print -u 2 "    (no writer logged anything at all)"
+    fi
+    print -u 2 "  --- datafile ---"
+    if [[ -f $ZSHZ_DATA ]]; then
+      while IFS= read -r line; do print -u 2 "    $line"; done < "$ZSHZ_DATA"
+    fi
+    print -u 2 "  --- lockfile ---"
+    print -u 2 "    $(ls -l ${ZSHZ_DATA}.lock 2>&1)"
+  fi
+
+  assert_eq "5" "$rank_seeded" \
     "pre-seeded entry should survive two concurrent --add writers"
-  assert_eq "1" "$(zshz_rank_of "$a")" \
+  assert_eq "1" "$rank_a" \
     "first concurrent --add should land"
-  assert_eq "1" "$(zshz_rank_of "$b")" \
+  assert_eq "1" "$rank_b" \
     "second concurrent --add should land"
 }
 
