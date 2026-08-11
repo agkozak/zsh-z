@@ -160,6 +160,45 @@ fi
 # Determine if zsystem flock is available
 zsystem supports flock &> /dev/null && ZSHZ[USE_FLOCK]=1
 
+# Windows only: how many times to retry a datafile rename that fails.
+#
+# On Cygwin and MSYS2, rename() fails with EBUSY or EACCES whenever another
+# process holds the tempfile or the datafile open without FILE_SHARE_DELETE --
+# which is precisely what a virus scanner or the search indexer does to a file
+# in the moments after it is created. Since the write path below creates the
+# tempfile and renames it over the datafile microseconds later, that window is
+# wide open. The rename's stderr is discarded there, so a scan that lands in
+# the window silently loses an `--add' or a `-x': no message, no delay, just a
+# directory that never made it into the database. The condition clears in
+# milliseconds, so make a few more attempts before giving up.
+#
+# Everywhere else a failed rename means something real -- ENOSPC, EPERM, a
+# cross-device move -- that retrying cannot fix and would only add latency to,
+# so ZSHZ[MV_RETRIES] stays unset and the loops below make a single attempt,
+# exactly as before.
+#
+# zsh/zselect provides the sub-second delay between attempts without forking
+# /bin/sleep, whose fractional-seconds support is not portable in any case.
+# MobaXterm's cut-down Cygwin does not ship zsh/zselect, so there
+# ZSHZ[MV_RETRY_DELAY] stays unset and the retries happen back to back -- still
+# worth making, since the scanner's handle is often gone by the next attempt.
+#
+# Four retries at 50ms is deliberately modest rather than generous. The rename
+# runs while the lockfile is held, so every millisecond spent retrying is a
+# millisecond other writers spend waiting, and they give up after
+# ZSHZ_LOCK_TIMEOUT (1s by default) -- silently, since their adds are
+# best-effort too. A budget that outlasts a large fraction of that timeout
+# would trade one process's lost write for several others'. Measured on MSYS2
+# against a handle held open with FILE_SHARE_READ, this recovers renames
+# blocked for up to ~0.3s, comfortably more than a scan of a file this small
+# takes.
+if [[ $OSTYPE == (cygwin|msys) ]]; then
+  ZSHZ[MV_RETRIES]=4
+  [[ ${modules[zsh/zselect]-} == 'loaded' ]] || zmodload zsh/zselect &> /dev/null
+  # In hundredths of a second, per `zselect -t'
+  [[ ${builtins[zselect]-} == 'defined' ]] && ZSHZ[MV_RETRY_DELAY]=5
+fi
+
 ############################################################
 # The Zsh-z Command
 #
@@ -447,7 +486,7 @@ zshz() {
         return $ret
       fi
 
-      integer write_ret chown_ret
+      integer write_ret chown_ret mv_attempts
       local owner
       owner=${ZSHZ_OWNER:-${_Z_OWNER}}
 
@@ -463,8 +502,18 @@ zshz() {
           ${ZSHZ[RM]} -f "$tempfile" 2> /dev/null
         # All other cases
         else
-          ${ZSHZ[MV]} "$tempfile" "$datafile" 2> /dev/null
-          write_ret=$?
+          # Retry a rename that a Windows sharing violation turned away; see
+          # the ZSHZ[MV_RETRIES] comment at the top of this file. Off Windows
+          # this loop makes the same single attempt it always has. Retrying is
+          # safe here: the rename happens under the lock, so no other writer
+          # can slip in between attempts.
+          while :; do
+            ${ZSHZ[MV]} "$tempfile" "$datafile" 2> /dev/null
+            write_ret=$?
+            (( write_ret == 0 )) && break
+            (( mv_attempts++ >= ${ZSHZ[MV_RETRIES]:-0} )) && break
+            (( ${+ZSHZ[MV_RETRY_DELAY]} )) && zselect -t ${ZSHZ[MV_RETRY_DELAY]}
+          done
           (( write_ret != 0 )) && ${ZSHZ[RM]} -f "$tempfile" 2> /dev/null
         fi
         # Preserve the write failure itself; best-effort tempfile cleanup must not
@@ -493,8 +542,16 @@ zshz() {
             return $chown_ret
           fi
         fi
-        ${ZSHZ[MV]} -f "$tempfile" "$datafile" 2> /dev/null
-        write_ret=$?
+        # Same Windows sharing-violation retry as the flock branch above. This
+        # path is the one MobaXterm's cut-down Cygwin takes, and it has neither
+        # zsystem flock nor zsh/zselect, so the retries there run back to back.
+        while :; do
+          ${ZSHZ[MV]} -f "$tempfile" "$datafile" 2> /dev/null
+          write_ret=$?
+          (( write_ret == 0 )) && break
+          (( mv_attempts++ >= ${ZSHZ[MV_RETRIES]:-0} )) && break
+          (( ${+ZSHZ[MV_RETRY_DELAY]} )) && zselect -t ${ZSHZ[MV_RETRY_DELAY]}
+        done
         if (( write_ret != 0 )); then
           ${ZSHZ[RM]} -f "$tempfile" 2> /dev/null
           return $write_ret
