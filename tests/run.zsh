@@ -15,8 +15,14 @@ TESTS_DIR=${0:h}
 TESTS_DIR=$(builtin cd "$TESTS_DIR" && builtin pwd -P) || exit 2
 PLUGIN_DIR=$(builtin cd "$TESTS_DIR/.." && builtin pwd -P) || exit 2
 
-source "$PLUGIN_DIR/zsh-z.plugin.zsh"
-source "$TESTS_DIR/test_helpers.zsh"
+source "$PLUGIN_DIR/zsh-z.plugin.zsh" || {
+  print -u 2 "Failed to source $PLUGIN_DIR/zsh-z.plugin.zsh"
+  exit 2
+}
+source "$TESTS_DIR/test_helpers.zsh" || {
+  print -u 2 "Failed to source $TESTS_DIR/test_helpers.zsh"
+  exit 2
+}
 
 # Probe once and export the result so per-test subshells skip the
 # re-probe. The fork the probe avoids matters on zsh 4.3.11.
@@ -30,7 +36,10 @@ typeset -ga _test_fns
 # execution order is stable.
 for _f in $_test_files; do
   [[ ${_f:t} == test_helpers.zsh ]] && continue
-  source "$_f"
+  source "$_f" || {
+    print -u 2 "Failed to source $_f"
+    exit 2
+  }
 done
 
 for _fn in ${(k)functions}; do
@@ -42,11 +51,10 @@ _test_fns=( ${(o)_test_fns} )
 # the `(( failed == 0 ))' at the end of this file exits 0 having asserted
 # nothing at all -- and several ordinary mishaps land here looking exactly like
 # a clean run: the `(.N)' qualifier on the collection glob above yields an empty
-# array rather than an error when no test file matches, and the two `source'
-# lines at the top of this file are unchecked, so a checkout missing tests/, a
-# packaging slip, or a rename that stops matching `test_*.zsh' would all report
-# green in CI. Mirrors the "No tests matched" guard below, which already covers
-# the command-line-pattern case.
+# array rather than an error when no test file matches, so a checkout missing
+# test files, a packaging slip, or a rename that stops matching `test_*.zsh'
+# would otherwise report green in CI. Mirrors the "No tests matched" guard
+# below, which already covers the command-line-pattern case.
 if (( ! ${#_test_fns} )); then
   print -u 2 "No tests found in $TESTS_DIR"
   exit 2
@@ -81,7 +89,7 @@ if (( $# )); then
   fi
 fi
 
-typeset -gi total=0 passed=0 failed=0
+typeset -gi total=0 passed=0 skipped=0 failed=0
 typeset -ga failures
 
 for fn in $_test_fns; do
@@ -113,10 +121,17 @@ for fn in $_test_fns; do
     reason="${reason}stderr"
   fi
 
-  if [[ -z $reason ]]; then
-    (( passed++ ))
-    print "PASS  $fn"
-  else
+  skip_reason=""
+  if [[ -z $reason && -s $STDOUT_LOG ]]; then
+    while IFS= read -r line; do
+      [[ $line == 'skip: '* ]] && {
+        skip_reason=${line#skip: }
+        break
+      }
+    done < "$STDOUT_LOG"
+  fi
+
+  if [[ -n $reason ]]; then
     (( failed++ ))
     failures+=( "$fn" )
     print "FAIL  $fn ($reason)"
@@ -128,6 +143,12 @@ for fn in $_test_fns; do
       print "  --- stderr ---"
       sed 's/^/  /' "$STDERR_LOG"
     fi
+  elif [[ -n $skip_reason ]]; then
+    (( skipped++ ))
+    print "SKIP  $fn ($skip_reason)"
+  else
+    (( passed++ ))
+    print "PASS  $fn"
   fi
 
   rm -rf "$TESTDIR"
@@ -135,6 +156,6 @@ for fn in $_test_fns; do
 done
 
 print
-print "Results: $passed passed, $failed failed of $total"
+print "Results: $passed passed, $skipped skipped, $failed failed of $total"
 (( failed == 0 ))
 # vim: fdm=indent:ts=2:et:sts=2:sw=2:
