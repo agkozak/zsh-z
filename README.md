@@ -57,7 +57,7 @@ None of these should need any action from you, but they are the things a v1 user
 
 - **`z -l` with a search term no longer changes directory.** `z -l foo` listed the matches and then quietly `cd`'d to the best one. It now only lists, as documented.
 - **`-r` and `-t` can no longer be combined.** They name mutually exclusive sort orders -- rank versus recency -- so `z -rt foo` was always contradictory, and which one won depended on hash ordering. It is now rejected with an error message instead of silently picking one.
-- **A lockfile appears next to your database.** Writes are serialized through `~/.z.lock` (or `$ZSHZ_DATA` plus `.lock`). It is created `600`, it stays empty, and it is deliberately never deleted -- removing a lockfile that another shell has already opened would reintroduce the very race it exists to prevent. You can ignore it; deleting it by hand is unnecessary but harmless.
+- **A lockfile appears next to your database.** Writes are serialized through `~/.z.lock` (or `$ZSHZ_DATA` plus `.lock`). It is created `600`, it stays empty, and it is deliberately never deleted -- removing a lockfile that another shell has already opened would reintroduce the very race it exists to prevent.
 - **An existing database gets tightened to `600` on the next write.** If your `~/.z` predates this release and is `644`, the first write will re-mode it. This is the [#92](https://github.com/agkozak/zsh-z/issues/92) fix applied to databases you already have, not just newly created ones.
 
 The dated entries below remain the historical record of changes leading up to v2.0.
@@ -409,7 +409,7 @@ If you are coming to Zsh-z (or even to the original `rupa/z`, for that matter) f
 
 `z`, or any alternative you set up using `$ZSHZ_CMD` or `$_Z_CMD`, is an alias. `setopt COMPLETE_ALIASES` divorces the tab completion for aliases from the underlying commands they invoke, which historically broke Zsh-z's tab completion. Zsh-z now handles this automatically: the first Tab press registers the alias name with `_zshz` so completion works under `COMPLETE_ALIASES` without any extra setup.
 
-That registration happens inside Zsh-z's own Tab widget, so it only runs while Zsh-z still owns the Tab binding. If you use another plugin that rebinds Tab for itself -- [fzf-tab](https://github.com/Aloxaf/fzf-tab) is the common case -- and you load it *after* Zsh-z, the widget never runs and the registration never happens. Under `COMPLETE_ALIASES` you would then have no completion for `z`. Adding
+That registration happens inside Zsh-z's own Tab widget. If a plugin loaded after Zsh-z replaces the Tab binding without invoking the previous widget, Zsh-z's widget never runs and the registration does not happen. Under `COMPLETE_ALIASES`, you would then have no completion for `z`. Once `compinit` has run, adding
 
     compdef _zshz ${ZSHZ_CMD:-${_Z_CMD:-z}}
 
