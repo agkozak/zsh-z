@@ -44,7 +44,10 @@ _test_skip_mode_check() {
 }
 
 test_initial_creation_is_0600() {
-  _test_skip_mode_check && return 0
+  _test_skip_mode_check && {
+    _test_skip "POSIX mode-bit support required"
+    return 0
+  }
 
   rm -f "$ZSHZ_DATA"
   zshz -l
@@ -54,7 +57,10 @@ test_initial_creation_is_0600() {
 }
 
 test_add_clamps_preexisting_world_readable_file_to_0600() {
-  _test_skip_mode_check && return 0
+  _test_skip_mode_check && {
+    _test_skip "POSIX mode-bit support required"
+    return 0
+  }
 
   : > "$ZSHZ_DATA" && chmod 644 "$ZSHZ_DATA"
   assert_eq "644" "$(_test_mode_of "$ZSHZ_DATA")" "precondition: file is 0644"
@@ -66,7 +72,10 @@ test_add_clamps_preexisting_world_readable_file_to_0600() {
 }
 
 test_remove_keeps_0600() {
-  _test_skip_mode_check && return 0
+  _test_skip_mode_check && {
+    _test_skip "POSIX mode-bit support required"
+    return 0
+  }
 
   local d="$TESTDIR/r"
   mkdir -p "$d"
@@ -80,7 +89,10 @@ test_repeated_writes_keep_0600() {
   # Each --add rewrites the datafile via a fresh tempfile. Loosening
   # permissions on any single write would defeat the protection, so
   # walk a handful of writes and assert after each one.
-  _test_skip_mode_check && return 0
+  _test_skip_mode_check && {
+    _test_skip "POSIX mode-bit support required"
+    return 0
+  }
 
   local i d
   for i in 1 2 3 4 5; do
@@ -97,8 +109,14 @@ test_lockfile_created_at_0600() {
   # created 0600-from-birth (umask subshell), not with a bare `touch' under
   # the ambient umask, so a multi-user host can't tamper with another user's
   # lock.
-  (( ZSHZ[USE_FLOCK] )) || return 0   # no lockfile without flock
-  _test_skip_mode_check && return 0
+  (( ZSHZ[USE_FLOCK] )) || {
+    _test_skip "zsystem flock unavailable"
+    return 0
+  }
+  _test_skip_mode_check && {
+    _test_skip "POSIX mode-bit support required"
+    return 0
+  }
 
   rm -f "${ZSHZ_DATA}.lock"
   local d="$TESTDIR/work"

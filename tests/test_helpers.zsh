@@ -6,6 +6,13 @@ fail() {
   return 1
 }
 
+# Mark a capability-dependent test as intentionally unexercised. The runner
+# recognizes this stdout prefix and reports SKIP rather than PASS.
+_test_skip() {
+  print "skip: $*"
+  return 0
+}
+
 assert_eq() {
   local expected actual msg
   expected="$1"

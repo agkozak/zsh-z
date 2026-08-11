@@ -11,7 +11,10 @@
 # with a logger and assert that the chown call covers both files together.
 
 test_owner_set_chowns_both_datafile_and_lockfile() {
-  (( ZSHZ[USE_FLOCK] )) || return 0  # No lockfile when flock is unavailable.
+  (( ZSHZ[USE_FLOCK] )) || {
+    _test_skip "zsystem flock unavailable"
+    return 0
+  }
 
   local chown_log="$TESTDIR/chown.log"
   : > "$chown_log"
@@ -36,7 +39,10 @@ test_owner_set_chowns_lockfile_at_creation() {
   # unprivileged --add / -x a silently-swallowed EACCES no-op. The creation
   # handoff logs a chown of the lockfile ALONE, distinct from the post-write
   # chown that covers both files together.
-  (( ZSHZ[USE_FLOCK] )) || return 0
+  (( ZSHZ[USE_FLOCK] )) || {
+    _test_skip "zsystem flock unavailable"
+    return 0
+  }
 
   local chown_log="$TESTDIR/chown.log"
   : > "$chown_log"
@@ -62,7 +68,10 @@ test_owner_set_chowns_lockfile_at_creation() {
 }
 
 test_owner_unset_does_not_chown() {
-  (( ZSHZ[USE_FLOCK] )) || return 0
+  (( ZSHZ[USE_FLOCK] )) || {
+    _test_skip "zsystem flock unavailable"
+    return 0
+  }
 
   local chown_log="$TESTDIR/chown.log"
   : > "$chown_log"

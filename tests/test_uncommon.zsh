@@ -48,7 +48,10 @@ test_uncommon_case_sensitive_winner_trims_case_sensitively() {
   # The correct, case-sensitive trim drops the trailing "Foo" (it does not
   # contain `foo') and yields "$TESTDIR/foo"; the buggy case-insensitive trim
   # would keep the whole "$TESTDIR/foo/Foo".
-  _test_skip_case_insensitive_fs && return 0
+  _test_skip_case_insensitive_fs && {
+    _test_skip "case-sensitive filesystem required"
+    return 0
+  }
   mkdir -p "$TESTDIR/foo/Foo" "$TESTDIR/FOO"
   zshz --add "$TESTDIR/foo/Foo"
   zshz --add "$TESTDIR/FOO"

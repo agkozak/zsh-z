@@ -30,22 +30,22 @@ _no_tempfile_in() {
     fail "tempfile(s) leftover: ${(j:, :)leftovers}"
 }
 
-# Fail the first rename, then delegate to the real mv. `_mv_attempts' is local
-# to `_test_retry_with_inherited_error_option' and visible here through Zsh's
+# Fail the first `_mv_failures' renames, then delegate to the real mv.
+# The counters are local to the calling test and visible here through Zsh's
 # dynamic scoping.
-_mv_fail_once() {
+_mv_fail_n_times() {
   (( ++_mv_attempts ))
-  (( _mv_attempts == 1 )) && return 23
+  (( _mv_attempts <= _mv_failures )) && return 23
   command mv "$@"
 }
 
 _test_retry_with_inherited_error_option() {
   setopt LOCAL_OPTIONS "$1"
-  integer _mv_attempts=0 _delay_attempts=0
+  integer _mv_attempts=0 _mv_failures=1 _delay_attempts=0
 
   mkdir -p "$TESTDIR/p"
   ZSHZ[USE_FLOCK]=0
-  ZSHZ[MV]=_mv_fail_once
+  ZSHZ[MV]=_mv_fail_n_times
   ZSHZ[MV_RETRIES]=1
   ZSHZ[MV_RETRY_DELAY]=1
   # A timeout-like nonzero delay status must not activate the caller's error
@@ -106,6 +106,105 @@ test_mv_retry_with_inherited_err_return() {
 
 test_mv_retry_with_inherited_err_exit() {
   _test_retry_with_inherited_error_option ERR_EXIT
+}
+
+test_mv_retry_transient_failure_succeeds_without_flock() {
+  integer _mv_attempts=0 _mv_failures=2 _delay_attempts=0
+
+  mkdir -p "$TESTDIR/p"
+  ZSHZ[USE_FLOCK]=0
+  ZSHZ[MV]=_mv_fail_n_times
+  ZSHZ[MV_RETRIES]=4
+  ZSHZ[MV_RETRY_DELAY]=1
+  functions[zselect]='(( ++_delay_attempts )); return 1'
+
+  zshz --add "$TESTDIR/p"
+
+  assert_eq "3" "$_mv_attempts" \
+    "two transient failures should require three rename attempts"
+  assert_eq "2" "$_delay_attempts" \
+    "each transient failure should be followed by one delay"
+  assert_ne "" "$(zshz_rank_of "$TESTDIR/p")" \
+    "the update should land after transient rename failures"
+  _no_tempfile_in "$TESTDIR"
+}
+
+test_mv_retry_exhaustion_resets_budget_without_flock() {
+  integer _mv_attempts=0 _mv_failures=99 _delay_attempts=0
+  local before first_rc second_rc
+
+  mkdir -p "$TESTDIR/p"
+  zshz_seed "$TESTDIR/seed" 5 60
+  before=$(zshz_dump)
+
+  ZSHZ[USE_FLOCK]=0
+  ZSHZ[MV]=_mv_fail_n_times
+  ZSHZ[MV_RETRIES]=4
+  ZSHZ[MV_RETRY_DELAY]=1
+  functions[zselect]='(( ++_delay_attempts )); return 1'
+
+  zshz --add "$TESTDIR/p"
+  first_rc=$?
+
+  assert_eq "23" "$first_rc" "the terminal move status should be preserved"
+  assert_eq "5" "$_mv_attempts" "four retries should mean five total attempts"
+  assert_eq "4" "$_delay_attempts" "no delay should follow the final attempt"
+  assert_eq "$before" "$(zshz_dump)" \
+    "exhausted retries must leave the live datafile unchanged"
+  _no_tempfile_in "$TESTDIR"
+
+  # A second call gets a fresh four-retry budget; mv_attempts must be local to
+  # zshz() rather than leaking its exhausted value across invocations.
+  _mv_attempts=0
+  _delay_attempts=0
+  zshz --add "$TESTDIR/p"
+  second_rc=$?
+
+  assert_eq "23" "$second_rc" \
+    "a second exhausted call should preserve the terminal move status"
+  assert_eq "5" "$_mv_attempts" \
+    "the retry budget should reset for each zshz invocation"
+  assert_eq "4" "$_delay_attempts" \
+    "the reset retry budget should include four delays"
+  assert_eq "$before" "$(zshz_dump)" \
+    "repeated exhaustion must leave the live datafile unchanged"
+  _no_tempfile_in "$TESTDIR"
+}
+
+test_mv_retry_with_inherited_err_return_releases_flock() {
+  (( ZSHZ[USE_FLOCK] )) || {
+    _test_skip "zsystem flock unavailable"
+    return 0
+  }
+  if [[ -f '/.dockerenv' ||
+        ( -r '/proc/1/cgroup' && "$(< '/proc/1/cgroup')" == *docker* ) ]]; then
+    _test_skip "Docker bind-mount path does not use rename"
+    return 0
+  fi
+
+  setopt LOCAL_OPTIONS ERR_RETURN
+  integer _mv_attempts=0 _mv_failures=1 _delay_attempts=0
+
+  mkdir -p "$TESTDIR/p" "$TESTDIR/q"
+  ZSHZ[MV]=_mv_fail_n_times
+  ZSHZ[MV_RETRIES]=1
+  ZSHZ[MV_RETRY_DELAY]=1
+  functions[zselect]='(( ++_delay_attempts )); return 1'
+
+  zshz --add "$TESTDIR/p"
+  assert_eq "2" "$_mv_attempts" \
+    "the flock branch should retry a transient rename failure"
+  assert_ne "" "$(zshz_rank_of "$TESTDIR/p")" \
+    "the flock-guarded retry should persist its update"
+
+  # A subsequent writer must be able to acquire the lock after the retrying
+  # call's always block releases its descriptor.
+  ZSHZ[MV]=mv
+  ZSHZ_LOCK_TIMEOUT=1
+  zshz --add "$TESTDIR/q"
+  assert_ne "" "$(zshz_rank_of "$TESTDIR/q")" \
+    "the retrying call should release the flock for the next writer"
+  _no_tempfile_in "$TESTDIR"
 }
 
 test_no_tempfile_after_lock_timeout() {

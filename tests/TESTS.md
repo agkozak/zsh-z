@@ -992,6 +992,17 @@ concurrent ops; this file pins the synchronous failure paths.
   the option; the update must land and leave no tempfile. The `zshz`
   call is deliberately not wrapped in a conditional, which would
   suppress the inherited option and mask the regression.
+- `test_mv_retry_transient_failure_succeeds_without_flock` forces two
+  failures followed by success and pins three move attempts, two
+  between-attempt delays, the persisted update, and tempfile cleanup.
+- `test_mv_retry_exhaustion_resets_budget_without_flock` forces
+  permanent failure twice. Each call must make five attempts and four
+  delays, preserve status 23, leave the original datafile untouched,
+  remove its tempfile, and start the second call with a fresh budget.
+- `test_mv_retry_with_inherited_err_return_releases_flock` exercises
+  the flock branch under `ERR_RETURN`, then performs another write to
+  prove the lock descriptor was released for reuse. It skips explicitly
+  where flock is unavailable or Docker selects the non-rename path.
 - `test_no_tempfile_after_lock_timeout` — lock held externally,
   `ZSHZ_LOCK_TIMEOUT=1`. The timeout path returns before opening
   the tempfile, so there's nothing to clean up; a future refactor

@@ -30,7 +30,10 @@ test_case_default_falls_back_to_insensitive() {
 }
 
 test_case_default_prefers_sensitive_when_both_available() {
-  _test_skip_case_insensitive_fs && return 0
+  _test_skip_case_insensitive_fs && {
+    _test_skip "case-sensitive filesystem required"
+    return 0
+  }
   mkdir -p "$TESTDIR/Foo/Bar" "$TESTDIR/foo/bar"
   zshz --add "$TESTDIR/Foo/Bar"
   zshz --add "$TESTDIR/foo/bar"
