@@ -30,6 +30,41 @@ _no_tempfile_in() {
     fail "tempfile(s) leftover: ${(j:, :)leftovers}"
 }
 
+# Fail the first rename, then delegate to the real mv. `_mv_attempts' is local
+# to `_test_retry_with_inherited_error_option' and visible here through Zsh's
+# dynamic scoping.
+_mv_fail_once() {
+  (( ++_mv_attempts ))
+  (( _mv_attempts == 1 )) && return 23
+  command mv "$@"
+}
+
+_test_retry_with_inherited_error_option() {
+  setopt LOCAL_OPTIONS "$1"
+  integer _mv_attempts=0 _delay_attempts=0
+
+  mkdir -p "$TESTDIR/p"
+  ZSHZ[USE_FLOCK]=0
+  ZSHZ[MV]=_mv_fail_once
+  ZSHZ[MV_RETRIES]=1
+  ZSHZ[MV_RETRY_DELAY]=1
+  # A timeout-like nonzero delay status must not activate the caller's error
+  # option and abort before the next rename attempt.
+  functions[zselect]='(( ++_delay_attempts )); return 1'
+
+  # This must be a bare call: wrapping it in `if' would suppress the inherited
+  # error option throughout zshz() and fail to reproduce the regression.
+  zshz --add "$TESTDIR/p"
+
+  assert_eq "2" "$_mv_attempts" \
+    "a transient rename failure should be retried"
+  assert_eq "1" "$_delay_attempts" \
+    "one delay should occur between two rename attempts"
+  assert_ne "" "$(zshz_rank_of "$TESTDIR/p")" \
+    "the retried update should reach the datafile"
+  _no_tempfile_in "$TESTDIR"
+}
+
 test_no_tempfile_after_normal_add() {
   mkdir -p "$TESTDIR/p"
   zshz --add "$TESTDIR/p"
@@ -63,6 +98,14 @@ test_no_tempfile_after_mv_failure() {
     "pre-existing entry should be unchanged when mv fails"
   assert_eq "" "$(zshz_rank_of "$TESTDIR/p")" \
     "new entry should not appear when the rename failed"
+}
+
+test_mv_retry_with_inherited_err_return() {
+  _test_retry_with_inherited_error_option ERR_RETURN
+}
+
+test_mv_retry_with_inherited_err_exit() {
+  _test_retry_with_inherited_error_option ERR_EXIT
 }
 
 test_no_tempfile_after_lock_timeout() {

@@ -985,6 +985,13 @@ concurrent ops; this file pins the synchronous failure paths.
   the rename always fail; the post-mv cleanup branch must run, the
   datafile is unchanged, the new entry didn't land. Helper
   `_no_tempfile_in DIR` (defined in the file) does the glob check.
+- `test_mv_retry_with_inherited_err_return` and
+  `test_mv_retry_with_inherited_err_exit` verify a mocked move that
+  fails once and then succeeds while the corresponding caller option
+  is enabled. The retry and its nonzero delay status must not activate
+  the option; the update must land and leave no tempfile. The `zshz`
+  call is deliberately not wrapped in a conditional, which would
+  suppress the inherited option and mask the regression.
 - `test_no_tempfile_after_lock_timeout` — lock held externally,
   `ZSHZ_LOCK_TIMEOUT=1`. The timeout path returns before opening
   the tempfile, so there's nothing to clean up; a future refactor

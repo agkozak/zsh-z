@@ -508,11 +508,16 @@ zshz() {
           # safe here: the rename happens under the lock, so no other writer
           # can slip in between attempts.
           while :; do
-            ${ZSHZ[MV]} "$tempfile" "$datafile" 2> /dev/null
-            write_ret=$?
+            if ${ZSHZ[MV]} "$tempfile" "$datafile" 2> /dev/null; then
+              write_ret=0
+            else
+              write_ret=$?
+            fi
             (( write_ret == 0 )) && break
             (( mv_attempts++ >= ${ZSHZ[MV_RETRIES]:-0} )) && break
-            (( ${+ZSHZ[MV_RETRY_DELAY]} )) && zselect -t ${ZSHZ[MV_RETRY_DELAY]}
+            if (( ${+ZSHZ[MV_RETRY_DELAY]} )); then
+              zselect -t ${ZSHZ[MV_RETRY_DELAY]} || :
+            fi
           done
           (( write_ret != 0 )) && ${ZSHZ[RM]} -f "$tempfile" 2> /dev/null
         fi
@@ -546,11 +551,16 @@ zshz() {
         # path is the one MobaXterm's cut-down Cygwin takes, and it has neither
         # zsystem flock nor zsh/zselect, so the retries there run back to back.
         while :; do
-          ${ZSHZ[MV]} -f "$tempfile" "$datafile" 2> /dev/null
-          write_ret=$?
+          if ${ZSHZ[MV]} -f "$tempfile" "$datafile" 2> /dev/null; then
+            write_ret=0
+          else
+            write_ret=$?
+          fi
           (( write_ret == 0 )) && break
           (( mv_attempts++ >= ${ZSHZ[MV_RETRIES]:-0} )) && break
-          (( ${+ZSHZ[MV_RETRY_DELAY]} )) && zselect -t ${ZSHZ[MV_RETRY_DELAY]}
+          if (( ${+ZSHZ[MV_RETRY_DELAY]} )); then
+            zselect -t ${ZSHZ[MV_RETRY_DELAY]} || :
+          fi
         done
         if (( write_ret != 0 )); then
           ${ZSHZ[RM]} -f "$tempfile" 2> /dev/null
