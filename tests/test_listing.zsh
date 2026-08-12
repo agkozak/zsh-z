@@ -42,6 +42,54 @@ test_list_rank_and_time_modes_order_entries() {
   assert_contains "$TESTDIR/a" "$time_lines[2]" "-lt should list the newer entry second"
 }
 
+test_lt_rank_longer_than_ten_chars_not_truncated_bare_list() {
+  # A `-t' rank is (visit time - now): sign + 10 digits once the time field
+  # sits more than ~31.7 years in the past, as a zeroed or hand-imported
+  # field does. The formatters used to right-pad with a bare `${(r:10:)}',
+  # which *truncates* an 11-character rank to 10 -- misprinting the figure
+  # and making the entry sort as if it were far newer than it is. This
+  # exercises the bare `z -lt' fast path.
+  local ancient="$TESTDIR/ancient" oldish="$TESTDIR/oldish"
+  mkdir -p "$ancient" "$oldish"
+  zshz_seed "$ancient" 1 "$EPOCHSECONDS"   # Time field (about) 0
+  zshz_seed "$oldish" 1 900000000          # A rank of exactly 10 characters
+
+  local out rank_token
+  local -a out_lines
+  out=$(zshz -lt)
+  out_lines=( ${${(f)out}:#common:*} )   # Entry lines only
+
+  assert_contains "$ancient" "$out_lines[1]" \
+    "-lt should list the ancient entry first"
+  assert_contains "$oldish" "$out_lines[2]" \
+    "-lt should list the merely old entry second"
+  rank_token=${${=out_lines[1]}[1]}
+  assert_eq "11" "${#rank_token}" \
+    "an 11-character -t rank should print untruncated"
+}
+
+test_lt_rank_longer_than_ten_chars_not_truncated_query_list() {
+  # Same as the bare-list test above, but with a query, so the listing goes
+  # through `_zshz_output' -- the general formatter the fast path mirrors.
+  local ancient="$TESTDIR/ancient" oldish="$TESTDIR/oldish"
+  mkdir -p "$ancient" "$oldish"
+  zshz_seed "$ancient" 1 "$EPOCHSECONDS"
+  zshz_seed "$oldish" 1 900000000
+
+  local out rank_token
+  local -a out_lines
+  out=$(zshz -lt i)                      # `i' matches both entries
+  out_lines=( ${${(f)out}:#common:*} )
+
+  assert_contains "$ancient" "$out_lines[1]" \
+    "-lt with a query should list the ancient entry first"
+  assert_contains "$oldish" "$out_lines[2]" \
+    "-lt with a query should list the merely old entry second"
+  rank_token=${${=out_lines[1]}[1]}
+  assert_eq "11" "${#rank_token}" \
+    "an 11-character -t rank should print untruncated in the general formatter"
+}
+
 test_list_prints_common_root_line() {
   mkdir -p "$TESTDIR/foo" "$TESTDIR/foo/bar"
   zshz_seed "$TESTDIR/foo" 1

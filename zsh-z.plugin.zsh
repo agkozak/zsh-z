@@ -903,12 +903,19 @@ zshz() {
           path_to_display=$x
           (( ZSHZ_TILDE )) &&
             path_to_display=${path_to_display/#${HOME}/\~}
-          # Right-pad the integer rank to 10 chars so the line sorts
-          # numerically by rank under `${(@on)output}'. Equivalent in
-          # output shape to `printf "%-10d %s\n"' but stays in parameter
-          # expansion. The `%.*' strip drops frecency's decimal tail
+          # Right-pad the integer rank to 10 chars, as `printf "%-10d %s\n"'
+          # used to, but in parameter expansion. The padding must be
+          # conditional: `%-10d' never shortened anything, but a bare
+          # `${(r:10:)}' *truncates* a rank longer than 10 characters -- an
+          # 11-character `-t' rank (sign + 10 digits, e.g. from a zeroed or
+          # hand-imported time field more than ~31.7 years old) or a frecency
+          # rank inflated by a raised $ZSHZ_MAX_SCORE would lose its last
+          # digits, garbling both the displayed figure and the numeric sort
+          # below. The `%.*' strip drops frecency's decimal tail
           # ("30000.0" -> "30000") to match what `%-10d' produced.
-          output+=( "${(r:10:)${v%.*}} $path_to_display" )
+          v=${v%.*}
+          (( ${#v} < 10 )) && v=${(r:10:)v}
+          output+=( "$v $path_to_display" )
         done
         if [[ -n $common ]]; then
           (( ZSHZ_TILDE )) && common=${common/#${HOME}/\~}
@@ -1265,7 +1272,11 @@ zshz() {
       paths+=( $path_field )
       path_to_display=$path_field
       (( ZSHZ_TILDE )) && path_to_display=${path_to_display/#${HOME}/\~}
-      output+=( "${(r:10:)${rank%.*}} $path_to_display" )
+      # Conditional padding, never a bare `${(r:10:)}' -- see the list arm
+      # of `_zshz_output' for why a rank must not be truncated.
+      rank=${rank%.*}
+      (( ${#rank} < 10 )) && rank=${(r:10:)rank}
+      output+=( "$rank $path_to_display" )
     done
 
     if (( $#paths )); then
