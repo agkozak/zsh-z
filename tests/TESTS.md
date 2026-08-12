@@ -630,8 +630,14 @@ Spawns writers via `xargs_P`. Both tests skip when
   different new path; both new adds land at rank 1.
 - `test_many_concurrent_writers_preserve_seeded_entries` — stronger
   variant: 10 pre-seeded entries with ranks 1..10, 10 concurrent
-  writers; every seeded rank is intact and every writer's add
-  landed.
+  writers; every seeded rank is intact. A writer's own add may fail
+  *honestly* (nonzero exit status — e.g. a Windows sharing violation
+  outlasting the `ZSHZ[MV_RETRIES]` budget, a known MSYS2 CI flake);
+  that is tolerated iff the same add lands when retried serially.
+  What always fails: a lost seed, a writer that reported success but
+  whose add is missing (silent loss — the lock didn't serialize),
+  a writer that never logged a result, or a serial retry that
+  doesn't land.
 
 ### `test_fallback.zsh` — path fallback with no database match
 
