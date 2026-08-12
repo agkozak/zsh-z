@@ -159,10 +159,13 @@ _zshz_realpath() {
   done
   [[ -e $dir ]] && dir=${dir:A}
 
+  # `typeset -g': REPLY belongs to the caller by design. A plain assignment
+  # would trip WARN_NESTED_VAR under `ZSHZ_DEBUG', since _zshz_realpath is a
+  # top-level function and thus one of the ones `functions -W' marks.
   if (( ${#tail} )); then
-    REPLY=${dir%/}/${(j:/:)tail}
+    typeset -g REPLY=${dir%/}/${(j:/:)tail}
   else
-    REPLY=$dir
+    typeset -g REPLY=$dir
   fi
 }
 
