@@ -48,7 +48,7 @@ the one case-sensitive tie-break test in `test_case.zsh`, again via a
 filesystem probe rather than an `$OSTYPE` match. MSYS2 without
 native-symlink support (e.g. a stock GitHub Actions runner) makes
 `ln -s` produce a copy or a Windows stub rather than a resolvable
-POSIX symlink, so the five symlink-*resolution* tests in
+POSIX symlink, so the six symlink-*resolution* tests in
 `test_symlinks.zsh` and `test_symlink_realpath.zsh` skip via the
 `_test_skip_no_symlinks` probe — they still run wherever symlinks
 actually resolve, including MSYS2 with Developer Mode.

@@ -84,6 +84,27 @@ test_dotdot_traversal_is_canonicalised() {
     "stored entry should not preserve dot-dot segments"
 }
 
+test_remove_deleted_dir_via_symlinked_parent() {
+  _test_skip_no_symlinks && { print "skip: filesystem has no resolvable symlinks"; return 0 }
+  # The removal target no longer needs to exist, but the symlinks in
+  # whatever prefix of it *does* exist must still resolve -- otherwise an
+  # entry added through a symlink could not be removed by the same name
+  # once its directory is deleted. `_zshz_realpath' resolves the deepest
+  # existing ancestor with `:A' and carries the missing tail verbatim,
+  # which is also what `:A' itself does with a missing (non-top-level)
+  # tail.
+  local target="$TESTDIR/target/inner"
+  mkdir -p "$target"
+  ln -s "$TESTDIR/target" "$TESTDIR/link"
+
+  zshz --add "$TESTDIR/link/inner"   # Stored as .../target/inner
+  rm -rf "$target"
+
+  zshz -x "$TESTDIR/link/inner" || return 1
+  assert_eq "" "$(zshz_rank_of "$TESTDIR/target/inner")" \
+    "-x via symlink should remove the stale entry for the deleted target"
+}
+
 test_no_resolve_keeps_two_symlinks_distinct() {
   # Negative-of-the-headline-case: with NO_RESOLVE, `link1' and
   # `link2' are two different keys even when they share a target.

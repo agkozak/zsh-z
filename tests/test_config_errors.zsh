@@ -94,6 +94,26 @@ test_directory_ZSHZ_DATA_returns_does_not_exit() {
     "calling shell should survive a directory ZSHZ_DATA"
 }
 
+test_missing_toplevel_ZSHZ_DATA_returns_does_not_exit() {
+  # The datafile path is canonicalized on every zshz call, including the
+  # backgrounded precmd add, and `${x:A}' on a path whose top-level
+  # component does not exist segfaults Zsh 4.3.11 -- so this $ZSHZ_DATA
+  # used to kill a shell there at every prompt. Only survival is asserted:
+  # such a datafile cannot be created, so the call still fails, loudly,
+  # like the other bad-datafile cases above.
+  local zsh_bin out
+  zsh_bin=$(_zshz_test_zsh_bin)
+
+  out=$("$zsh_bin" --no-rcs -c "
+    source '$PLUGIN_DIR/zsh-z.plugin.zsh'
+    ZSHZ_DATA='/zshz-segv-$$-$RANDOM/x/.z' zshz -l
+    print POST_MISSING_TOPLEVEL_SENTINEL
+  " 2>&1)
+
+  assert_contains "POST_MISSING_TOPLEVEL_SENTINEL" "$out" \
+    "calling shell should survive a ZSHZ_DATA under a missing top-level directory"
+}
+
 # The disowned `&!' add can't be waited for -- `wait' doesn't see it --
 # and a misconfigured datafile means there's no file to poll, either.
 # Give the forks a moment to produce output they shouldn't produce.

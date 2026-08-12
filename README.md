@@ -49,6 +49,7 @@ Version **2.0** is a major step forward, and these are the changes most worth kn
 - **Fixed a `can't clobber parameter tmpfd` error on some Zsh builds.** On certain Zsh builds, every database write could fail with `can't clobber parameter tmpfd containing file descriptor 0`, leaving an error at each new prompt. The file descriptor used for the temporary database file is now held in an unset scalar rather than one seeded with `0`, so the write never trips Zsh's file-descriptor-clobber guard ([#81](https://github.com/agkozak/zsh-z/issues/81)).
 - **A misconfigured database file no longer closes your shell -- or nags you at every prompt.** When `ZSHZ_DATA` points at a directory, or names a file without a directory, Zsh-z now reports the problem and returns instead of calling `exit`. The per-prompt `--add` stays quiet about it, so you are told once, when you actually run `z`, rather than at every prompt ([#103](https://github.com/agkozak/zsh-z/issues/103); props @ahjota).
 - **`z -c` actually restricts matches to subdirectories now.** A bug was preventing `z -c` from behaving differently from mere `z`.
+- **`z -x` can now remove the entry for a directory that no longer exists -- and can no longer crash Zsh 4.3.11.** The removal target used to have to exist on disk, so a database entry whose directory had been deleted -- exactly the entry you most want gone -- could not be removed. `z -x /deleted/dir` (and `z -xR`) now canonicalizes the argument without requiring it to exist, resolving symlinks in as much of the path as is still present. The same change fixes a crash on Zsh 4.3.11, where an upstream bug makes `${x:A}` segfault when the top-level component of the path is missing: `z -x /gone/sub` -- or a `ZSHZ_DATA` pointing into a missing top-level directory -- could kill the shell there.
 - **More robust startup and operation.** A version check on an unsupported Zsh no longer risks exiting your interactive shell, and Zsh-z runs cleanly under `setopt NO_UNSET`.
 
 #### Smaller changes you may notice
@@ -394,7 +395,7 @@ Relative to the previous generation of Zsh-z, the v2.0 read path is dramatically
 
 ## Other Improvements to the Original Functionality of `rupa/z`
 
-* `z -x` works.
+* `z -x` works: a directory you remove stays removed.
 * Zsh-z is compatible with Solaris.
 * Zsh-z uses the "new" `zshcompsys` completion system instead of the old `compctl` one.
 * No error message is displayed when the database file has not yet been created.

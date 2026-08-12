@@ -119,6 +119,53 @@ With no ARGUMENT, list the directory history in ascending rank.
     fold -s -w $(( COLUMNS > 0 ? COLUMNS : 80 )) >&2
 }
 
+############################################################
+# Canonicalize a path in the manner of `:A' -- normalize it
+# lexically as `:a' does, then resolve symlinks -- without
+# requiring any of the path to exist.
+#
+# `${x:A}' itself cannot be trusted with a missing path on
+# Zsh 4.3.11: when the top-level component of $x does not
+# exist (`/gone/sub'), the realpath machinery segfaults the
+# shell (upstream bug, 4.3.11 only; deeper missing
+# components are handled correctly on every version). So
+# apply `:A' only to the deepest ancestor of the path that
+# exists -- `:A' on an existing path is safe everywhere --
+# and reattach the missing components verbatim. That
+# reproduces `:A' exactly: `:A' resolves the symlinks in the
+# existing prefix and carries the nonexistent tail
+# unchanged, and the tail cannot contain live symlinks
+# precisely because it does not exist. (A broken symlink
+# stops the ancestor walk without being resolved -- `-e'
+# fails on one -- which also matches `:A', which leaves
+# broken symlinks unresolved.)
+#
+# Arguments:
+#   $1 The path to canonicalize
+#
+# Returns the canonical path in $REPLY.
+############################################################
+_zshz_realpath() {
+  local dir=${1:a}
+  local -a tail
+
+  # `:h' at its fixed point (`/', or `//' where the OS treats that as
+  # distinct) can climb no higher; if even that much of the path does not
+  # exist, settle for the lexical normalization rather than hand `:A'
+  # something dangerous.
+  while [[ ! -e $dir && $dir != "${dir:h}" ]]; do
+    tail=( "${dir:t}" "${tail[@]}" )
+    dir=${dir:h}
+  done
+  [[ -e $dir ]] && dir=${dir:A}
+
+  if (( ${#tail} )); then
+    REPLY=${dir%/}/${(j:/:)tail}
+  else
+    REPLY=$dir
+  fi
+}
+
 # Load zsh/datetime module, if necessary
 (( ${+EPOCHSECONDS} )) || zmodload zsh/datetime
 
@@ -251,8 +298,17 @@ zshz() {
   fi
 
   # If the user specified a datafile, use that or default to ~/.z
-  # If the datafile is a symlink, it gets dereferenced
-  local datafile=${${custom_datafile:-$HOME/.z}:A}
+  # If the datafile is a symlink, it gets dereferenced. Canonicalized with
+  # _zshz_realpath rather than a bare `:A', which would segfault Zsh 4.3.11
+  # on a $ZSHZ_DATA pointing into a missing top-level directory -- at every
+  # prompt, since this line runs in the backgrounded precmd add.
+  _zshz_realpath "${custom_datafile:-$HOME/.z}"
+  local datafile=$REPLY
+  # Clear REPLY as soon as it is captured: the matching machinery below
+  # relies on it staying empty until a common root or best match is put in
+  # it (_zshz_find_common_root only assigns REPLY when it finds a root), so
+  # a datafile path left in REPLY here would surface as a bogus match.
+  REPLY=''
 
   # If the datafile is a directory, print a warning and return
   if [[ -d $datafile ]]; then
@@ -283,6 +339,13 @@ zshz() {
     local _owner=${ZSHZ_OWNER:-${_Z_OWNER}}
     [[ -n $_owner ]] && ${ZSHZ[CHOWN]} "${_owner}:$(id -ng "${_owner}")" "$datafile"
   }
+
+  # If the datafile still does not exist, the loud retry above has already
+  # said why; nothing below -- reading, locking, writing -- can succeed
+  # without it, and each failure would add its own noise. Bailing out here
+  # matters most on Zsh 4.3.11, where the failed `$(< $datafile)' reads
+  # below are fatal to a non-interactive shell.
+  [[ -f $datafile ]] || return 1
 
   # Bail if we don't own the datafile and $ZSHZ_OWNER is not set
   [[ -z ${ZSHZ_OWNER:-${_Z_OWNER}} && -f $datafile && ! -O $datafile ]] &&
@@ -334,20 +397,26 @@ zshz() {
     # sits open. A lock should wrap the read-modify-write, never a question.
     local xdir  # Directory to be removed
     if [[ $action == '--remove' ]]; then
+      # The target is canonicalized without any existence test: an entry
+      # whose directory has since been deleted is exactly the one a user most
+      # wants out of the database. _zshz_realpath resolves a missing path the
+      # way `:A' resolves one -- and, unlike a bare `:A', cannot segfault Zsh
+      # 4.3.11 on a path whose top-level component is gone. (The old
+      # `[[ -d ${...:A} ]]' guard offered no protection there: the `:A'
+      # expands, and crashes, before `-d' ever sees it.)
       if (( ${ZSHZ_NO_RESOLVE_SYMLINKS:-${_Z_NO_RESOLVE_SYMLINKS}} )); then
-        [[ -d ${${*:-${PWD}}:a} ]] && xdir=${${*:-${PWD}}:a}
+        xdir=${${*:-${PWD}}:a}
       else
-        [[ -d ${${*:-${PWD}}:A} ]] && xdir=${${*:-${PWD}}:A}
+        _zshz_realpath "${*:-${PWD}}"
+        xdir=$REPLY
       fi
 
-      # An argument that does not name an existing directory leaves $xdir
-      # empty, and an empty $xdir is not a harmless no-op: under `-R' it
-      # collapses the subtree filter below into `${lines_to_keep:#/**}', which
-      # matches every line in the datafile and erases the lot -- silently, since
-      # the whole-database confirmation just below tests for `/' rather than for
-      # emptiness. Bail out here, before the lock is taken. Plain `-x' already
-      # returned 1 for such an argument (nothing matched, so nothing changed),
-      # so only the `-xR' case behaves differently now.
+      # Both branches above yield a non-empty absolute path, and that
+      # matters: under `-R' an empty $xdir would collapse the subtree filter
+      # below into `${lines_to_keep:#/**}', which matches every line in the
+      # datafile and erases the lot -- silently, since the whole-database
+      # confirmation just below tests for `/' rather than for emptiness. Keep
+      # this guard in case a future change lets an empty resolution through.
       [[ -n $xdir ]] || return 1
 
       if (( ${+opts[-R]} )) && [[ $xdir == '/' ]]; then
@@ -1474,6 +1543,7 @@ fi
 # zsh-z functions
 ############################################################
 ZSHZ[FUNCTIONS]='_zshz_usage
+                 _zshz_realpath
                  _zshz_add_or_remove_path
                  _zshz_update_datafile
                  _zshz_legacy_complete
