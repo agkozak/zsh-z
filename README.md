@@ -20,7 +20,7 @@ Zsh-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
 
 > ### Zsh-z v2.0
 >
-> **v2.0 is the most significant release in the project's history.** It beats or ties `rupa/z` on *every* operation, on both modern Zsh and the oldest supported Zsh (4.3.11); it never makes your prompt wait on database writes -- on any platform; it hardens those writes against corruption and against prying eyes; and it makes tab completion "just work" even under `setopt COMPLETE_ALIASES`. See [**v2.0**](#v20) in the News below for the full rundown, and [Performance](#performance) for the benchmarks.
+> **v2.0 is the most significant release in the project's history.** It outpaces `rupa/z` at adding, searching, and listing on modern Zsh; it never makes your prompt wait on database writes -- on any platform; it hardens those writes against corruption and against prying eyes; and it makes tab completion "just work" even under `setopt COMPLETE_ALIASES`. See [**v2.0**](#v20) in the News below for the full rundown, and [Performance](#performance) for the benchmarks.
 
 ## Table of Contents
 - [News](#news)
@@ -41,7 +41,7 @@ Zsh-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
 
 Version **2.0** is a major step forward, and these are the changes most worth knowing about:
 
-- **Zsh-z is now faster than `rupa/z` across the board.** A thorough read- and write-path optimization sweep means that Zsh-z now *beats or ties* `rupa/z`'s `z.sh` on every operation, on both modern Zsh (5.9) and the oldest supported Zsh (4.3.11). On modern Zsh, listing is ~1.35x faster than `z.sh`, searching ~1.37x faster, adding ~1.77x faster, and removing ~1.92x faster. Compared with the previous generation of Zsh-z, listing is roughly 60% faster and searching roughly 40% faster. See [Performance](#performance) for the numbers.
+- **Zsh-z is now faster than `rupa/z` on modern Zsh.** A thorough read- and write-path optimization sweep means that Zsh-z now outpaces `rupa/z`'s `z.sh` at adding, searching, and listing on Zsh 5.9. On a Core i7 workstation, listing is ~2.1x faster than `z.sh`, searching ~1.8x faster, and adding ~3.2x faster; on a 2-core VPS the same margins are ~1.4x, ~1.3x, and ~1.9x. Compared with the previous generation of Zsh-z, listing is roughly 60% faster and searching roughly 40% faster, and *that* result reproduces on both machines. See [Performance](#performance) for the numbers.
 - **Database writes never block your prompt** -- on any platform. The per-prompt `--add` has long run in the background on most systems, but Cygwin and MSYS2 did the write in the foreground, because backgrounding there cost a wrapper subshell plus a job. `--add` now runs as a single disowned job (`&!`) everywhere: one fork, no wrapper subshell, no job-control noise. On Cygwin and MSYS2 that turns a foreground write whose cost grows with your datafile (~30 ms at 300 entries, ~300 ms at 1,000) into a flat ~10-12 ms fork. Elsewhere it halves the forks per prompt.
 - **Safer, crash-resistant concurrent writes.** Writes are now guarded by a dedicated, stable lockfile using `zsh/system` file locking, with a bounded wait for lock acquisition (the new [`ZSHZ_LOCK_TIMEOUT`](#settings), default `1` second). Write errors are handled gracefully and will not clobber your database, and locks are always released even if a write is interrupted. On Cygwin and MSYS2 a write is also retried briefly if Windows refuses it: a virus scanner or the search indexer that opens the database in the instant between its being written and its being moved into place makes the move fail, which used to lose that one directory silently. Zsh-z now retries the move briefly.
 - **Your database file now has `600` permissions** -- readable and writable only by you -- so that other users on a shared system cannot read your directory history ([#92](https://github.com/agkozak/zsh-z/issues/92)). On Zsh 5+ this uses the in-process `zf_chmod` builtin; on Zsh 4.3.11 it uses a `umask`-in-a-subshell technique that avoids the fork-and-exec of an external `chmod`.
@@ -125,7 +125,7 @@ The dated entries below remain the historical record of changes leading up to v2
 - February 15, 2021
     + Ranks are displayed the way `rupa/z` now displays them, i.e. as large integers. This should help Zsh-z to integrate with other tools.
 - January 31, 2021
-    + Zsh-z is now efficient enough that, on MSYS2 and Cygwin, it is faster to run it in the foreground than it is to fork a subshell for it.
+    + Zsh-z is now efficient enough that, on MSYS2 and Cygwin, it is faster to run it in the foreground than it is to fork a subshell for it. (Behavior superseded in v2.0.)
     + `_zshz_precmd` simply returns if `PWD` is `HOME` or in `ZSHZ_EXCLUDE_DIRS`, rather than waiting for `zshz` to do that.
 - January 17, 2021
     + Made sure that the `PUSHD_IGNORE_DUPS` option is respected.
@@ -370,22 +370,31 @@ A good example might involve a directory tree that has Git repositories within i
 
 ## Performance
 
-One of the goals of the rewrite that culminated in v2.0 was to make Zsh-z simultaneously more stable and faster. Zsh-z beats or ties `rupa/z`'s `z.sh` on every operation, on both modern Zsh and the oldest supported Zsh (4.3.11). Representative figures (N = 200 database entries, WSL2):
+One of the goals of the rewrite that culminated in v2.0 was to make Zsh-z simultaneously more stable and faster. On modern Zsh, Zsh-z outpaces `rupa/z`'s `z.sh` at adding, searching, and listing. Representative figures (N = 200 database entries, medians of seven interleaved runs on a Core i7-12700 desktop under WSL2):
 
 **Modern Zsh (5.9) -- Zsh-z vs. `rupa/z`:**
 
 | Operation | `rupa/z` (`z.sh`) | Zsh-z       | Winner            |
 | --------- | ----------------- | ----------- | ----------------- |
-| `add`     |  3.67 ms/op       |  2.07 ms/op | **Zsh-z** ~1.77x  |
-| `search`  |  5.16 ms/op       |  3.76 ms/op | **Zsh-z** ~1.37x  |
-| `list`    |  6.21 ms/op       |  4.61 ms/op | **Zsh-z** ~1.35x  |
-| `remove`  |  1.16 ms/op       |  0.60 ms/op | **Zsh-z** ~1.92x  |
+| `add`     |  6.16 ms/op       |  1.95 ms/op | **Zsh-z** ~3.16x  |
+| `search`  |  6.43 ms/op       |  3.66 ms/op | **Zsh-z** ~1.76x  |
+| `list`    |  9.08 ms/op       |  4.32 ms/op | **Zsh-z** ~2.10x  |
 
-On Zsh 4.3.11, the oldest supported release, Zsh-z now wins on `add`, `search`, and `remove`, and is within roughly 1% of `z.sh` on `list` (effectively tied). Relative to the previous generation of Zsh-z, the v2.0 read path is dramatically faster -- on modern Zsh, listing is about 60% faster and searching about 40% faster.
+**Zsh 4.3.11 (the oldest supported release) -- Zsh-z vs. `rupa/z`:**
+
+| Operation | `rupa/z` (`z.sh`) | Zsh-z       | Winner            |
+| --------- | ----------------- | ----------- | ----------------- |
+| `add`     |  5.21 ms/op       |  3.14 ms/op | **Zsh-z** ~1.66x  |
+| `search`  |  5.22 ms/op       |  4.70 ms/op | **Zsh-z** ~1.11x  |
+| `list`    |  7.95 ms/op       |  6.19 ms/op | **Zsh-z** ~1.28x  |
+
+Removal is deliberately absent from these tables. In `rupa/z`, `z -x` is not really a removal: the entry is deleted from the datafile, and then the unconditional `precmd` hook adds the current directory straight back at the next prompt, so what the operation actually accomplishes is resetting that directory's rank to 1. There is no honest speed comparison to be drawn against an operation that undoes itself one keystroke later.
+
+Relative to the previous generation of Zsh-z, the v2.0 read path is dramatically faster -- on modern Zsh, listing is about 60% faster and searching about 40% faster.
 
 ## Other Improvements to the Original Functionality of `rupa/z`
 
-* `z -x` works, with the help of `chpwd_functions`.
+* `z -x` works.
 * Zsh-z is compatible with Solaris.
 * Zsh-z uses the "new" `zshcompsys` completion system instead of the old `compctl` one.
 * No error message is displayed when the database file has not yet been created.
