@@ -102,6 +102,53 @@ test_list_prints_common_root_line() {
   assert_contains "common:" "$lines[1]" "-l should print a common-root summary when multiple matches share one"
   assert_contains "$TESTDIR/foo" "$lines[1]" "common-root summary should show the shared root"
 }
+test_zero_rank_entry_does_not_create_phantom_common_root() {
+  # Rank-0 entries are hidden from listings, but the general formatter used
+  # to include them when computing the `common:' summary, so `z -lr proj'
+  # could print a root that the visible entries do not share -- while bare
+  # `z -lr' (the fast path, which drops rank-0 entries before looking for a
+  # root) printed none. Both formatters must describe only the entries they
+  # actually list.
+  mkdir -p "$TESTDIR/proj/src" "$TESTDIR/proj/docs"
+  zshz_seed "$TESTDIR/proj" 0        # Hidden from the listing
+  zshz_seed "$TESTDIR/proj/src" 3
+  zshz_seed "$TESTDIR/proj/docs" 4
+
+  local out
+  local -a out_lines
+  out=$(zshz -lr proj)
+  out_lines=( ${(f)out} )
+  assert_not_contains "common:" "$out" \
+    "-lr with a query must not print a root belonging only to a hidden rank-0 entry"
+  assert_eq "2" "${#out_lines}" "only the two ranked entries should be listed"
+  assert_contains "$TESTDIR/proj/src" "$out" "src should be listed"
+  assert_contains "$TESTDIR/proj/docs" "$out" "docs should be listed"
+
+  # And the bare fast path must agree with the query form.
+  out=$(zshz -lr)
+  assert_not_contains "common:" "$out" \
+    "bare -lr must not print a root belonging only to a hidden rank-0 entry"
+}
+
+test_bare_list_prints_common_root_line() {
+  # Positive parity check for the fast path: when every listed entry is
+  # ranked and one of them is the ancestor of the rest, bare `z -l' must
+  # print the same `common:' summary the query form does (the query form's
+  # half is test_list_prints_common_root_line above).
+  mkdir -p "$TESTDIR/foo/bar"
+  zshz_seed "$TESTDIR/foo" 1
+  zshz_seed "$TESTDIR/foo/bar" 2
+
+  local out
+  local -a out_lines
+  out=$(zshz -l)
+  out_lines=( ${(f)out} )
+  assert_contains "common:" "$out_lines[1]" \
+    "bare -l should print a common-root summary when one entry roots the rest"
+  assert_contains "$TESTDIR/foo" "$out_lines[1]" \
+    "bare -l common-root summary should show the shared root"
+}
+
 test_list_with_query_does_not_change_directory() {
   mkdir -p "$TESTDIR/proj/sub" "$TESTDIR/lone"
   zshz_seed "$TESTDIR/proj" 10

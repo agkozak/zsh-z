@@ -897,9 +897,11 @@ zshz() {
         # formatting block straight on $lines to skip this pipeline --
         # keep the two list formatters in sync.
         local path_to_display
+        local -a displayed_paths
         for ((i=1; i<=${#kv}; i+=2)); do
           x=${kv[i]} v=${kv[i+1]}
           (( v )) || continue
+          displayed_paths+=( $x )
           path_to_display=$x
           (( ZSHZ_TILDE )) &&
             path_to_display=${path_to_display/#${HOME}/\~}
@@ -917,6 +919,22 @@ zshz() {
           (( ${#v} < 10 )) && v=${(r:10:)v}
           output+=( "$v $path_to_display" )
         done
+        # Recompute the common root over the entries that survived the rank
+        # filter above: $common, computed at the top of this function,
+        # covers *every* match -- including rank-0 entries hidden from the
+        # listing -- so it could name a root the visible entries do not
+        # share. The bare `z -l' fast path filters rank-0 entries before
+        # looking for a root, and the two formatters must produce identical
+        # output. (The jump arm below still uses the full-match root: what
+        # `z foo' jumps to is a separate question from what a listing
+        # displays.)
+        common=''
+        if (( $#displayed_paths )); then
+          _zshz_find_common_root $displayed_paths
+          common=$REPLY
+          # A listing must never leave a jump target in REPLY.
+          REPLY=''
+        fi
         if [[ -n $common ]]; then
           (( ZSHZ_TILDE )) && common=${common/#${HOME}/\~}
           (( $#output > 1 )) && printf "%-10s %s\n" 'common:' $common
