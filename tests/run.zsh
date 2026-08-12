@@ -3,8 +3,8 @@
 #
 # A test is a function named test_* defined in any tests/test_*.zsh file.
 # Each test runs against a fresh ZSHZ_DATA in a tempdir; any non-empty stderr
-# produced by a test causes it to fail (so WARN_CREATE_GLOBAL warnings and
-# unintended errors both surface).
+# produced by a test causes it to fail (so WARN_CREATE_GLOBAL and
+# WARN_NESTED_VAR warnings and unintended errors all surface).
 
 setopt EXTENDED_GLOB
 # Zsh 4.3.11 does not have PIPE_FAIL.
@@ -14,6 +14,24 @@ TESTS_DIR=${0:h}
 [[ $TESTS_DIR == $0 ]] && TESTS_DIR=.
 TESTS_DIR=$(builtin cd "$TESTS_DIR" && builtin pwd -P) || exit 2
 PLUGIN_DIR=$(builtin cd "$TESTS_DIR/.." && builtin pwd -P) || exit 2
+
+# ZSHZ_DEBUG must be set BEFORE the plugin is sourced. Debug mode has two
+# halves, and they switch on at different times:
+#
+#   WARN_CREATE_GLOBAL  `zshz()' sets it per call, so setting ZSHZ_DEBUG in
+#                       the per-test subshell below is enough.
+#   WARN_NESTED_VAR     enabled by a `functions -W' loop that runs once, at
+#                       *load* time. Setting ZSHZ_DEBUG only per test left
+#                       this half switched off for the entire suite.
+#
+# That gap hid a REPLY-set-in-enclosing-scope bug in _zshz_realpath until a
+# user tripped over it by hand. The stderr check below would have caught it
+# on the first run had the option been on.
+#
+# This covers the six functions defined at the top level of the plugin. The
+# eight defined inside `zshz()' cannot be covered from here: `zshz()'
+# redefines them on every call, and redefining a function clears its -W flag.
+ZSHZ_DEBUG=1
 
 source "$PLUGIN_DIR/zsh-z.plugin.zsh" || {
   print -u 2 "Failed to source $PLUGIN_DIR/zsh-z.plugin.zsh"
