@@ -41,7 +41,7 @@ Zsh-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
 
 Version **2.0** is a major step forward, and these are the changes most worth knowing about:
 
-- **Zsh-z is now faster than `rupa/z` on modern Zsh.** A thorough read- and write-path optimization sweep means that Zsh-z now outpaces `rupa/z`'s `z.sh` at adding, searching, and listing on Zsh 5.9. On a Core i7 workstation, listing is ~2.1x faster than `z.sh`, searching ~1.8x faster, and adding ~3.2x faster; on a 2-core VPS the same margins are ~1.4x, ~1.3x, and ~1.9x. Compared with the previous generation of Zsh-z, listing is roughly 60% faster and searching roughly 40% faster, and *that* result reproduces on both machines. See [Performance](#performance) for the numbers.
+- **Zsh-z is even faster than before.** Version 2.0 builds on Zsh-z's past successes in optimizing adding to the datafile -- something it does at virtually every prompt -- by streamlining searching and listing, as well. See [Performance](#performance) for the numbers.
 - **Database writes never block your prompt** -- on any platform. The per-prompt `--add` has long run in the background on most systems, but Cygwin and MSYS2 did the write in the foreground, because backgrounding there cost a wrapper subshell plus a job. `--add` now runs as a single disowned job (`&!`) everywhere: one fork, no wrapper subshell, no job-control noise. On Cygwin and MSYS2 that turns a foreground write whose cost grows with your datafile (~30 ms at 300 entries, ~300 ms at 1,000) into a flat ~10-12 ms fork. Elsewhere it halves the forks per prompt.
 - **Safer, crash-resistant concurrent writes.** Writes are now guarded by a dedicated, stable lockfile using `zsh/system` file locking, with a bounded wait for lock acquisition (the new [`ZSHZ_LOCK_TIMEOUT`](#settings), default `1` second). Write errors are handled gracefully and will not clobber your database, and locks are always released even if a write is interrupted. On Cygwin and MSYS2 a write is also retried briefly if Windows refuses it: a virus scanner or the search indexer that opens the database in the instant between its being written and its being moved into place makes the move fail, which used to lose that one directory silently. Zsh-z now retries the move briefly.
 - **Your database file now has `600` permissions** -- readable and writable only by you -- so that other users on a shared system cannot read your directory history ([#92](https://github.com/agkozak/zsh-z/issues/92)). On Zsh 5+ this uses the in-process `zf_chmod` builtin; on Zsh 4.3.11 it uses a `umask`-in-a-subshell technique that avoids the fork-and-exec of an external `chmod`.
@@ -377,21 +377,21 @@ One of the goals of the rewrite that culminated in v2.0 was to make Zsh-z simult
 
 | Operation | `rupa/z` (`z.sh`) | Zsh-z       | Winner            |
 | --------- | ----------------- | ----------- | ----------------- |
-| `add`     |  6.16 ms/op       |  1.95 ms/op | **Zsh-z** ~3.16x  |
-| `search`  |  6.43 ms/op       |  3.66 ms/op | **Zsh-z** ~1.76x  |
-| `list`    |  9.08 ms/op       |  4.32 ms/op | **Zsh-z** ~2.10x  |
+| `add`     |  6.25 ms/op       |  1.99 ms/op | **Zsh-z** ~3.14x  |
+| `search`  |  6.51 ms/op       |  3.62 ms/op | **Zsh-z** ~1.80x  |
+| `list`    |  8.93 ms/op       |  4.36 ms/op | **Zsh-z** ~2.05x  |
 
 **Zsh 4.3.11 (the oldest supported release) -- Zsh-z vs. `rupa/z`:**
 
 | Operation | `rupa/z` (`z.sh`) | Zsh-z       | Winner            |
 | --------- | ----------------- | ----------- | ----------------- |
-| `add`     |  5.21 ms/op       |  3.14 ms/op | **Zsh-z** ~1.66x  |
-| `search`  |  5.22 ms/op       |  4.70 ms/op | **Zsh-z** ~1.11x  |
-| `list`    |  7.95 ms/op       |  6.19 ms/op | **Zsh-z** ~1.28x  |
+| `add`     |  5.00 ms/op       |  2.92 ms/op | **Zsh-z** ~1.71x  |
+| `search`  |  4.93 ms/op       |  4.47 ms/op | **Zsh-z** ~1.10x  |
+| `list`    |  7.92 ms/op       |  6.08 ms/op | **Zsh-z** ~1.30x  |
 
-Removal is deliberately absent from these tables. In `rupa/z`, `z -x` is not really a removal: the entry is deleted from the datafile, and then the unconditional `precmd` hook adds the current directory straight back at the next prompt, so what the operation actually accomplishes is resetting that directory's rank to 1. There is no honest speed comparison to be drawn against an operation that undoes itself one keystroke later.
+Removal is deliberately absent from these tables, as `rupa/z`'s `-x` feature is not really functional.
 
-Relative to the previous generation of Zsh-z, the v2.0 read path is dramatically faster -- on modern Zsh, listing is about 60% faster and searching about 40% faster.
+Relative to the previous generation of Zsh-z, the v2.0 read path is dramatically faster -- on modern Zsh, listing the whole database is about 2.4x faster and searching about 1.6x faster.
 
 ## Other Improvements to the Original Functionality of `rupa/z`
 
