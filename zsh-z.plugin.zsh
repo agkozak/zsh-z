@@ -1577,7 +1577,13 @@ _zshz_zle_completion_widget() {
   # alias to `zshz' first; compinit's static `#compdef' tag in `_zshz' is
   # parsed literally (no parameter expansion) and only covers the literal
   # `zshz' command. Run once -- the guard short-circuits on subsequent Tabs.
-  (( ${+_comps[$cmd]} )) || compdef _zshz $cmd 2> /dev/null
+  # Record what was registered, so `zsh-z_plugin_unload' can take back exactly
+  # this entry and nothing else. Keyed on the effect rather than compdef's exit
+  # status: if the mapping did not land, there is nothing to take back.
+  if (( ! ${+_comps[$cmd]} )); then
+    compdef _zshz $cmd 2> /dev/null
+    [[ ${_comps[$cmd]-} == '_zshz' ]] && ZSHZ[COMPDEF]=$cmd
+  fi
 
   # If a trailing space was added after an already-completed absolute path
   # (e.g. `z /usr/local/bin '), a second Tab would otherwise re-trigger
@@ -1687,6 +1693,26 @@ zsh-z_plugin_unload() {
   # The directory captured at source time -- $0 here is the function name,
   # not the plugin file. Read it before ZSHZ is unset.
   fpath=( "${(@)fpath:#${ZSHZ[PLUGIN_DIR]}}" )
+
+  # Take back the completion mapping the widget installed on its first Tab.
+  # Without this the entry outlives the function it names -- `_zshz' is
+  # unfunctioned above and the plugin directory has just left $fpath, so a
+  # later completion on that command looks up something unloadable.
+  #
+  # Only this one entry. compinit's own registrations (`_comps[zshz]', from the
+  # static `#compdef' tag) are deliberately left in place: nothing re-runs
+  # compinit when the plugin is sourced again, so removing them would break
+  # completion for the literal `zshz' command until the user re-ran it by hand.
+  # This entry has no such problem -- the widget re-registers it on the next
+  # Tab after a reload.
+  #
+  # `$ZSHZ[COMPDEF]' is the ownership record: the registration above never
+  # overwrites an existing mapping, so one Zsh-z did not create must survive
+  # unload. Re-check the value too, in case it was repointed since.
+  local _zshz_compdef=${ZSHZ[COMPDEF]-}
+  if [[ -n $_zshz_compdef && ${_comps[$_zshz_compdef]-} == '_zshz' ]]; then
+    compdef -d "$_zshz_compdef" 2> /dev/null
+  fi
 
   unset ZSHZ
 

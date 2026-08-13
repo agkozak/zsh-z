@@ -142,4 +142,97 @@ test_reload_after_unload_captures_current_tab_binding() {
   ")
   assert_eq "menu-complete" "$out" "reload should capture the binding present at reload time"
 }
+
+# The completion mapping the widget installs on its first Tab is plugin state
+# like any other, and it outlives the function it names: `_zshz' is
+# unfunctioned by unload and the plugin directory leaves $fpath, so an entry
+# still pointing at it is unloadable. These need compinit and a real widget
+# call, so they use raw `zsh -c' rather than `zshz_in_fresh_shell'.
+
+test_unload_removes_the_completion_mapping_it_registered() {
+  local out
+  out=$(zsh --no-rcs -c "
+    bindkey -M main '^I' expand-or-complete
+    fpath=( '$PLUGIN_DIR' \$fpath )
+    source '$PLUGIN_DIR/zsh-z.plugin.zsh'
+    autoload -U compinit
+    compinit -u -d \$(mktemp -u) 2> /dev/null
+    zle() { return 0 }
+    LBUFFER='z foo'
+    _zshz_zle_completion_widget
+    [[ \${_comps[z]:-} == _zshz ]] || { print 'precondition failed: not registered'; exit 1 }
+    zsh-z_plugin_unload
+    print -- \${_comps[z]:-NONE}
+  ")
+  assert_eq "NONE" "$out" \
+    "unload must remove the _comps entry the widget registered"
+}
+
+test_unload_leaves_the_static_compdef_registration_alone() {
+  # `_comps[zshz]' comes from compinit reading the `#compdef' tag, not from
+  # Zsh-z at runtime. Nothing re-runs compinit when the plugin is sourced
+  # again, so removing this one would break completion for the literal `zshz'
+  # command until the user re-ran compinit by hand.
+  local out
+  out=$(zsh --no-rcs -c "
+    bindkey -M main '^I' expand-or-complete
+    fpath=( '$PLUGIN_DIR' \$fpath )
+    source '$PLUGIN_DIR/zsh-z.plugin.zsh'
+    autoload -U compinit
+    compinit -u -d \$(mktemp -u) 2> /dev/null
+    zle() { return 0 }
+    LBUFFER='z foo'
+    _zshz_zle_completion_widget
+    zsh-z_plugin_unload
+    print -- \${_comps[zshz]:-NONE}
+  ")
+  assert_eq "_zshz" "$out" \
+    "unload must leave compinit's own registration in place"
+}
+
+test_unload_leaves_a_reassigned_completion_mapping_alone() {
+  # Zsh-z never overwrites an existing mapping, so it must not delete one that
+  # someone else repointed after it registered.
+  local out
+  out=$(zsh --no-rcs -c "
+    bindkey -M main '^I' expand-or-complete
+    fpath=( '$PLUGIN_DIR' \$fpath )
+    source '$PLUGIN_DIR/zsh-z.plugin.zsh'
+    autoload -U compinit
+    compinit -u -d \$(mktemp -u) 2> /dev/null
+    zle() { return 0 }
+    LBUFFER='z foo'
+    _zshz_zle_completion_widget
+    _other_completer() { : }
+    compdef _other_completer z
+    zsh-z_plugin_unload
+    print -- \${_comps[z]:-NONE}
+  ")
+  assert_eq "_other_completer" "$out" \
+    "unload must not delete a completion mapping it does not own"
+}
+
+test_reload_reregisters_the_completion_mapping_after_unload() {
+  # What makes removing the entry safe: the widget puts it back on the next
+  # Tab, so an unload/reload cycle ends up where it started.
+  local out
+  out=$(zsh --no-rcs -c "
+    bindkey -M main '^I' expand-or-complete
+    fpath=( '$PLUGIN_DIR' \$fpath )
+    source '$PLUGIN_DIR/zsh-z.plugin.zsh'
+    autoload -U compinit
+    compinit -u -d \$(mktemp -u) 2> /dev/null
+    zle() { return 0 }
+    LBUFFER='z foo'
+    _zshz_zle_completion_widget
+    zsh-z_plugin_unload
+    fpath=( '$PLUGIN_DIR' \$fpath )
+    source '$PLUGIN_DIR/zsh-z.plugin.zsh'
+    LBUFFER='z foo'
+    _zshz_zle_completion_widget
+    print -- \${_comps[z]:-NONE}
+  ")
+  assert_eq "_zshz" "$out" \
+    "a reload's first Tab must re-register the mapping unload removed"
+}
 # vim: fdm=indent:ts=2:et:sts=2:sw=2:
