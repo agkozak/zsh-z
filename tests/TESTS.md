@@ -637,7 +637,14 @@ Spawns writers via `xargs_P`. Both tests skip when
   What always fails: a lost seed, a writer that reported success but
   whose add is missing (silent loss — the lock didn't serialize),
   a writer that never logged a result, or a serial retry that
-  doesn't land.
+  doesn't land. On Cygwin and MSYS2 *only*, the whole batch is retried
+  from a clean datafile up to three times before those are reported:
+  their emulated fcntl locking can rarely fail to exclude rather than
+  fail to acquire, which is indistinguishable from the bug being gated
+  (`test_concurrency.zsh` documents the same hiccup). The tolerance is
+  deliberately not applied elsewhere — master's bug shows up in only
+  about 1 run in 12 of this fleet on Linux, so retrying everywhere
+  would cut the odds of catching it by another order of magnitude.
 
 ### `test_fallback.zsh` — path fallback with no database match
 

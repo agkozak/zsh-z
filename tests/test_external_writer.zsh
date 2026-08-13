@@ -119,7 +119,10 @@ test_many_concurrent_writers_preserve_seeded_entries() {
   #
   #   rc=0         hard FAIL -- the writer believed it succeeded, so
   #                the lock did not serialize and the entry was
-  #                silently lost (master's bug);
+  #                silently lost (master's bug). On Cygwin and MSYS2
+  #                only, the whole batch is retried first; see the
+  #                `attempts' comment below for why that tolerance stays
+  #                confined to them;
   #   no rc at all hard FAIL -- the writer process died before it
   #                could even run `zshz --add';
   #   rc!=0        tolerated, but only after the same add is retried
@@ -134,11 +137,10 @@ test_many_concurrent_writers_preserve_seeded_entries() {
     print "skip: zsystem flock unavailable"
     return 0
   fi
-  local seeded_count=10 writer_count=10 i
+  local seeded_count=10 writer_count=10 i attempt
   local -a writer_names
   for ((i=1; i<=seeded_count; i++)); do
     mkdir -p "$TESTDIR/seed_$i"
-    zshz_seed "$TESTDIR/seed_$i" $i 60
   done
   for ((i=1; i<=writer_count; i++)); do
     mkdir -p "$TESTDIR/w_$i"
@@ -158,58 +160,82 @@ err=$(zshz --add "$ZSHZ_TEST_WRITER_ROOT/$1" 2>&1)
 print -r -- "writer $1 rc=$? err='$err'" >> "$ZSHZ_TEST_WRITER_LOG"
 WRITER
 
-  printf '%s\n' "${writer_names[@]}" | ( xargs_P 4 \
-    env ZSHZ_LOCK_TIMEOUT=30 zsh "$writer" {} )
-
   # Hard failures accumulate here and are reported together at the end,
   # after the evidence dump; anything to stderr fails the test, so the
   # tolerated path must stay silent on that stream.
   local -a hard_failures
   local name rank rc logline
 
-  # The seeded entries are the unconditional invariant: no writer
-  # touches them, so nothing may lose or rerank them.
-  for ((i=1; i<=seeded_count; i++)); do
-    rank=$(zshz_rank_of "$TESTDIR/seed_$i")
-    [[ $rank == $i ]] || hard_failures+=( "seeded entry $i must survive $writer_count concurrent writers: expected '$i', got '$rank'" )
-  done
+  # Strict everywhere real POSIX locks are: a single attempt, and any silent
+  # loss fails. Retrying is confined to Cygwin and MSYS2, whose emulated fcntl
+  # locking over a Windows filesystem can rarely fail to *exclude* rather than
+  # fail to acquire -- indistinguishable, from here, from the bug this test
+  # gates. It has to stay confined: master's bug shows up in only about 1 run
+  # in 12 of this fleet on Linux, so a blanket retry would cut the odds of
+  # catching it by another order of magnitude. MSYS2 also reports
+  # $OSTYPE=cygwin; `msys' is matched too in case that changes.
+  local -i attempts=1
+  [[ $OSTYPE == (cygwin|msys)* ]] && attempts=3
 
-  for ((i=1; i<=writer_count; i++)); do
-    name="w_$i"
-    rank=$(zshz_rank_of "$TESTDIR/$name")
-    [[ $rank == 1 ]] && continue
-    # The add is missing: let the writer's recorded exit status say why.
-    rc=''
-    if [[ -f $writers ]]; then
-      while IFS= read -r logline; do
-        [[ $logline == "writer $name rc="* ]] && rc=${${logline#*rc=}%% *}
-      done < "$writers"
-    fi
-    if [[ -z $rc ]]; then
-      hard_failures+=( "writer $name never logged a result: its process died before running zshz --add" )
-    elif [[ $rc == 0 ]]; then
-      hard_failures+=( "writer $name reported success but its add is missing: the lock failed to serialize" )
-    else
-      # Honestly reported failure. Tolerate it iff the same add lands
-      # serially, with no contention left to hide behind.
-      zshz --add "$TESTDIR/$name"
+  for (( attempt = 1; attempt <= attempts; attempt++ )); do
+    # Each attempt runs against a clean slate -- empty datafile, freshly
+    # seeded ranks, empty writer log -- so nothing carries over from the
+    # attempt before it.
+    : > "$ZSHZ_DATA"
+    : > "$writers"
+    for ((i=1; i<=seeded_count; i++)); do
+      zshz_seed "$TESTDIR/seed_$i" $i 60
+    done
+    hard_failures=()
+
+    printf '%s\n' "${writer_names[@]}" | ( xargs_P 4 \
+      env ZSHZ_LOCK_TIMEOUT=30 zsh "$writer" {} )
+
+    # The seeded entries are the unconditional invariant: no writer
+    # touches them, so nothing may lose or rerank them.
+    for ((i=1; i<=seeded_count; i++)); do
+      rank=$(zshz_rank_of "$TESTDIR/seed_$i")
+      [[ $rank == $i ]] || hard_failures+=( "seeded entry $i must survive $writer_count concurrent writers: expected '$i', got '$rank'" )
+    done
+
+    for ((i=1; i<=writer_count; i++)); do
+      name="w_$i"
       rank=$(zshz_rank_of "$TESTDIR/$name")
-      if [[ $rank == 1 ]]; then
-        # Stdout only surfaces when the test fails, but a later hard
-        # failure will then arrive with this context attached.
-        print "tolerated: writer $name failed honestly (rc=$rc) and landed on serial retry"
-      else
-        hard_failures+=( "writer $name's honestly-reported failure (rc=$rc) must land when retried serially: expected '1', got '$rank'" )
+      [[ $rank == 1 ]] && continue
+      # The add is missing: let the writer's recorded exit status say why.
+      rc=''
+      if [[ -f $writers ]]; then
+        while IFS= read -r logline; do
+          [[ $logline == "writer $name rc="* ]] && rc=${${logline#*rc=}%% *}
+        done < "$writers"
       fi
-    fi
-  done
+      if [[ -z $rc ]]; then
+        hard_failures+=( "writer $name never logged a result: its process died before running zshz --add" )
+      elif [[ $rc == 0 ]]; then
+        hard_failures+=( "writer $name reported success but its add is missing: the lock failed to serialize" )
+      else
+        # Honestly reported failure. Tolerate it iff the same add lands
+        # serially, with no contention left to hide behind.
+        zshz --add "$TESTDIR/$name"
+        rank=$(zshz_rank_of "$TESTDIR/$name")
+        if [[ $rank == 1 ]]; then
+          # Stdout only surfaces when the test fails, but a later hard
+          # failure will then arrive with this context attached.
+          print "tolerated: writer $name failed honestly (rc=$rc) and landed on serial retry"
+        else
+          hard_failures+=( "writer $name's honestly-reported failure (rc=$rc) must land when retried serially: expected '1', got '$rank'" )
+        fi
+      fi
+    done
 
-  (( ${#hard_failures} )) || return 0
+    (( ${#hard_failures} )) || return 0
+  done
 
   # Dump the evidence before reporting, as in the test above, so a
   # failure on a platform that cannot be reproduced locally still
-  # arrives with its cause attached.
-  print -u 2 "  --- writer exit statuses ---"
+  # arrives with its cause attached. Every attempt failed to get here,
+  # so this is the last one's evidence.
+  print -u 2 "  --- writer exit statuses (final attempt) ---"
   if [[ -f $writers ]]; then
     while IFS= read -r logline; do print -u 2 "    $logline"; done < "$writers"
   else
