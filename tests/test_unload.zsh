@@ -347,4 +347,27 @@ test_unload_removes_every_completion_mapping_it_registered() {
   assert_eq "NONE NONE" "$out" \
     "unload must remove every mapping it registered, not only the most recent"
 }
+
+test_unload_removes_the_directory_it_added_not_the_one_resourced_from() {
+  # $ZSHZ[PLUGIN_DIR] is rewritten by every source, so an ownership *flag*
+  # would describe whichever installation was sourced last. Re-sourcing from a
+  # second, manager-owned directory then made unload drop that manager's entry
+  # while stranding the one the plugin had actually added -- exactly backwards.
+  local a="$TESTDIR/instA" b="$TESTDIR/instB"
+  mkdir -p "$a" "$b"
+  cp "$PLUGIN_DIR/zsh-z.plugin.zsh" "$PLUGIN_DIR/_zshz" "$a/" || return 1
+  cp "$PLUGIN_DIR/zsh-z.plugin.zsh" "$PLUGIN_DIR/_zshz" "$b/" || return 1
+
+  local out
+  out=$(zsh --no-rcs -c "
+    a='$a'; b='$b'
+    fpath=( \$b \$fpath )          # the manager owns B
+    source \$a/zsh-z.plugin.zsh    # the plugin adds A itself
+    source \$b/zsh-z.plugin.zsh    # re-sourced from B, which was already there
+    zsh-z_plugin_unload
+    print -- \"\${fpath[(Ie)\$a]} \$(( \${fpath[(Ie)\$b]} > 0 ))\"
+  ")
+  assert_eq "0 1" "$out" \
+    "unload must remove the entry it added (A) and keep the manager's (B)"
+}
 # vim: fdm=indent:ts=2:et:sts=2:sw=2:

@@ -593,16 +593,6 @@ zshz() {
         # An unusual case: if inside Docker container where datafile could be bind
         # mounted
         if [[ -f '/.dockerenv' || ( -r '/proc/1/cgroup' && "$(< '/proc/1/cgroup')" == *docker* ) ]]; then
-          # $datafile is the realpath-resolved target, so it is not a symlink
-          # in the ordinary case -- but it can become one after that resolution,
-          # and `>|' follows a link where the `mv' in the sibling branch
-          # replaces it. Under $ZSHZ_OWNER that would write the database, and
-          # then `chmod 600', through whatever an unprivileged owner pointed it
-          # at. Narrow that window; without an owner no privilege is crossed.
-          if [[ -n $owner && -L $datafile ]]; then
-            ${ZSHZ[RM]} -f "$tempfile" 2> /dev/null
-            return 1
-          fi
           # Secure the datafile *before* its contents land. This branch writes
           # in place instead of renaming an already-0600 tempfile over the
           # path, so asserting the mode afterwards -- as this did -- leaves a
@@ -614,9 +604,43 @@ zshz() {
             ${ZSHZ[RM]} -f "$tempfile" 2> /dev/null
             return 1
           fi
-          # `-r': re-emit the tempfile's already-literal contents byte-for-byte.
-          print -r -- "$(< "$tempfile")" >| "$datafile" 2> /dev/null
-          write_ret=$?
+          # This is the one write path where a symlink at $datafile redirects
+          # real database content: the sibling branch renames a finished
+          # tempfile over the path, and a rename *replaces* a link rather than
+          # writing through it, while `>|' follows one. Under $ZSHZ_OWNER that
+          # content goes out with root's authority to a path an unprivileged
+          # owner controls, so a `-L' test ahead of the write is not enough --
+          # the path can be swapped in between.
+          #
+          # `sysopen -o nofollow' settles it atomically, at open time, and the
+          # write goes through that descriptor. If it is unavailable (Zsh
+          # 4.3.11 has `zsystem flock' but no `sysopen' at all, and O_NOFOLLOW
+          # is not universal) or it refuses the open, the privileged write is
+          # refused rather than retried by a following one: this degrades to
+          # failing closed, never to writing unsafely. Without an owner set no
+          # privilege is crossed and the plain redirection stands.
+          #
+          # `chmod' above stays path-based -- Zsh has no `fchmod' -- so a swap
+          # can still misdirect it. Setting the mode on the wrong file is a far
+          # smaller matter than writing the database into it, and the write is
+          # what this closes.
+          local _zshz_dfd
+          if [[ -n $owner ]]; then
+            if (( ${+builtins[sysopen]} )) &&
+               sysopen -o trunc,nofollow -w -u _zshz_dfd "$datafile" 2> /dev/null
+            then
+              print -u $_zshz_dfd -r -- "$(< "$tempfile")" 2> /dev/null
+              write_ret=$?
+              exec {_zshz_dfd}>&-
+            else
+              ${ZSHZ[RM]} -f "$tempfile" 2> /dev/null
+              return 1
+            fi
+          else
+            # `-r': re-emit the tempfile's already-literal contents byte-for-byte.
+            print -r -- "$(< "$tempfile")" >| "$datafile" 2> /dev/null
+            write_ret=$?
+          fi
           ${ZSHZ[RM]} -f "$tempfile" 2> /dev/null
         # All other cases
         else
@@ -1555,7 +1579,14 @@ ZSHZ[PLUGIN_DIR]=${0:A:h}
 # above preserves the value across that re-source.
 if (( ${fpath[(ie)${ZSHZ[PLUGIN_DIR]}]} > ${#fpath} )); then
   fpath=( "${ZSHZ[PLUGIN_DIR]}" "${fpath[@]}" )
-  ZSHZ[ADDED_FPATH]=1
+  # Record the path itself, not a boolean. $ZSHZ[PLUGIN_DIR] is rewritten by
+  # every source, so a flag would end up describing whichever directory was
+  # sourced last: re-sourcing from a second, manager-owned installation would
+  # make unload drop *that* entry and strand the one this plugin actually
+  # added. Newline-separated, since a path may contain spaces, and split with
+  # `${(f)...}' at unload.
+  ZSHZ[ADDED_FPATH]="${ZSHZ[ADDED_FPATH]:+${ZSHZ[ADDED_FPATH]}
+}${ZSHZ[PLUGIN_DIR]}"
 fi
 
 # Save the existing Tab binding so that the completion widget can invoke it,
@@ -1719,10 +1750,13 @@ zsh-z_plugin_unload() {
   # a *pattern*, so a plugin directory containing `[', `*' or `?' would not
   # match itself and the entry would be left behind. The source-time lookup
   # already uses `(ie)'; these two must agree.
-  if (( ${ZSHZ[ADDED_FPATH]:-0} )); then
-    local _zshz_fp=${fpath[(ie)${ZSHZ[PLUGIN_DIR]}]}
+  local _zshz_dir
+  integer _zshz_fp
+  for _zshz_dir in ${(f)ZSHZ[ADDED_FPATH]-}; do
+    [[ -n $_zshz_dir ]] || continue
+    _zshz_fp=${fpath[(ie)$_zshz_dir]}
     (( _zshz_fp <= ${#fpath} )) && fpath[$_zshz_fp]=()
-  fi
+  done
 
   # Take back the completion mapping the widget installed on its first Tab.
   # Without this the entry outlives the function it names -- `_zshz' is
