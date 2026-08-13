@@ -20,7 +20,7 @@ Zsh-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
 
 > ### Zsh-z v2.0
 >
-> **v2.0 is the most significant release in the project's history.** It outpaces `rupa/z` at adding, searching, and listing on modern Zsh; it never makes your prompt wait on database writes -- on any platform; it hardens those writes against corruption and against prying eyes; and it makes tab completion "just work" even under `setopt COMPLETE_ALIASES`. See [**v2.0**](#v20) in the News below for the full rundown, and [Performance](#performance) for the benchmarks.
+> **v2.0 is the most significant release in the project's history.** It is faster than ever at adding, searching, and listing on modern Zsh; it never makes your prompt wait on database writes -- on any platform; it hardens those writes against corruption and against prying eyes; and it makes tab completion "just work" even under `setopt COMPLETE_ALIASES`. See [**v2.0**](#v20) in the News below for the full rundown, and [Performance](#performance) for the benchmarks.
 
 ## Table of Contents
 - [News](#news)
@@ -389,7 +389,7 @@ One of the goals of the rewrite that culminated in v2.0 was to make Zsh-z simult
 | `search`  |  4.93 ms/op       |  4.47 ms/op | **Zsh-z** ~1.10x  |
 | `list`    |  7.92 ms/op       |  6.08 ms/op | **Zsh-z** ~1.30x  |
 
-Removal is deliberately absent from these tables, as `rupa/z`'s `-x` feature is not really functional.
+Removal is absent from these tables: in `rupa/z`, the per-prompt hook re-adds the current directory right after `z -x` removes it, so the two implementations' `-x` are not doing comparable work.
 
 Relative to the previous generation of Zsh-z, the v2.0 read path is dramatically faster -- on modern Zsh, listing the whole database is about 2.4x faster and searching about 1.6x faster.
 
