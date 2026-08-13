@@ -163,4 +163,75 @@ test_initial_creation_does_not_chown_when_ZSHZ_OWNER_unset() {
     "no chown should fire on initial creation when ZSHZ_OWNER is unset"
 }
 
+# The two tests below cover the failure path rather than the happy one. The
+# tempfile is born under the ambient umask and it is that inode the rename
+# publishes, so when `zf_chmod' is what stands between 0666 and 0600, a chmod
+# whose status nobody checks turns a permissive umask into a world-readable
+# `.z' that still reports success. Both shadow the `zf_chmod' builtin with a
+# failing function -- ${ZSHZ[CHMOD]} has to keep the *name* `zf_chmod', since
+# that string is what selects this branch over the umask-subshell one.
+
+test_add_fails_closed_when_the_tempfile_cannot_be_secured() {
+  [[ ${ZSHZ[CHMOD]} == 'zf_chmod' ]] || {
+    _test_skip "zf_chmod required (the umask-subshell path uses no chmod)"
+    return 0
+  }
+  _test_skip_mode_check && {
+    _test_skip "POSIX mode-bit support required"
+    return 0
+  }
+
+  local d="$TESTDIR/before"
+  mkdir -p "$d"
+  zshz --add "$d" || return 1
+  assert_eq "600" "$(_test_mode_of "$ZSHZ_DATA")" "precondition: .z is 0600"
+
+  umask 000
+  zf_chmod() { return 1 }
+
+  local d2="$TESTDIR/after" ret=0
+  mkdir -p "$d2"
+  zshz --add "$d2" || ret=$?
+
+  assert_ne "0" "$ret" \
+    "a chmod that cannot secure the tempfile must fail the write"
+  assert_eq "600" "$(_test_mode_of "$ZSHZ_DATA")" \
+    "a failed chmod must never publish a world-readable .z"
+  assert_not_contains "$d2" "$(zshz_dump)" \
+    "the refused write must not reach the datafile"
+
+  local -a leftovers
+  leftovers=( "$TESTDIR"/${ZSHZ_DATA:t}.<->(N) )
+  assert_eq "0" "${#leftovers}" \
+    "the abandoned tempfile must be cleaned up: ${(j:, :)leftovers}"
+}
+
+test_remove_fails_closed_when_the_tempfile_cannot_be_secured() {
+  [[ ${ZSHZ[CHMOD]} == 'zf_chmod' ]] || {
+    _test_skip "zf_chmod required (the umask-subshell path uses no chmod)"
+    return 0
+  }
+  _test_skip_mode_check && {
+    _test_skip "POSIX mode-bit support required"
+    return 0
+  }
+
+  local d="$TESTDIR/r"
+  mkdir -p "$d"
+  zshz --add "$d" || return 1
+
+  umask 000
+  zf_chmod() { return 1 }
+
+  local ret=0
+  zshz -x "$d" || ret=$?
+
+  assert_ne "0" "$ret" \
+    "a chmod that cannot secure the tempfile must fail the removal"
+  assert_eq "600" "$(_test_mode_of "$ZSHZ_DATA")" \
+    "a failed chmod must never publish a world-readable .z"
+  assert_contains "$d" "$(zshz_dump)" \
+    "a refused removal must leave the database as it was"
+}
+
 # vim: fdm=indent:ts=2:et:sts=2:sw=2:

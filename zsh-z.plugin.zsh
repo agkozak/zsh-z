@@ -514,7 +514,18 @@ zshz() {
           # exec is ~50us, ~18x cheaper than the chmod fallback.
           if [[ ${ZSHZ[CHMOD]} == 'zf_chmod' ]]; then
             exec {tmpfd}>|"$tempfile"  # Open up tempfile for writing
-            ${ZSHZ[CHMOD]} 600 "$tempfile"
+            # Fail closed. The tempfile is born with the ambient umask (0666
+            # under `umask 000'), and it is this inode -- not the datafile's --
+            # that the rename below publishes, so a chmod whose failure went
+            # unnoticed would replace a 0600 datafile with a world-readable one
+            # and still report success. Nothing has been written yet, so
+            # there is no salvage: drop the tempfile and leave the database as
+            # it was.
+            if ! ${ZSHZ[CHMOD]} 600 "$tempfile"; then
+              exec {tmpfd}>&-
+              ${ZSHZ[RM]} -f "$tempfile" 2> /dev/null
+              return 1
+            fi
             _zshz_update_datafile $tmpfd "$*"
           else
             ( umask 077
@@ -545,7 +556,12 @@ zshz() {
           # chmod when zf_chmod isn't available.
           if [[ ${ZSHZ[CHMOD]} == 'zf_chmod' ]]; then
             exec {tmpfd}>|"$tempfile"  # Open up tempfile for writing
-            ${ZSHZ[CHMOD]} 600 "$tempfile"
+            # Fail closed, exactly as on the --add path above.
+            if ! ${ZSHZ[CHMOD]} 600 "$tempfile"; then
+              exec {tmpfd}>&-
+              ${ZSHZ[RM]} -f "$tempfile" 2> /dev/null
+              return 1
+            fi
             # `-r': $lines are verbatim on-disk lines (the datafile stores
             # literal paths), so they must be written back unchanged. Without
             # `-r', print would collapse an escape -- e.g. a literal `\t' in a
@@ -587,11 +603,20 @@ zshz() {
             ${ZSHZ[RM]} -f "$tempfile" 2> /dev/null
             return 1
           fi
+          # Secure the datafile *before* its contents land. This branch writes
+          # in place instead of renaming an already-0600 tempfile over the
+          # path, so asserting the mode afterwards -- as this did -- leaves a
+          # bind-mounted datafile that arrived permissive readable for the
+          # length of the write, and leaves it readable for good if the chmod
+          # fails and nothing checks. The mode carries across the truncating
+          # write below, which reuses this same inode.
+          if ! ${ZSHZ[CHMOD]} 600 "$datafile" 2> /dev/null; then
+            ${ZSHZ[RM]} -f "$tempfile" 2> /dev/null
+            return 1
+          fi
           # `-r': re-emit the tempfile's already-literal contents byte-for-byte.
           print -r -- "$(< "$tempfile")" >| "$datafile" 2> /dev/null
           write_ret=$?
-          # Reassert 0600 permissions
-          (( write_ret == 0 )) && ${ZSHZ[CHMOD]} 600 "$datafile" 2> /dev/null
           ${ZSHZ[RM]} -f "$tempfile" 2> /dev/null
         # All other cases
         else
