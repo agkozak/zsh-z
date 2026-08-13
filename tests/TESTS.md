@@ -828,6 +828,29 @@ datafile and the lockfile must be chowned together.
   both files.
 - `test_owner_unset_does_not_chown` — without `ZSHZ_OWNER`, no
   chown happens.
+- `test_owner_set_chowns_lockfile_at_creation` — the handoff happens
+  when the lockfile is created, not only after a successful write.
+
+Symlink hardening. Under `ZSHZ_OWNER` every one of these operations runs
+with root's authority on paths inside a directory the unprivileged owner
+controls, so following a link there redirects them.
+
+- `test_owner_refuses_a_symlinked_datafile` — the resolution in
+  `zshz()` dereferences a symlinked datafile, which under `ZSHZ_OWNER`
+  would write the database wherever the link points, with no race
+  required; it must be refused, loudly, and the target left untouched.
+- `test_symlinked_datafile_is_dereferenced_when_no_owner_is_set` —
+  the counterpart: unprivileged use keeps the documented dereference,
+  and the lockfile is derived from the *resolved* path.
+- `test_owner_chown_never_dereferences_symlinks` — every chown passes
+  `-h`, so a link planted since the last check is retitled rather than
+  followed onto its target.
+- `test_owner_refuses_symlinked_lockfile` — unlike the datafile, the
+  lockfile is never replaced, so a link planted there would persist and
+  be acted on at every write.
+- `test_symlinked_lockfile_allowed_when_owner_unset` — that refusal is
+  gated on `ZSHZ_OWNER`; with no owner set no privilege is crossed and a
+  user's own symlinked lockfile keeps working.
 
 ### `test_permissions.zsh` — datafile permission hardening
 
@@ -861,6 +884,23 @@ are honored.
   `${ZSHZ[CHOWN]}` with a logger.
 - `test_initial_creation_does_not_chown_when_ZSHZ_OWNER_unset` —
   without `ZSHZ_OWNER`, no chown happens on initial creation.
+- `test_lockfile_created_at_0600` — the lockfile is born 0600 too,
+  not created under the ambient umask.
+
+Failure-path coverage. The tempfile is born under the ambient umask and
+it is *that* inode the rename publishes, so when `zf_chmod` is the only
+thing standing between 0666 and 0600, an unchecked failure publishes a
+world-readable `.z` and still reports success. Both shadow the
+`zf_chmod` builtin with a failing function — `${ZSHZ[CHMOD]}` has to keep
+the *name* `zf_chmod`, since that string selects the branch — and skip
+where `zf_chmod` is unavailable (Zsh 4.3.11 takes the umask-subshell path,
+which needs no chmod).
+
+- `test_add_fails_closed_when_the_tempfile_cannot_be_secured` — a
+  failed chmod fails the write: nonzero status, `.z` still 0600, the
+  entry absent, and no tempfile left behind.
+- `test_remove_fails_closed_when_the_tempfile_cannot_be_secured` — the
+  same on the `-x` path, with the database left as it was.
 
 ### `test_resource.zsh` — re-sourcing safety and Tab binding
 
@@ -1109,6 +1149,48 @@ hooks, and unset `ZSHZ`. Re-sourcing should bring everything back.
 - `test_reload_after_unload_captures_current_tab_binding` — re-source
   captures whatever Tab is bound to *now* (not the original
   `expand-or-complete`).
+
+Completion mappings. The widget registers `_comps[$cmd]=_zshz` on its
+first Tab; that entry outlives the function it names, since unload
+unfunctions `_zshz` and drops the plugin directory from `$fpath`. These
+need compinit and a real widget call, so they use raw `zsh -c`.
+
+- `test_unload_removes_the_completion_mapping_it_registered` — the
+  entry the widget added is gone after unload.
+- `test_unload_leaves_the_static_compdef_registration_alone` —
+  `_comps[zshz]` comes from compinit reading the `#compdef` tag, and
+  nothing re-runs compinit on a reload, so removing it would break
+  completion for the literal `zshz` command.
+- `test_unload_leaves_a_reassigned_completion_mapping_alone` — a
+  mapping someone else repointed after Zsh-z registered it survives.
+- `test_reload_reregisters_the_completion_mapping_after_unload` — what
+  makes the removal safe: the next Tab after a reload puts it back.
+- `test_unload_removes_every_completion_mapping_it_registered` — a
+  re-source with a changed `ZSHZ_CMD` registers a second command; both
+  are given back, not just the most recent.
+
+`$fpath` ownership. The plugin adds its own directory only when nothing
+else has, so unload must take back only what it put there — a plugin
+manager that supplied the entry owns it, and other autoloadable
+functions may live in the same directory.
+
+- `test_unload_removes_the_fpath_entry_it_added` — the entry the
+  plugin added is removed.
+- `test_unload_leaves_a_preexisting_fpath_entry_alone` — an entry that
+  was already there is not.
+- `test_unload_leaves_duplicate_preexisting_fpath_entries_alone` — the
+  old filter dropped every match at once; duplicates a manager put
+  there survive.
+- `test_unload_removes_the_fpath_entry_after_a_re_source` — the
+  ownership record survives a re-source, which finds the directory
+  already present because the first source added it.
+- `test_unload_removes_the_directory_it_added_not_the_one_resourced_from`
+  — `$ZSHZ[PLUGIN_DIR]` is rewritten by every source, so the record
+  stores paths rather than a flag; re-sourcing from a second,
+  manager-owned installation must not invert which entry is removed.
+- `test_unload_removes_the_fpath_entry_from_a_glob_metachar_directory`
+  — the lookup matches the stored path exactly, so a directory named
+  with `[`, `*` or `?` still matches itself.
 
 ### `test_widget.zsh` — ZLE completion widget logic
 

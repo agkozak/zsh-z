@@ -300,8 +300,29 @@ zshz() {
     return 1
   fi
 
+  # Refuse a symlinked datafile while $ZSHZ_OWNER is set, rather than
+  # following it. That variable means root is acting for an unprivileged user
+  # -- the documented `sudo -s' setup -- and the resolution just below
+  # deliberately dereferences a link, so in that configuration Zsh-z would
+  # write the database wherever a name inside the user's own home points, with
+  # root's authority. Nothing has to be raced: the link is planted before the
+  # privileged shell ever starts. Unprivileged use crosses no such boundary and
+  # keeps the dereference, which is what makes pointing `.z' at synced storage
+  # work.
+  #
+  # The final component only. A symlinked *parent* is ordinary on some systems
+  # (`/home' -> `/usr/home' on the BSDs), and rejecting those would break Zsh-z
+  # under $ZSHZ_OWNER there for nothing: what an unprivileged owner controls in
+  # this threat model is the datafile name itself, inside their own directory.
+  if [[ -n ${ZSHZ_OWNER:-${_Z_OWNER}} && -L ${custom_datafile:-$HOME/.z} ]]; then
+    (( quiet )) ||
+      print "ERROR: Zsh-z will not follow a symlinked datafile (${custom_datafile:-$HOME/.z}) while ZSHZ_OWNER is set." >&2
+    return 1
+  fi
+
   # If the user specified a datafile, use that or default to ~/.z
-  # If the datafile is a symlink, it gets dereferenced. Canonicalized with
+  # If the datafile is a symlink, it gets dereferenced (except under
+  # $ZSHZ_OWNER, refused just above). Canonicalized with
   # _zshz_realpath rather than a bare `:A', which would segfault Zsh 4.3.11
   # on a $ZSHZ_DATA pointing into a missing top-level directory -- at every
   # prompt, since this line runs in the backgrounded precmd add.

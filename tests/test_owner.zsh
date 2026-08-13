@@ -184,14 +184,42 @@ test_symlinked_lockfile_allowed_when_owner_unset() {
     "a symlinked lockfile must stay usable when no owner is set"
 }
 
-test_symlinked_datafile_is_dereferenced_and_lockfile_follows_it() {
-  # A symlinked $ZSHZ_DATA is deliberately dereferenced by `_zshz_realpath'
-  # before any of the write machinery sees it, so there is no symlink left for
-  # a `-L' guard to catch and no point adding one: $ZSHZ_DATA can already name
-  # any path outright, symlink or not. What that resolution does mean is that
-  # the lockfile is derived from the *resolved* path -- pinned here because the
-  # lockfile's own symlink refusal depends on it being a derived name the user
-  # never supplies directly.
+test_owner_refuses_a_symlinked_datafile() {
+  # The counterpart to the test below. `_zshz_realpath' deliberately
+  # dereferences a symlinked datafile, so under $ZSHZ_OWNER -- root acting for
+  # an unprivileged user -- Zsh-z would write the database wherever a name
+  # inside that user's own home points, with root's authority. Nothing has to
+  # be raced for it: the link is planted before the privileged shell starts,
+  # which is what makes this worth refusing rather than merely guarding.
+  _test_skip_no_symlinks && { print "skip: filesystem has no resolvable symlinks"; return 0 }
+
+  local decoy="$TESTDIR/decoy"
+  print 'untouched' > "$decoy"
+  rm -f "$ZSHZ_DATA"
+  ln -s "$decoy" "$ZSHZ_DATA"
+
+  local sub="$TESTDIR/sub"
+  mkdir -p "$sub"
+
+  # `2>&1' inside the substitution: the refusal is deliberately loud on a
+  # hand-typed invocation, and anything reaching the test's own stderr fails it.
+  local err ret=0
+  err=$(ZSHZ_OWNER=$(id -un) zshz --add "$sub" 2>&1) || ret=$?
+
+  assert_ne "0" "$ret" \
+    "a symlinked datafile must be refused while ZSHZ_OWNER is set"
+  assert_contains "symlinked datafile" "$err" \
+    "the refusal must explain itself"
+  assert_eq "untouched" "$(< "$decoy")" \
+    "the symlink's target must not be written through"
+}
+
+test_symlinked_datafile_is_dereferenced_when_no_owner_is_set() {
+  # Unprivileged use keeps the documented dereference -- it is what makes
+  # pointing `.z' at synced storage work -- and the resolution also decides
+  # where the lockfile lands, since that name is derived from the *resolved*
+  # path. Pinned here because the lockfile's own symlink refusal depends on it
+  # being a derived name the user never supplies directly.
   (( ZSHZ[USE_FLOCK] )) || {
     _test_skip "zsystem flock unavailable"
     return 0
@@ -205,10 +233,11 @@ test_symlinked_datafile_is_dereferenced_and_lockfile_follows_it() {
 
   local sub="$TESTDIR/sub"
   mkdir -p "$sub"
-  ZSHZ_OWNER=$(id -un) zshz --add "$sub"
+  unset ZSHZ_OWNER _Z_OWNER
+  zshz --add "$sub"
 
   assert_contains "$sub" "$(< "$real")" \
-    "a symlinked datafile must be followed to its target, as documented"
+    "a symlinked datafile must be followed to its target when no owner is set"
   assert_file_exists "${real}.lock"
   if [[ -e ${ZSHZ_DATA}.lock ]]; then
     fail "the lockfile must sit beside the resolved datafile, not the symlink"
