@@ -1540,12 +1540,23 @@ add-zsh-hook chpwd _zshz_chpwd
 0="${${ZERO:-${0:#${ZSH_ARGZERO-}}}:-${(%):-%N}}"
 0="${${(M)0:#/*}:-$PWD/$0}"
 
-(( ${fpath[(ie)${0:A:h}]} <= ${#fpath} )) || fpath=( "${0:A:h}" "${fpath[@]}" )
-
 # Capture the plugin directory while $0 still names this file: inside the
 # unload function, $0 is the function name (FUNCTION_ARGZERO), which `:A'
 # would resolve against $PWD.
 ZSHZ[PLUGIN_DIR]=${0:A:h}
+
+# Add the plugin directory to $fpath only when nothing else has already put it
+# there, and record having done so, so that unload can take back this entry
+# and leave a plugin manager's alone.
+#
+# The record is only ever set, never cleared: on a re-source the directory is
+# already present -- because this file added it the first time -- and clearing
+# the record then would strand the entry in $fpath at unload. `typeset -gA'
+# above preserves the value across that re-source.
+if (( ${fpath[(ie)${ZSHZ[PLUGIN_DIR]}]} > ${#fpath} )); then
+  fpath=( "${ZSHZ[PLUGIN_DIR]}" "${fpath[@]}" )
+  ZSHZ[ADDED_FPATH]=1
+fi
 
 # Save the existing Tab binding so that the completion widget can invoke it,
 # but being careful not to create a situation where the widget ends up calling
@@ -1692,7 +1703,16 @@ zsh-z_plugin_unload() {
 
   # The directory captured at source time -- $0 here is the function name,
   # not the plugin file. Read it before ZSHZ is unset.
-  fpath=( "${(@)fpath:#${ZSHZ[PLUGIN_DIR]}}" )
+  #
+  # Only when this plugin was the one that added it. A plugin manager that put
+  # the directory on $fpath owns that entry: taking it away would break
+  # autoloads for anything else living there and leave the manager believing
+  # its configuration is intact. And drop a single occurrence rather than
+  # filtering every match -- at most one of any duplicates can be ours.
+  if (( ${ZSHZ[ADDED_FPATH]:-0} )); then
+    local _zshz_fp=${fpath[(i)${ZSHZ[PLUGIN_DIR]}]}
+    (( _zshz_fp <= ${#fpath} )) && fpath[$_zshz_fp]=()
+  fi
 
   # Take back the completion mapping the widget installed on its first Tab.
   # Without this the entry outlives the function it names -- `_zshz' is

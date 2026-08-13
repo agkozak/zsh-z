@@ -235,4 +235,69 @@ test_reload_reregisters_the_completion_mapping_after_unload() {
   assert_eq "_zshz" "$out" \
     "a reload's first Tab must re-register the mapping unload removed"
 }
+
+# $fpath ownership. The plugin adds its own directory only when nothing else
+# has, so unload must take back only what it put there -- a plugin manager
+# that supplied the entry owns it, and other autoloadable functions may live
+# in the same directory. `zshz_in_fresh_shell' sources the plugin for us, so
+# these use raw `zsh -c' to arrange $fpath beforehand.
+
+# Count occurrences of $PLUGIN_DIR in $fpath inside a fresh shell running BODY.
+_count_plugin_dir_in_fpath() {
+  zsh --no-rcs -c "
+    $1
+    _m=( \${(M)fpath:#$PLUGIN_DIR} )
+    print -- \${#_m}
+  "
+}
+
+test_unload_leaves_a_preexisting_fpath_entry_alone() {
+  local out
+  out=$(_count_plugin_dir_in_fpath "
+    fpath=( '$PLUGIN_DIR' \$fpath )
+    source '$PLUGIN_DIR/zsh-z.plugin.zsh'
+    zsh-z_plugin_unload
+  ")
+  assert_eq "1" "$out" \
+    "unload must not remove an fpath entry the plugin did not add"
+}
+
+test_unload_leaves_duplicate_preexisting_fpath_entries_alone() {
+  # The old filter dropped every match at once, so duplicates a manager had
+  # put there disappeared together.
+  local out
+  out=$(_count_plugin_dir_in_fpath "
+    fpath=( '$PLUGIN_DIR' '$PLUGIN_DIR' \$fpath )
+    source '$PLUGIN_DIR/zsh-z.plugin.zsh'
+    zsh-z_plugin_unload
+  ")
+  assert_eq "2" "$out" \
+    "unload must leave duplicate entries it did not add"
+}
+
+test_unload_removes_the_fpath_entry_it_added() {
+  local out
+  out=$(_count_plugin_dir_in_fpath "
+    fpath=( \${fpath:#$PLUGIN_DIR} )
+    source '$PLUGIN_DIR/zsh-z.plugin.zsh'
+    zsh-z_plugin_unload
+  ")
+  assert_eq "0" "$out" \
+    "unload must remove the fpath entry the plugin added"
+}
+
+test_unload_removes_the_fpath_entry_after_a_re_source() {
+  # A re-source finds the directory already on $fpath -- because the first
+  # source put it there -- so the ownership record must survive rather than be
+  # recomputed, or unload would strand the entry.
+  local out
+  out=$(_count_plugin_dir_in_fpath "
+    fpath=( \${fpath:#$PLUGIN_DIR} )
+    source '$PLUGIN_DIR/zsh-z.plugin.zsh'
+    source '$PLUGIN_DIR/zsh-z.plugin.zsh'
+    zsh-z_plugin_unload
+  ")
+  assert_eq "0" "$out" \
+    "the ownership record must survive a re-source"
+}
 # vim: fdm=indent:ts=2:et:sts=2:sw=2:
