@@ -530,13 +530,12 @@ there.
   ranks (order-dependent) but pins (a) every datafile line still
   matches `/path|rank|time`, (b) no `${datafile}.${RANDOM}` tempfile
   is left behind, (c) D — added but never removed — is present at
-  the end. (a) holds everywhere: racing writers may lose each other's
-  updates but must never corrupt a line. (b) and (c) need writers to
-  be serialized, so they are asserted only where `zsystem flock`
-  exists. Measured over 10 runs on MobaXterm, whose cut-down Cygwin
-  has no `zsh/system` and so always writes lockless, D went missing 7
-  times and a tempfile was stranded once — while a malformed line
-  never appeared once.
+  the end. All three are asserted on every platform: writes are
+  serialized by `zsystem flock` where it exists and by the `mkdir`
+  fallback where it does not. (b) and (c) were briefly gated on flock,
+  back when the fallback path had no lock and D went missing in 7 of 10
+  MobaXterm runs; with the fallback lock this is one of the few places
+  that would notice it regressing.
 
 ### `test_config_errors.zsh` — config errors `return`, never `exit`
 
@@ -705,15 +704,11 @@ to land before asserting.
   external `readlink`/`lsof` because `zsystem flock` opens its fd
   with `FD_CLOEXEC` and a forked inspector would see those fds as
   already closed. It also requires several of the disowned writes to
-  land — but only where there is a lock behind that count. Without
-  `zsystem flock` nothing serializes the writers (see
-  `test_no_flock.zsh`), so how many of the 30 survive is the
-  platform's timing rather than this code's doing: measured, the
-  landed count swings between 6 and 20 on Cygwin with flock disabled
-  and 9–14 on MSYS2, and MobaXterm — a cut-down Cygwin with no
-  `zsh/system` at all, so it always takes this path — landed 4. There
-  the floor drops to one write, which is the most a lockless path can
-  promise.
+  land, on every platform — writes are serialized by `zsystem flock`
+  where it exists and by the `mkdir` fallback where it does not. The
+  floor was briefly relaxed without flock, when that path had no lock
+  at all and MobaXterm landed 4 of the 30; with the fallback lock it
+  keeps up.
 
 ### `test_keep_dirs.zsh` — `ZSHZ_KEEP_DIRS` edge cases
 
@@ -830,6 +825,30 @@ or stale-cleanup would prune them.
   mode.
 - `test_no_lockfile_created_without_flock` — no `${datafile}.lock`
   is created in the no-flock mode.
+
+Where `zsystem flock` is missing, writes are serialized by an atomic
+`mkdir` on `${datafile}.lock.d` instead. That path used to run with
+nothing coordinating it: 4 to 9 of 10 concurrent adds were lost per run
+on MobaXterm, occasionally taking every pre-seeded entry with them.
+These force `ZSHZ[USE_FLOCK]=0` so the fallback is exercised everywhere,
+not only where flock is genuinely absent.
+
+- `test_no_flock_releases_its_lock_directory` — the directory is gone
+  after a write and a later write can still take it. A directory
+  outlives the process that made it, so a missed release wedges the
+  database rather than leaking a descriptor.
+- `test_no_flock_breaks_a_stale_lock_directory` — `mkdir` gives no
+  release-on-death, so a lock backdated past the 30-second threshold is
+  swept and the write lands. Skips where a directory's mtime can't be
+  backdated.
+- `test_no_flock_lock_timeout_returns_2` — a held but *fresh* lock is
+  waited on, not stolen, and reports the `2` the README documents for
+  contention; the write must not have landed.
+- `test_no_flock_concurrent_writes_do_not_lose_updates` — 10 external
+  writers, each forcing `USE_FLOCK=0` for itself, must all survive.
+  Linux is too fast for this to discriminate on its own, but against a
+  plugin without the fallback lock it fails every run on MobaXterm,
+  losing 8 or 9 of the 10.
 
 ### `test_owner.zsh` — `ZSHZ_OWNER` chown behavior
 

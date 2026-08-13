@@ -480,6 +480,11 @@ zshz() {
     # A temporary file that gets copied over the datafile if all goes well
     local tempfile="${datafile}.${RANDOM}" lockfile="${datafile}.lock"
     integer lockfd=0
+    # The no-flock fallback's lock. Deliberately a *different* name from
+    # $lockfile: a plain file left behind by a flock-capable Zsh would make
+    # `mkdir' fail forever on the same path, deadlocking every later write.
+    local lockdir="${datafile}.lock.d"
+    integer lockdir_held=0
 
     {
       # Using zsystem flock
@@ -532,6 +537,45 @@ zshz() {
             ${ZSHZ[CHOWN]} -h "${_lock_owner}:$(id -ng "${_lock_owner}")" "$lockfile"
         fi
         zsystem flock -t ${ZSHZ_LOCK_TIMEOUT:-1} -f lockfd "$lockfile" 2> /dev/null || return
+
+      else
+
+        # No `zsystem flock' here. MobaXterm's cut-down Cygwin is the case that
+        # matters -- it ships no `zsh/system' at all -- and until now this path
+        # wrote with nothing serializing it: every writer read its own snapshot
+        # and the last `mv' won. Measured on MobaXterm, an entry added by one of
+        # four concurrent writers went missing in 7 runs out of 10.
+        #
+        # `mkdir' is the portable atomic primitive: it succeeds for exactly one
+        # caller and fails for the rest, with no module behind it. What it does
+        # not give us is the kernel's release-on-death, which is the whole
+        # reason `flock' is preferred where it exists -- so a holder that dies
+        # would wedge every later write. Hence the staleness sweep below.
+        #
+        # Failure to acquire returns 2, the same status the flock branch's
+        # timeout produces and the one the README documents for contention.
+        integer _zshz_deadline=$(( EPOCHSECONDS + ${ZSHZ_LOCK_TIMEOUT:-1} ))
+        local -a _zshz_stale
+        while :; do
+          if mkdir "$lockdir" 2> /dev/null; then
+            lockdir_held=1
+            break
+          fi
+          # Break a lock nobody can still be holding. A write is a matter of
+          # milliseconds, so a lock directory older than 30 seconds means its
+          # owner died without releasing it. `mkdir' stamps the mtime at
+          # creation and no holder touches it afterwards, so the age is the
+          # hold time. `$lockdir' expands literally here -- only the qualifier
+          # is glob syntax -- so a datafile path containing `[' or `*' is safe.
+          _zshz_stale=( ${lockdir}(Nms+30) )
+          if (( ${#_zshz_stale} )); then
+            rmdir "$lockdir" 2> /dev/null && continue
+          fi
+          (( EPOCHSECONDS >= _zshz_deadline )) && return 2
+          # No `zselect' on the platforms that land here, so this costs a fork.
+          # It is the slow path already, and spinning would be worse.
+          sleep 0.05 2> /dev/null || :
+        done
 
       fi
 
@@ -765,6 +809,11 @@ zshz() {
       # don't leak lock descriptors and stall peers. (A backgrounded precmd
       # child releases its fd on exit regardless; this matters for the parent.)
       (( lockfd != 0 )) && zsystem flock -u $lockfd 2> /dev/null
+      # Release the mkdir lock on every exit from the block above, including
+      # the early `return's -- unlike an fd, a directory outlives the process
+      # that made it, so a missed release here is a wedged database rather than
+      # a leaked descriptor. Only if this call is the one that took it.
+      (( lockdir_held )) && rmdir "$lockdir" 2> /dev/null
     }
 
     # In order to make z -x work, we have to disable zsh-z's adding

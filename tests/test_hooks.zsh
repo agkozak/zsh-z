@@ -209,17 +209,10 @@ test_repeated_precmd_under_prompt_spam() {
   local rank min_rank=5
   is-at-least 5 || min_rank=2
 
-  # Without `zsystem flock' there is no serialization at all: each writer
-  # rewrites its own snapshot and the last one to finish wins, which
-  # `test_no_flock.zsh' documents as by design. How many of 30 disowned adds
-  # survive that is then a property of the platform's timing rather than of
-  # this code -- measured here, the landed count swings between 6 and 20 on
-  # Cygwin with flock disabled and sits around 9-14 on MSYS2, and MobaXterm's
-  # slower cut-down Cygwin (which has no `zsh/system' at all, so it always
-  # takes this path) came in at 4. A count floor only means something with a
-  # lock behind it, so require just that the precmd write path works there.
-  # At least one add always lands: the last writer's own snapshot includes it.
-  (( ZSHZ[USE_FLOCK] )) || min_rank=1
+  # The floor applies on every platform: writes are serialized by `zsystem
+  # flock' where it exists and by the `mkdir' fallback where it does not. It
+  # was briefly relaxed without flock, when that path had no lock at all and
+  # MobaXterm landed 4 of 30 disowned adds; with the fallback lock it keeps up.
 
   # Drain: poll until at least min_rank writes have landed, or give up after a
   # generous deadline. (The previous "stop when the rank holds steady for one

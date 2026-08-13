@@ -54,26 +54,18 @@ test_concurrent_add_and_remove_interleaved() {
       fail "datafile line $line_no is malformed: $line"
   done < "$ZSHZ_DATA"
 
-  # The checks above hold with or without a lock: racing writers may lose each
-  # other's updates, but none of them may leave a malformed line behind. The
-  # two below need serialization, and without `zsystem flock' there is none --
-  # each writer rewrites its own snapshot and the last `mv' wins, which
-  # `test_no_flock.zsh' documents as by design. Measured over 10 runs on
-  # MobaXterm (a cut-down Cygwin with no `zsh/system', so it always takes that
-  # path): `D' went missing 7 times and a tempfile was stranded once, while a
-  # malformed line never appeared. Asserting them there would be testing the
-  # platform's timing, not this code.
-  if ! (( ZSHZ[USE_FLOCK] )); then
-    return 0
-  fi
+  # These two need writers to be serialized, and they are on every platform:
+  # `zsystem flock' where it exists, the `mkdir' fallback where it does not.
+  # They briefly ran only under flock, back when the fallback path wrote with
+  # nothing serializing it and `D' went missing in 7 of 10 runs on MobaXterm.
+  # That is fixed, so assert them everywhere again -- this is now one of the
+  # few places that would notice the fallback lock regressing.
 
   # D never got an `-x', so it must be present.
   [[ -n $(zshz_rank_of "$d") ]] || \
     fail "D should be in the datafile (only added, never removed)"
 
-  # 2. No orphaned tempfiles. The plugin uses ${datafile}.${RANDOM}. A `mv'
-  # that a Windows sharing violation turns away can outlast its retry budget
-  # and strand one, which is only bounded when writers are serialized.
+  # 2. No orphaned tempfiles. The plugin uses ${datafile}.${RANDOM}.
   local -a tempfiles
   tempfiles=( "${ZSHZ_DATA}".<->(N) )
   if (( ${#tempfiles} )); then
