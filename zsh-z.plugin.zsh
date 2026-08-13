@@ -1593,7 +1593,12 @@ _zshz_zle_completion_widget() {
   # status: if the mapping did not land, there is nothing to take back.
   if (( ! ${+_comps[$cmd]} )); then
     compdef _zshz $cmd 2> /dev/null
-    [[ ${_comps[$cmd]-} == '_zshz' ]] && ZSHZ[COMPDEF]=$cmd
+    # Append rather than overwrite. Re-sourcing with a changed $ZSHZ_CMD
+    # registers a second command while the first mapping is still live, and a
+    # single slot would forget the earlier one and strand it at unload. Space-
+    # separated, like $ZSHZ[FUNCTIONS], and split with `${=...}' there.
+    [[ ${_comps[$cmd]-} == '_zshz' ]] &&
+      ZSHZ[COMPDEF]="${ZSHZ[COMPDEF]:+${ZSHZ[COMPDEF]} }$cmd"
   fi
 
   # If a trailing space was added after an already-completed absolute path
@@ -1709,8 +1714,13 @@ zsh-z_plugin_unload() {
   # autoloads for anything else living there and leave the manager believing
   # its configuration is intact. And drop a single occurrence rather than
   # filtering every match -- at most one of any duplicates can be ours.
+  #
+  # `(ie)', not `(i)': without the `e' the subscript treats the stored path as
+  # a *pattern*, so a plugin directory containing `[', `*' or `?' would not
+  # match itself and the entry would be left behind. The source-time lookup
+  # already uses `(ie)'; these two must agree.
   if (( ${ZSHZ[ADDED_FPATH]:-0} )); then
-    local _zshz_fp=${fpath[(i)${ZSHZ[PLUGIN_DIR]}]}
+    local _zshz_fp=${fpath[(ie)${ZSHZ[PLUGIN_DIR]}]}
     (( _zshz_fp <= ${#fpath} )) && fpath[$_zshz_fp]=()
   fi
 
@@ -1729,10 +1739,11 @@ zsh-z_plugin_unload() {
   # `$ZSHZ[COMPDEF]' is the ownership record: the registration above never
   # overwrites an existing mapping, so one Zsh-z did not create must survive
   # unload. Re-check the value too, in case it was repointed since.
-  local _zshz_compdef=${ZSHZ[COMPDEF]-}
-  if [[ -n $_zshz_compdef && ${_comps[$_zshz_compdef]-} == '_zshz' ]]; then
-    compdef -d "$_zshz_compdef" 2> /dev/null
-  fi
+  local _zshz_compdef
+  for _zshz_compdef in ${=ZSHZ[COMPDEF]-}; do
+    [[ ${_comps[$_zshz_compdef]-} == '_zshz' ]] &&
+      compdef -d "$_zshz_compdef" 2> /dev/null
+  done
 
   unset ZSHZ
 

@@ -300,4 +300,51 @@ test_unload_removes_the_fpath_entry_after_a_re_source() {
   assert_eq "0" "$out" \
     "the ownership record must survive a re-source"
 }
+
+test_unload_removes_the_fpath_entry_from_a_glob_metachar_directory() {
+  # The stored path is looked up with `(ie)'/`(Ie)' -- exact match. Without the
+  # `e' the subscript reads it as a *pattern*, so a plugin directory named with
+  # `[', `*' or `?' would fail to match itself and its entry would outlive the
+  # unload.
+  local d="$TESTDIR/plug[in]"
+  mkdir -p "$d"
+  cp "$PLUGIN_DIR/zsh-z.plugin.zsh" "$PLUGIN_DIR/_zshz" "$d/" || return 1
+
+  local out
+  out=$(zsh --no-rcs -c "
+    d='$d'
+    source \$d/zsh-z.plugin.zsh
+    zsh-z_plugin_unload
+    print -- \${fpath[(Ie)\$d]}
+  ")
+  assert_eq "0" "$out" \
+    "unload must remove its fpath entry from a directory whose name contains glob metacharacters"
+}
+
+test_unload_removes_every_completion_mapping_it_registered() {
+  # A re-source with a changed $ZSHZ_CMD registers a second command while the
+  # first mapping is still live. A single-slot ownership record would forget
+  # the earlier one and leave it pointing at the removed `_zshz'.
+  local out
+  out=$(zsh --no-rcs -c "
+    bindkey -M main '^I' expand-or-complete
+    fpath=( '$PLUGIN_DIR' \$fpath )
+    source '$PLUGIN_DIR/zsh-z.plugin.zsh'
+    autoload -U compinit
+    compinit -u -d \$(mktemp -u) 2> /dev/null
+    zle() { return 0 }
+    LBUFFER='z foo'
+    _zshz_zle_completion_widget
+    ZSHZ_CMD=zoo
+    source '$PLUGIN_DIR/zsh-z.plugin.zsh'
+    LBUFFER='zoo foo'
+    _zshz_zle_completion_widget
+    [[ \${_comps[z]:-} == _zshz && \${_comps[zoo]:-} == _zshz ]] ||
+      { print 'precondition failed: both mappings should be registered'; exit 1 }
+    zsh-z_plugin_unload
+    print -- \"\${_comps[z]:-NONE} \${_comps[zoo]:-NONE}\"
+  ")
+  assert_eq "NONE NONE" "$out" \
+    "unload must remove every mapping it registered, not only the most recent"
+}
 # vim: fdm=indent:ts=2:et:sts=2:sw=2:
