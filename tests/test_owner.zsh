@@ -87,4 +87,131 @@ test_owner_unset_does_not_chown() {
   assert_eq "" "$(< "$chown_log")" \
     "no chown should fire when ZSHZ_OWNER is unset"
 }
+
+# The tests below cover the symlink hardening. In the documented `sudo -s'
+# setup every chown runs with root's authority over paths inside a home
+# directory the unprivileged owner controls, and `chown' dereferences by
+# default -- so a symlink planted at $datafile or ${datafile}.lock would
+# redirect it onto an arbitrary file. We can't fabricate a second UID here, so
+# these assert the two defenses directly: `-h' on every chown, and an outright
+# refusal to act on a symlinked path while an owner is set.
+
+test_owner_chown_never_dereferences_symlinks() {
+  (( ZSHZ[USE_FLOCK] )) || {
+    _test_skip "zsystem flock unavailable"
+    return 0
+  }
+
+  local chown_log="$TESTDIR/chown.log"
+  : > "$chown_log"
+
+  ZSHZ[CHOWN]=_test_log_chown
+  _test_log_chown() { print -- "$@" >> "$chown_log"; }
+
+  local sub="$TESTDIR/sub"
+  mkdir -p "$sub"
+  ZSHZ_OWNER=$(id -un) zshz --add "$sub"
+
+  local -a logged
+  logged=( ${(f)"$(< $chown_log)"} )
+  assert_ne "0" "${#logged}" "expected at least one chown to be logged"
+
+  # `-h' is a no-op on the regular files this normally sees; it matters only
+  # when the path has been replaced by a symlink since the last check.
+  local l bad=0
+  for l in $logged; do
+    [[ $l == '-h '* ]] || bad=1
+  done
+  assert_eq "0" "$bad" \
+    "every chown must pass -h so a planted symlink is retitled, not followed"
+}
+
+test_owner_refuses_symlinked_lockfile() {
+  # The lockfile is deliberately never removed, so unlike $datafile -- which
+  # the `mv' replaces outright -- a symlink planted here would survive and be
+  # acted on at every subsequent write.
+  (( ZSHZ[USE_FLOCK] )) || {
+    _test_skip "zsystem flock unavailable"
+    return 0
+  }
+  _test_skip_no_symlinks && { print "skip: filesystem has no resolvable symlinks"; return 0 }
+
+  local decoy="$TESTDIR/decoy"
+  print 'untouched' > "$decoy"
+
+  local sub="$TESTDIR/sub" sub2="$TESTDIR/sub2"
+  mkdir -p "$sub" "$sub2"
+  zshz --add "$sub"
+
+  rm -f "${ZSHZ_DATA}.lock"
+  ln -s "$decoy" "${ZSHZ_DATA}.lock"
+
+  local ret=0
+  ZSHZ_OWNER=$(id -un) zshz --add "$sub2" || ret=$?
+
+  assert_ne "0" "$ret" \
+    "a symlinked lockfile must be refused while ZSHZ_OWNER is set"
+  assert_eq "untouched" "$(< "$decoy")" \
+    "the lockfile symlink's target must not be written through"
+  assert_not_contains "$sub2" "$(zshz_dump)" \
+    "a refused write must not reach the datafile"
+}
+
+test_symlinked_lockfile_allowed_when_owner_unset() {
+  # The refusal is gated on $ZSHZ_OWNER on purpose: with no owner set no
+  # privilege boundary is crossed, and an unprivileged user pointing their own
+  # lockfile elsewhere keeps working exactly as before.
+  (( ZSHZ[USE_FLOCK] )) || {
+    _test_skip "zsystem flock unavailable"
+    return 0
+  }
+  _test_skip_no_symlinks && { print "skip: filesystem has no resolvable symlinks"; return 0 }
+
+  local elsewhere="$TESTDIR/elsewhere.lock"
+  : > "$elsewhere"
+
+  local sub="$TESTDIR/sub" sub2="$TESTDIR/sub2"
+  mkdir -p "$sub" "$sub2"
+  zshz --add "$sub"
+
+  rm -f "${ZSHZ_DATA}.lock"
+  ln -s "$elsewhere" "${ZSHZ_DATA}.lock"
+
+  unset ZSHZ_OWNER _Z_OWNER
+  zshz --add "$sub2"
+
+  assert_contains "$sub2" "$(zshz_dump)" \
+    "a symlinked lockfile must stay usable when no owner is set"
+}
+
+test_symlinked_datafile_is_dereferenced_and_lockfile_follows_it() {
+  # A symlinked $ZSHZ_DATA is deliberately dereferenced by `_zshz_realpath'
+  # before any of the write machinery sees it, so there is no symlink left for
+  # a `-L' guard to catch and no point adding one: $ZSHZ_DATA can already name
+  # any path outright, symlink or not. What that resolution does mean is that
+  # the lockfile is derived from the *resolved* path -- pinned here because the
+  # lockfile's own symlink refusal depends on it being a derived name the user
+  # never supplies directly.
+  (( ZSHZ[USE_FLOCK] )) || {
+    _test_skip "zsystem flock unavailable"
+    return 0
+  }
+  _test_skip_no_symlinks && { print "skip: filesystem has no resolvable symlinks"; return 0 }
+
+  local real="$TESTDIR/real.z"
+  : > "$real"
+  rm -f "$ZSHZ_DATA"
+  ln -s "$real" "$ZSHZ_DATA"
+
+  local sub="$TESTDIR/sub"
+  mkdir -p "$sub"
+  ZSHZ_OWNER=$(id -un) zshz --add "$sub"
+
+  assert_contains "$sub" "$(< "$real")" \
+    "a symlinked datafile must be followed to its target, as documented"
+  assert_file_exists "${real}.lock"
+  if [[ -e ${ZSHZ_DATA}.lock ]]; then
+    fail "the lockfile must sit beside the resolved datafile, not the symlink"
+  fi
+}
 # vim: fdm=indent:ts=2:et:sts=2:sw=2:

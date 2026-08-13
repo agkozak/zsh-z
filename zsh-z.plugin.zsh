@@ -338,9 +338,12 @@ zshz() {
       ( umask 077; : >> "$datafile" )
     # When $ZSHZ_OWNER is set (e.g. under `sudo -s'), hand the freshly created
     # file off to that user immediately, so a query-only invocation can't leave
-    # behind a root-owned .z that the normal-user shell can't read.
+    # behind a root-owned .z that the normal-user shell can't read. `-h' so a
+    # symlink that appeared since the check above is retitled itself rather
+    # than dereferenced onto its target.
     local _owner=${ZSHZ_OWNER:-${_Z_OWNER}}
-    [[ -n $_owner ]] && ${ZSHZ[CHOWN]} "${_owner}:$(id -ng "${_owner}")" "$datafile"
+    [[ -n $_owner ]] &&
+      ${ZSHZ[CHOWN]} -h "${_owner}:$(id -ng "${_owner}")" "$datafile"
   }
 
   # If the datafile still does not exist, the loud retry above has already
@@ -457,7 +460,8 @@ zshz() {
         # nonzero status means the write did not happen -- 2 is a lock-
         # acquisition timeout (contention, or a raised ZSHZ_LOCK_TIMEOUT is
         # still too low), 1 is a permissions or ownership problem (e.g. a stale
-        # root-owned lockfile left by an earlier `sudo -s' session).
+        # root-owned lockfile left by an earlier `sudo -s' session, or a
+        # symlinked lockfile refused under $ZSHZ_OWNER).
         # Create the lockfile 0600-from-birth and silently (umask in a
         # subshell), mirroring the datafile creation above rather than a bare
         # `touch' under the ambient umask with unsuppressed stderr. zsystem
@@ -469,11 +473,18 @@ zshz() {
         # silently-swallowed EACCES no-op. The lockfile is deliberately never
         # removed: unlinking one a waiter has already opened reintroduces the
         # two-inodes race the stable lockfile exists to prevent.
+        # Under $ZSHZ_OWNER all of this runs with root's authority on a path the
+        # unprivileged owner controls, and every step follows a symlink: `-f'
+        # tests the target, `>>' creates a dangling one, and flock opens it.
+        # $datafile survives a planted link only because the `mv' below replaces
+        # it outright; the lockfile is deliberately never removed, so a symlink
+        # here would persist and be acted on at every subsequent write. Refuse.
+        local _lock_owner=${ZSHZ_OWNER:-${_Z_OWNER}}
+        [[ -n $_lock_owner && -L $lockfile ]] && return 1
         if [[ ! -f $lockfile ]]; then
           ( umask 077; : >> "$lockfile" ) 2> /dev/null
-          local _lock_owner=${ZSHZ_OWNER:-${_Z_OWNER}}
           [[ -n $_lock_owner ]] &&
-            ${ZSHZ[CHOWN]} "${_lock_owner}:$(id -ng "${_lock_owner}")" "$lockfile"
+            ${ZSHZ[CHOWN]} -h "${_lock_owner}:$(id -ng "${_lock_owner}")" "$lockfile"
         fi
         zsystem flock -t ${ZSHZ_LOCK_TIMEOUT:-1} -f lockfd "$lockfile" 2> /dev/null || return
 
@@ -566,6 +577,16 @@ zshz() {
         # An unusual case: if inside Docker container where datafile could be bind
         # mounted
         if [[ -f '/.dockerenv' || ( -r '/proc/1/cgroup' && "$(< '/proc/1/cgroup')" == *docker* ) ]]; then
+          # $datafile is the realpath-resolved target, so it is not a symlink
+          # in the ordinary case -- but it can become one after that resolution,
+          # and `>|' follows a link where the `mv' in the sibling branch
+          # replaces it. Under $ZSHZ_OWNER that would write the database, and
+          # then `chmod 600', through whatever an unprivileged owner pointed it
+          # at. Narrow that window; without an owner no privilege is crossed.
+          if [[ -n $owner && -L $datafile ]]; then
+            ${ZSHZ[RM]} -f "$tempfile" 2> /dev/null
+            return 1
+          fi
           # `-r': re-emit the tempfile's already-literal contents byte-for-byte.
           print -r -- "$(< "$tempfile")" >| "$datafile" 2> /dev/null
           write_ret=$?
@@ -602,7 +623,12 @@ zshz() {
           # O_RDWR, so if root creates it first under sudo -s, the unprivileged
           # $ZSHZ_OWNER user's flock attempts would fail with EACCES (silently
           # swallowed), turning --add and -x into no-ops.
-          ${ZSHZ[CHOWN]} "${owner}:$(id -ng "${owner}")" "$datafile" "$lockfile"
+          # `-h' on both: the lockfile is never replaced, so a symlink planted
+          # there outlives any one write, and $datafile can be relinked in the
+          # window between the `mv' above and this line. Retitling the link
+          # itself -- which the owner already owns -- costs nothing, while
+          # dereferencing hands root's authority to whatever it names.
+          ${ZSHZ[CHOWN]} -h "${owner}:$(id -ng "${owner}")" "$datafile" "$lockfile"
           chown_ret=$?
           # Surface post-write chown failures too: the current write landed, but a
           # wrong owner can break the next locked write.
@@ -610,7 +636,7 @@ zshz() {
         fi
       else
         if [[ -n $owner ]]; then
-          ${ZSHZ[CHOWN]} "${owner}:$(id -ng "${owner}")" "$tempfile"
+          ${ZSHZ[CHOWN]} -h "${owner}:$(id -ng "${owner}")" "$tempfile"
           chown_ret=$?
           if (( chown_ret != 0 )); then
             # In the no-flock path, chown happens before the move, so clean up the
