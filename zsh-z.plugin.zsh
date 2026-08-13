@@ -310,14 +310,38 @@ zshz() {
   # keeps the dereference, which is what makes pointing `.z' at synced storage
   # work.
   #
-  # The final component only. A symlinked *parent* is ordinary on some systems
-  # (`/home' -> `/usr/home' on the BSDs), and rejecting those would break Zsh-z
-  # under $ZSHZ_OWNER there for nothing: what an unprivileged owner controls in
-  # this threat model is the datafile name itself, inside their own directory.
-  if [[ -n ${ZSHZ_OWNER:-${_Z_OWNER}} && -L ${custom_datafile:-$HOME/.z} ]]; then
-    (( quiet )) ||
-      print "ERROR: Zsh-z will not follow a symlinked datafile (${custom_datafile:-$HOME/.z}) while ZSHZ_OWNER is set." >&2
-    return 1
+  # Every component, not just the last. Resolution walks the whole path, so a
+  # symlinked *parent* redirects it just as effectively: with `link' -> `/etc'
+  # inside a user's home, a datafile of `~/link/passwd' resolves to
+  # `/etc/passwd' and root rewrites it.
+  #
+  # Judged by who owns each link rather than by its mere presence. Symlinked
+  # system directories are ordinary -- `/home' -> `/usr/home' on the BSDs,
+  # `/var' -> `/private/var' on macOS -- and refusing those would break Zsh-z
+  # under $ZSHZ_OWNER on those systems for nothing. Those are root's; what this
+  # has to reject is a link an unprivileged owner could have planted. `zstat
+  # -L' reports the link's own owner rather than its target's, which is the
+  # distinction `-O' cannot make.
+  if [[ -n ${ZSHZ_OWNER:-${_Z_OWNER}} ]]; then
+    local _zshz_df=${custom_datafile:-$HOME/.z}
+    [[ $_zshz_df == /* ]] || _zshz_df="$PWD/$_zshz_df"
+    zmodload -F zsh/stat b:zstat 2> /dev/null
+    local _zshz_pfx _zshz_part _zshz_luid
+    for _zshz_part in ${(s:/:)_zshz_df}; do
+      [[ -n $_zshz_part ]] || continue
+      _zshz_pfx+="/$_zshz_part"
+      [[ -L $_zshz_pfx ]] || continue
+      # Without zsh/stat there is no way to tell whose link this is, so refuse
+      # it rather than guess: this path is privileged by definition.
+      _zshz_luid=''
+      (( ${+builtins[zstat]} )) &&
+        _zshz_luid=$(zstat -L +uid "$_zshz_pfx" 2> /dev/null)
+      if [[ $_zshz_luid != 0 ]]; then
+        (( quiet )) ||
+          print "ERROR: Zsh-z will not follow the symlink ${_zshz_pfx} on the way to its datafile while ZSHZ_OWNER is set." >&2
+        return 1
+      fi
+    done
   fi
 
   # If the user specified a datafile, use that or default to ~/.z

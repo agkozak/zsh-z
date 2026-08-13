@@ -839,6 +839,13 @@ controls, so following a link there redirects them.
   `zshz()` dereferences a symlinked datafile, which under `ZSHZ_OWNER`
   would write the database wherever the link points, with no race
   required; it must be refused, loudly, and the target left untouched.
+- `test_owner_refuses_a_symlinked_parent_directory` — resolution walks
+  the whole path, so a symlinked *parent* redirects it just as well:
+  `link/passwd` with `link` → `/etc` resolves to `/etc/passwd`. Every
+  component is checked, and the error names the offending link. Links
+  owned by `root` (`/home` → `/usr/home`, `/var` → `/private/var`) are
+  still followed, which is why ownership rather than mere presence
+  decides.
 - `test_symlinked_datafile_is_dereferenced_when_no_owner_is_set` —
   the counterpart: unprivileged use keeps the documented dereference,
   and the lockfile is derived from the *resolved* path.

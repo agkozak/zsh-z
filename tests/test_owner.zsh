@@ -208,10 +208,37 @@ test_owner_refuses_a_symlinked_datafile() {
 
   assert_ne "0" "$ret" \
     "a symlinked datafile must be refused while ZSHZ_OWNER is set"
-  assert_contains "symlinked datafile" "$err" \
+  assert_contains "will not follow the symlink" "$err" \
     "the refusal must explain itself"
   assert_eq "untouched" "$(< "$decoy")" \
     "the symlink's target must not be written through"
+}
+
+test_owner_refuses_a_symlinked_parent_directory() {
+  # Resolution walks the whole path, so a symlinked *parent* redirects it just
+  # as effectively as a symlinked datafile: with `link' -> `/etc' inside a
+  # user's own directory, a datafile of `link/passwd' resolves to
+  # `/etc/passwd' and a privileged write rewrites it.
+  _test_skip_no_symlinks && { print "skip: filesystem has no resolvable symlinks"; return 0 }
+
+  local victim="$TESTDIR/victim"
+  mkdir -p "$victim"
+  print 'untouched' > "$victim/passwd"
+  mkdir -p "$TESTDIR/home"
+  ln -s "$victim" "$TESTDIR/home/link"
+
+  local sub="$TESTDIR/sub"
+  mkdir -p "$sub"
+
+  local err ret=0
+  err=$(ZSHZ_DATA="$TESTDIR/home/link/passwd" ZSHZ_OWNER=$(id -un) zshz --add "$sub" 2>&1) || ret=$?
+
+  assert_ne "0" "$ret" \
+    "a symlinked parent must be refused while ZSHZ_OWNER is set"
+  assert_contains "$TESTDIR/home/link" "$err" \
+    "the refusal must name the offending link, not just the datafile"
+  assert_eq "untouched" "$(< "$victim/passwd")" \
+    "the symlinked parent's target must not be written through"
 }
 
 test_symlinked_datafile_is_dereferenced_when_no_owner_is_set() {
