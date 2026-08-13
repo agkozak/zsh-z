@@ -109,7 +109,10 @@ test_no_flock_concurrent_writes_do_not_lose_updates() {
     env ZSHZ_LOCK_TIMEOUT=30 zsh -c \
       "source '$PLUGIN_DIR/zsh-z.plugin.zsh'; ZSHZ[USE_FLOCK]=0; zshz --add '{}'" )
 
-  local missing=()
+  # `local -a missing', not `local missing=()': on Zsh 4.3.11 the latter does
+  # not reliably produce an empty array, and the mis-parse that follows hangs
+  # the runner in a fork loop rather than failing outright.
+  local -a missing
   for ((i=1; i<=n; i++)); do
     [[ -n $(zshz_rank_of "$TESTDIR/w_$i") ]] || missing+=( "w_$i" )
   done
