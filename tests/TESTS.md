@@ -530,7 +530,13 @@ there.
   ranks (order-dependent) but pins (a) every datafile line still
   matches `/path|rank|time`, (b) no `${datafile}.${RANDOM}` tempfile
   is left behind, (c) D — added but never removed — is present at
-  the end.
+  the end. (a) holds everywhere: racing writers may lose each other's
+  updates but must never corrupt a line. (b) and (c) need writers to
+  be serialized, so they are asserted only where `zsystem flock`
+  exists. Measured over 10 runs on MobaXterm, whose cut-down Cygwin
+  has no `zsh/system` and so always writes lockless, D went missing 7
+  times and a tempfile was stranded once — while a malformed line
+  never appeared once.
 
 ### `test_config_errors.zsh` — config errors `return`, never `exit`
 
@@ -698,7 +704,16 @@ to land before asserting.
   `.z.lock` fd; resolves entries via zsh's `:A` modifier rather than
   external `readlink`/`lsof` because `zsystem flock` opens its fd
   with `FD_CLOEXEC` and a forked inspector would see those fds as
-  already closed.
+  already closed. It also requires several of the disowned writes to
+  land — but only where there is a lock behind that count. Without
+  `zsystem flock` nothing serializes the writers (see
+  `test_no_flock.zsh`), so how many of the 30 survive is the
+  platform's timing rather than this code's doing: measured, the
+  landed count swings between 6 and 20 on Cygwin with flock disabled
+  and 9–14 on MSYS2, and MobaXterm — a cut-down Cygwin with no
+  `zsh/system` at all, so it always takes this path — landed 4. There
+  the floor drops to one write, which is the most a lockless path can
+  promise.
 
 ### `test_keep_dirs.zsh` — `ZSHZ_KEEP_DIRS` edge cases
 
