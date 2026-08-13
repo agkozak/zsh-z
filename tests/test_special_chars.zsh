@@ -183,7 +183,20 @@ test_dollar_sign_path_rank_increments_on_readd() {
   zshz --add "$p"
   zshz --add "$p"
   assert_eq "2" "$(zshz_rank_of "$p")" "re-adding a \$-path should bump its rank to 2"
-  assert_eq "1" "$(grep -c -F "$p|" "$ZSHZ_DATA")" \
+  # Counted in Zsh rather than with `grep -c -F': Solaris's /usr/bin/grep is
+  # SVR4 and has no `-F' ("grep: illegal option -- F"), and the match has to be
+  # a literal one -- `$p' holds a `$'. A *quoted* parameter on the right of
+  # `==' is matched literally, its `$' and any glob metacharacters inert, so
+  # the prefix test needs no escaping and no external command. `dfline' rather
+  # than `line': `tests/run.zsh' has a script-scope `line', which
+  # WARN_NESTED_VAR would report on.
+  local -a dflines
+  local dfline dupes=0
+  dflines=( ${(f)"$(< $ZSHZ_DATA)"} )
+  for dfline in $dflines; do
+    [[ $dfline == "${p}|"* ]] && (( dupes++ ))
+  done
+  assert_eq "1" "$dupes" \
     "re-add must not leave a malformed duplicate line for a \$-path"
 }
 
