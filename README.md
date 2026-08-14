@@ -358,25 +358,9 @@ You may enable an alternate, experimental behavior by setting `ZSHZ_UNCOMMON=1`.
 
 ## `ZSHZ_OWNER`
 
-Zsh-z leaves a database file alone if it belongs to somebody else. That is a sensible default, but it is stricter than it may sound: when the datafile is not yours, `z` does nothing at all. It does not merely stop recording the directories you visit -- it stops jumping, listing, and completing as well, and returns without a word.
+If you are using `root` privileges while keeping your personal home directory as `HOME` (as is the case with `sudo -E -s`), conflicts with file ownership arise. You can resolve them by using `ZSHZ_OWNER`. If you set this variable to your username, Zsh-z will be able to use your personal datafile, restoring its proper ownership with every write.
 
-That is precisely the situation you land in when you run
-
-    sudo -s
-
-`sudo -s` normally leaves `$HOME` pointing at your own home directory, so the root shell goes looking for the database at your `~/.z`, finds a file owned by you rather than by root, and stands down. For as long as you are root, `z` is inert.
-
-`ZSHZ_OWNER` tells Zsh-z whom the database really belongs to, and to keep it that way. Set it to your own username:
-
-    ZSHZ_OWNER='youruser'
-
-Put that in the `.zshrc` your root shell reads -- with `$HOME` preserved, that is the same one your ordinary shell reads -- and `z` behaves in the privileged shell exactly as it does elsewhere: it searches, it jumps, and it goes on learning where you spend your time. After each successful write, Zsh-z hands the datafile back to `youruser` and to that user's primary group, so root never ends up owning it.
-
-It does the same for the lockfile at `~/.z.lock`, which matters more than it might appear. `zsystem flock` opens that file for writing, so a root-owned lockfile left behind would make every subsequent write from your ordinary shell fail -- and fail silently, since the automatic add before each prompt is deliberately best-effort. With `ZSHZ_OWNER` set, neither file is ever left as root's, and you have nothing to clean up when you leave the root shell. If an earlier session did leave a root-owned `~/.z` or `~/.z.lock` behind, `chown` them back to yourself; the usual symptom is a hand-run `z --add .` returning `1`.
-
-Give the setting a login name rather than a numeric UID -- Zsh-z looks up the matching group with `id -ng`. If you are coming from `rupa/z`, `_Z_OWNER` works just as well.
-
-One thing does become stricter while `ZSHZ_OWNER` is set, because a privileged shell is now writing to a path that an unprivileged user controls: Zsh-z will follow a symlink on the way to the datafile -- the file itself, or any parent directory -- only if `root` owns the link, and otherwise reports an error rather than writing. Symlinked system directories, such as `/home` → `/usr/home` on the BSDs or `/var` → `/private/var` on macOS, belong to root and are followed as usual. Without `ZSHZ_OWNER` nothing changes at all: a symlinked `~/.z` is followed just as before, so pointing it at synced storage keeps working.
+Setting `ZSHZ_OWNER` makes one thing stricter, because a privileged shell is then writing to a path that an unprivileged user controls: Zsh-z follows a symlink on the way to the datafile -- the file itself, or any parent directory -- only if `root` owns the link, and reports an error instead of writing otherwise. Symlinked system directories, such as `/home` → `/usr/home` on the BSDs or `/var` → `/private/var` on macOS, belong to root and still resolve. With `ZSHZ_OWNER` unset none of this applies: a symlinked `~/.z` is followed exactly as before, so pointing it at synced storage keeps working.
 
 ## Making `--add` Work for You
 
