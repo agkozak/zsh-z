@@ -29,6 +29,7 @@ Zsh-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
 - [Settings](#settings)
 - [Case Sensitivity](#case-sensitivity)
 - [`ZSHZ_UNCOMMON`](#zshz_uncommon)
+- [`ZSHZ_OWNER`](#zshz_owner)
 - [Making `--add` work for you](#making---add-work-for-you)
 - [Performance](#performance)
 - [Other Improvements to the Original Functionality of `rupa/z`](#other-improvements-to-the-original-functionality-of-rupaz)
@@ -320,7 +321,7 @@ Zsh-z has environment variables (they all begin with `ZSHZ_`) that change its be
 * `ZSHZ_LOCK_TIMEOUT` is the number of seconds to wait for the database lock before giving up on a write (default: `1`). Where `zsh/system` is unavailable and `zsystem flock` cannot be used -- MobaXterm's cut-down Cygwin, for instance -- Zsh-z serializes writes with an atomic `mkdir` on `~/.z.lock.d` instead, and this setting bounds the wait the same way. That fallback has no equivalent of the kernel releasing a lock when its holder dies, so a lock directory older than 30 seconds is treated as abandoned and cleared; a write takes milliseconds, so nothing legitimate is ever that old. A write that times out is dropped silently -- the automatic `precmd` add is best-effort -- so if the database seems to stop updating, the lock is probably contended: run `z --add .` by hand and check `$?`. A `2` is a lock-acquisition timeout, which confirms contention -- look for a stale process holding `~/.z.lock` (or a leftover `~/.z.lock.d` directory on the fallback path), or raise this setting. A `1` is something else entirely, usually a permissions or ownership problem, such as a root-owned `~/.z` or `~/.z.lock` left behind by an earlier `sudo -s` session.
 * `ZSHZ_MAX_SCORE` is the maximum combined score the database entries can have before they begin to age and potentially drop out of the database (default: 9000)
 * `ZSHZ_NO_RESOLVE_SYMLINKS` prevents symlink resolution (default: `0`)
-* `ZSHZ_OWNER` allows usage when in `sudo -s` mode (default: empty). While it is set, Zsh-z refuses to follow any symlink on the way to its datafile -- the file itself or a parent directory -- unless that symlink belongs to `root`, and reports an error instead of writing. The whole point of the setting is that a privileged shell is writing on an unprivileged user's behalf, so a link that user could have planted would put the database wherever it points. Symlinked system directories (`/home` → `/usr/home` on the BSDs, `/var` → `/private/var` on macOS) are root's and are followed as usual. Without `ZSHZ_OWNER` nothing changes: a symlinked `~/.z` is followed as before, so pointing it at synced storage keeps working.
+* `ZSHZ_OWNER` is the username the database belongs to; set it to your own login name to keep `z` working in a root shell, such as under `sudo -s`; [see below](#zshz_owner) (default: empty)
 * `ZSHZ_TILDE` displays the name of the `HOME` directory as a `~` (default: `0`)
 * `ZSHZ_TRAILING_SLASH` makes it so that a search pattern ending in `/` can match the final element in a path; e.g., `z foo/` can match `/path/to/foo` (default: `0`)
 * `ZSHZ_UNCOMMON` changes the logic used to calculate the directory jumped to; [see below](#zshz_uncommon) (default: `0`)
@@ -355,6 +356,28 @@ Zsh-z will see that all possible matches share a common prefix and will send you
 then there is no common prefix. In this case, `z code` will simply send you to the highest-ranking match, `/home/me/code/bat`.
 
 You may enable an alternate, experimental behavior by setting `ZSHZ_UNCOMMON=1`. If you do that, Zsh-z will not jump to a common prefix, even if one exists. Instead, it chooses the highest-ranking match -- but it drops any subdirectories that do not include the search term. So if you type `z bat` and `/home/me/code/bat` is the best match, that is exactly where you will end up. If, however, you had typed `z code` and the best match was also `/home/me/code/bat`, you would have ended up in `/home/me/code` (because `code` was what you had searched for). This feature is still in development, and feedback is welcome.
+
+## `ZSHZ_OWNER`
+
+Zsh-z leaves a database file alone if it belongs to somebody else. That is a sensible default, but it is stricter than it may sound: when the datafile is not yours, `z` does nothing at all. It does not merely stop recording the directories you visit -- it stops jumping, listing, and completing as well, and returns without a word.
+
+That is precisely the situation you land in when you run
+
+    sudo -s
+
+`sudo -s` normally leaves `$HOME` pointing at your own home directory, so the root shell goes looking for the database at your `~/.z`, finds a file owned by you rather than by root, and stands down. For as long as you are root, `z` is inert.
+
+`ZSHZ_OWNER` tells Zsh-z whom the database really belongs to, and to keep it that way. Set it to your own username:
+
+    ZSHZ_OWNER='youruser'
+
+Put that in the `.zshrc` your root shell reads -- with `$HOME` preserved, that is the same one your ordinary shell reads -- and `z` behaves in the privileged shell exactly as it does elsewhere: it searches, it jumps, and it goes on learning where you spend your time. After each successful write, Zsh-z hands the datafile back to `youruser` and to that user's primary group, so root never ends up owning it.
+
+It does the same for the lockfile at `~/.z.lock`, which matters more than it might appear. `zsystem flock` opens that file for writing, so a root-owned lockfile left behind would make every subsequent write from your ordinary shell fail -- and fail silently, since the automatic add before each prompt is deliberately best-effort. With `ZSHZ_OWNER` set, neither file is ever left as root's, and you have nothing to clean up when you leave the root shell. If an earlier session did leave a root-owned `~/.z` or `~/.z.lock` behind, `chown` them back to yourself; the usual symptom is a hand-run `z --add .` returning `1`.
+
+Give the setting a login name rather than a numeric UID -- Zsh-z looks up the matching group with `id -ng`. If you are coming from `rupa/z`, `_Z_OWNER` works just as well.
+
+One thing does become stricter while `ZSHZ_OWNER` is set, because a privileged shell is now writing to a path that an unprivileged user controls: Zsh-z will follow a symlink on the way to the datafile -- the file itself, or any parent directory -- only if `root` owns the link, and otherwise reports an error rather than writing. Symlinked system directories, such as `/home` → `/usr/home` on the BSDs or `/var` → `/private/var` on macOS, belong to root and are followed as usual. Without `ZSHZ_OWNER` nothing changes at all: a symlinked `~/.z` is followed just as before, so pointing it at synced storage keeps working.
 
 ## Making `--add` Work for You
 
