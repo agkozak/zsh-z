@@ -1492,9 +1492,15 @@ zshz() {
   fi
 
   # With option -c, make sure query string matches beginning of matches;
-  # otherwise look for matches anywhere in paths. A bug long prevented this
-  # option from working.
-  if (( ${+opts[-c]} )); then
+  # otherwise look for matches anywhere in paths.
+  #
+  # The `$PWD != /' guard mirrors the one where the prefix is set, above. At the
+  # root every path is already under $PWD, so no "$PWD " prefix is prepended and
+  # $fnd stays the bare query -- which, anchored, can never match a path
+  # beginning with `/'. Without the guard, `z -c foo' from `/' matches nothing
+  # whatever the query. Anchoring is still right in the other prefix-less case
+  # ($* is an absolute path under $PWD): there the query is itself anchored.
+  if (( ${+opts[-c]} )) && [[ $PWD != '/' ]]; then
     _zshz_find_matches "$fnd*" $method $output_format
   else
     _zshz_find_matches "*$fnd*" $method $output_format

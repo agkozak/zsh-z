@@ -57,4 +57,22 @@ test_c_flag_prefers_real_subdir_over_higher_ranked_mirror() {
   assert_eq "$TESTDIR/projects/api" "$out" \
       "-c should pick the real subdirectory, not a higher-ranked mirror"
 }
+
+# At the root, every path is a subdirectory of $PWD, so -c has nothing to
+# exclude and must behave as a plain query. No "$PWD " prefix is prepended
+# there, so anchoring would apply to the bare query -- and no absolute path
+# begins with `api', which made `z -c' from `/' match nothing at all.
+
+test_c_flag_at_root_matches_like_a_plain_query() {
+  mkdir -p "$TESTDIR/projects/api"
+  zshz --add "$TESTDIR/projects/api"
+
+  cd /
+  local out rc
+  out=$(zshz -ce api)
+  rc=$?
+  assert_eq "0" "$rc" "-c from / should find a match"
+  assert_eq "$TESTDIR/projects/api" "$out" \
+      "-c from / should behave like a plain query, not exclude everything"
+}
 # vim: fdm=indent:ts=2:et:sts=2:sw=2:
