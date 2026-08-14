@@ -356,6 +356,24 @@ sub-1 drop threshold survive aging; the time field is preserved.
 - `test_remove_drops_entry` — `zshz -x` removes an exact-match path.
 - `test_remove_R_drops_subtree` — `zshz -xR` removes a directory and
   all of its descendants.
+- `test_remove_R_missing_path_leaves_database_alone` — `-xR` on a
+  path that does not exist reports failure and leaves every entry
+  alone. An unresolved target left `$xdir` empty, and `${xdir%/}/**`
+  then collapsed to `/**`, which matches every line in the datafile:
+  the call wiped the whole database and reported success.
+- `test_remove_deleted_dir_entry` — a stale entry whose directory has
+  since been deleted is exactly the one a user most wants gone, so
+  `-x` must not require the target to still be on disk.
+- `test_remove_R_deleted_dir_drops_subtree` — the same for `-xR`: a
+  deleted directory and its recorded descendants go, while a sibling
+  entry stays.
+- `test_remove_missing_toplevel_path_does_not_segfault` — `${x:A}`
+  segfaults Zsh 4.3.11 when the top-level component of the path does
+  not exist, so `z -x /gone/sub` used to kill the interactive shell
+  there. `_zshz_realpath` keeps such paths away from `:A`. The
+  removal runs in a disposable shell of the same Zsh and prints a
+  sentinel afterwards, so a regression reports as a missing sentinel
+  rather than as a dead test subshell; the entry must also be gone.
 - `test_list_shows_added_paths` — `zshz -l` prints each added path
   on its own line.
 - `test_echo_returns_best_match` — `zshz -e <substr>` prints the
@@ -367,6 +385,24 @@ sub-1 drop threshold survive aging; the time field is preserved.
   parent directory matches a child entry.
 - `test_c_flag_excludes_paths_outside_pwd` — entries outside `$PWD`
   are filtered out even when their name would otherwise match.
+
+A mirrored tree — an `rsync --relative` backup root, say — stores
+paths that contain `$PWD` as an interior substring. `-c` prefixes the
+query with `"$PWD "` and anchors the pattern at the start of each
+candidate, so those mirrors match nothing.
+
+- `test_c_flag_excludes_mirror_embedding_pwd` — a mirror that embeds
+  `$PWD` mid-path is not matched, and the call reports failure when
+  it is the only candidate.
+- `test_c_flag_prefers_real_subdir_over_higher_ranked_mirror` — the
+  mirror is deliberately given the higher rank, so anchoring rather
+  than frecency has to be what excludes it; the real subdirectory
+  still wins.
+- `test_c_flag_at_root_matches_like_a_plain_query` — at `/` every
+  path is already under `$PWD`, so no `"$PWD "` prefix is prepended
+  and `-c` has nothing to exclude. Anchoring the bare query there
+  would match nothing whatever the search term, since no absolute
+  path begins with one.
 
 ### `test_case.zsh` — `ZSHZ_CASE` controls case-sensitivity
 
@@ -421,6 +457,29 @@ exist when it rewrites; `ZSHZ_KEEP_DIRS` exempts matching paths.
   `-x`.
 - `test_complete_help_combo_is_silent` — `--complete --help` together
   must not surface output through the completion path.
+
+Option processing loops over `${(k)opts}`, i.e. in hash-bucket order,
+so where two options write the same result variable the winner used
+to be arbitrary. These pin the resolutions.
+
+- `test_rank_and_recent_combo_is_rejected` — `-r` (rank) and `-t`
+  (recent) name mutually exclusive sort keys, so combining them is
+  contradictory and is refused rather than settled by option order.
+  All four spellings are checked — spaced and clustered, either way
+  round — and each must fail and explain the conflict.
+- `test_rank_or_recent_alone_still_works` — the control: the
+  rejection must not catch a single sort option, so `-r` and `-t`
+  each still succeed and find the match.
+- `test_complete_list_combo_yields_completion_format` — completing
+  `z -l foo<TAB>` reaches `zshz` as `zshz --complete -l foo`, so
+  `--complete` has to beat `-l` whichever order the options are
+  visited in. Asserts the output is byte-identical to plain
+  `--complete` — bare paths, not rank-padded list rows.
+- `test_complete_rank_recent_combo_is_not_rejected` — the `-r`/`-t`
+  rejection is deliberately suppressed under `--complete`, where
+  ordering is cosmetic and an error must never reach the terminal
+  mid-completion. Asserts status 0, empty stderr, and that
+  completions are still produced.
 
 ### `test_common_root.zsh` — `_zshz_find_common_root` ordering
 
@@ -554,6 +613,39 @@ survived.
   fails cleanly, calling shell intact.
 - `test_directory_ZSHZ_DATA_returns_does_not_exit` — `ZSHZ_DATA`
   pointing at a real directory fails cleanly, calling shell intact.
+- `test_missing_toplevel_ZSHZ_DATA_returns_does_not_exit` — the
+  datafile path is canonicalized on every call, including the
+  backgrounded precmd add, and `${x:A}` on a path whose top-level
+  component is missing segfaults Zsh 4.3.11 — so such a `ZSHZ_DATA`
+  used to kill a shell there at every prompt. Only survival is
+  asserted: the file cannot be created either way, so the call still
+  fails loudly, like the other bad-datafile cases.
+
+The remaining tests cover the other half of issue #103: the pre-prompt
+add must not repeat a datafile complaint at every prompt, without
+that silence costing the user a diagnostic they asked for. Because
+the add is a disowned `&!` fork that `wait` cannot see — and a
+misconfigured datafile leaves no file to poll — these give the forks
+`_ZSHZ_FORK_SETTLE` (0.5 s) to produce output they should not
+produce. Generous rather than tight: a false PASS from sampling too
+early costs more than half a second, and forks are slow on
+Cygwin/MSYS2.
+
+- `test_precmd_add_is_silent_when_ZSHZ_DATA_is_a_directory` — five
+  prompts' worth of `_zshz_precmd` against a directory `ZSHZ_DATA`
+  must produce nothing at all, and the shell must survive.
+- `test_precmd_add_is_silent_when_ZSHZ_DATA_is_a_bare_filename` —
+  the same for a `ZSHZ_DATA` with no directory component.
+- `test_manual_add_still_reports_a_bad_ZSHZ_DATA` — the counterpart:
+  only the hook's add is quiet. A hand-typed `z --add` is a direct
+  request and must still explain why it failed.
+- `test_precmd_quiet_marker_does_not_leak_into_the_shell` —
+  `_zshz_quiet_add` is a `local` in `_zshz_precmd` reached by dynamic
+  scope. Were it ever to become a global, the first prompt would
+  silence every later `zshz` call in that shell, including the
+  interactive ones this file exists to protect. Runs the hook against
+  a *good* datafile, then asserts the marker reads back unset and a
+  subsequent bad-datafile call still reports.
 
 ### `test_datafile.zsh` — datafile robustness
 
@@ -618,6 +710,13 @@ because under emulate sh `$0` is the zsh binary, not the script.)
   (more aggressive option reset).
 - `test_source_under_emulate_bash` — same under `emulate bash`.
 - `test_source_under_emulate_ksh` — same under `emulate ksh`.
+- `test_source_from_path_with_spaces_under_emulate_sh` — the gate
+  re-sources with `emulate zsh -c "source ${(q)${(%):-%N}}"`, and
+  without the `${(q)}` the script's own path is word-split, so an
+  install directory containing a space hands `source` several
+  arguments and the plugin silently fails to load. Copies the plugin
+  into a spaced directory and confirms a full round-trip under
+  `emulate sh`.
 - `test_emulate_gate_does_not_fire_under_pure_zsh` — control:
   pure zsh path still works, gate doesn't accidentally trigger.
 
@@ -755,12 +854,50 @@ the original `z` continue to work.
 
 ### `test_listing.zsh` — listing output and ordering
 
+Listings are produced by two formatters: a fast path for a bare
+`z -l`, and `_zshz_output` for everything with a query. Several of
+the tests below come in pairs that assert the two agree, since a fix
+applied to one of them is easy to forget in the other.
+
 - `test_no_args_matches_list_output` — `zshz` with no arguments
   produces the same output as `zshz -l`.
 - `test_list_rank_and_time_modes_order_entries` — `-l -r` and `-l -t`
   sort by rank and time respectively.
+- `test_lt_rank_longer_than_ten_chars_not_truncated_bare_list` — a
+  `-t` rank is (visit time - now), so it runs to a sign plus ten
+  digits once the time field sits more than ~31.7 years in the past,
+  as a zeroed or hand-imported field does. The formatters used to
+  right-pad with a bare `${(r:10:)}`, which *truncates* an
+  11-character rank to 10 — misprinting the figure and sorting the
+  entry as though it were far newer. Seeds one entry with a time
+  field of about 0 and asserts it lists first with an 11-character
+  rank token. Exercises the bare `z -lt` fast path.
+- `test_lt_rank_longer_than_ten_chars_not_truncated_query_list` —
+  the same assertions with a query (`z -lt i`, matching both
+  entries), so the listing goes through `_zshz_output` instead.
 - `test_list_prints_common_root_line` — when matches share a common
   root, `-l` includes a synthesized common-root line.
+- `test_zero_rank_entry_does_not_create_phantom_common_root` —
+  rank-0 entries are hidden from listings, but the general formatter
+  once folded them into the `common:` summary anyway, so `z -lr proj`
+  could print a root that none of the visible entries share while
+  bare `z -lr` printed none. Asserts neither form prints a `common:`
+  line for a root belonging only to the hidden entry, and that just
+  the two ranked entries are listed. Each formatter must describe
+  only what it actually lists.
+- `test_bare_list_prints_common_root_line` — the positive half of
+  that parity check: when every listed entry is ranked and one of
+  them roots the rest, bare `z -l` prints the same `common:` summary
+  the query form does (the query half being
+  `test_list_prints_common_root_line`, above).
+- `test_list_with_query_does_not_change_directory` — `-l` with a
+  query lists and does nothing else, both when the matches share a
+  common root and when a single match is its own root. `_zshz_output`
+  computes the common root into `REPLY`, and the caller reads `REPLY`
+  as its jump target, so a value left behind there sends the shell
+  somewhere after the listing. The call deliberately runs in the test
+  shell rather than inside a `$( )` capture: that is a subshell, and
+  it could never observe the move.
 
 ### `test_lock_timeout.zsh` — `ZSHZ_LOCK_TIMEOUT`
 
@@ -1020,6 +1157,53 @@ quoting in `_zshz_update_datafile` and the escape list in
   search-side handling of metas in queries (the search query uses
   `mixed`, an ASCII non-meta substring).
 
+A literal backslash is the acid test for the `print -r` discipline.
+The datafile stores literal paths, so any emission without `-r`
+quietly collapses an escape — `\t` becoming a real tab — either on
+the way out or at the next rewrite. Throughout these, `\there` is a
+backslash followed by "there", not a tab. All four skip via
+`_test_skip_no_backslash_in_filename`, since Cygwin and MSYS2 treat
+backslash as a path separator and cannot hold such a directory.
+`zshz_rank_of` is unusable here — its own `awk -v` turns a `\t` in
+the path into a tab — so the on-disk checks read the datafile
+directly and compare against quoted literals.
+
+- `test_path_with_backslash_round_trip` — add, search, remove. The
+  entry is the only one, so a correct remove empties the datafile,
+  where a corrupting one would leave mangled residue.
+- `test_path_with_backslash_survives_rewrite` — adding a second
+  directory rewrites the whole datafile through
+  `_zshz_update_datafile`; the backslash entry must come out
+  byte-identical.
+- `test_path_with_backslash_survives_unrelated_remove` — `z -x` of a
+  *different* directory carries every other line through the remove
+  path; a backslash entry that is merely a bystander must survive
+  verbatim.
+- `test_path_with_backslash_listed_verbatim` — `zshz -l` is a
+  separate emission path from `-e`, and must print the backslash
+  literally too.
+
+Two further `$`-path tests cover arithmetic context rather than
+quoting. The `rank`/`time` keys in `_zshz_update_datafile` are
+`${(q)}`-quoted, and a bare math subscript runs the key through the
+arithmetic lexer, which strips a backslash level and misses any key
+containing a `$`.
+
+- `test_dollar_sign_path_rank_increments_on_readd` — re-adding must
+  raise the rank, so the increment needs a scalar assignment rather
+  than `(( rank[$key]++ ))`, which left the rank stuck at 1 and
+  persisted a malformed duplicate line. Asserts rank 2 and exactly
+  one matching line. The duplicate count is done in Zsh rather than
+  with `grep -c -F`: Solaris's SVR4 `grep` has no `-F`, and a quoted
+  parameter on the right of `==` matches literally, so the test needs
+  neither escaping nor an external command.
+- `test_dollar_sign_path_survives_aging` — aging rewrites each entry
+  as `0.99 * rank`, and that multiplication must read the rank
+  through an expansion (`${rank[$x]}`). A bare subscript evaluates a
+  `$`-containing key to 0, which the `rank_field < 1` drop then
+  erases on the next write — silent data loss. A `$`-path seeded well
+  above the threshold must survive at a positive rank.
+
 ### `test_strict_options.zsh` — sourcing under `NO_UNSET`/`WARN_CREATE_GLOBAL`/`NO_NOMATCH`
 
 - `test_source_with_NO_UNSET` — sources under `NO_UNSET`, runs
@@ -1056,6 +1240,13 @@ symlinks and always run.
   link_inner -> target`; `:A` walks the whole chain.
 - `test_dotdot_traversal_is_canonicalised` — `--add foo/../foo/bar`
   lands as `foo/bar`; the literal traversal form is not preserved.
+- `test_remove_deleted_dir_via_symlinked_parent` — the removal target
+  no longer has to exist, but symlinks in whatever prefix of it
+  *does* exist must still resolve; otherwise an entry added through a
+  symlink could not be removed by the same name once its directory
+  was deleted. `_zshz_realpath` resolves the deepest existing
+  ancestor with `:A` and carries the missing tail verbatim, which is
+  what `:A` itself does with a missing non-top-level tail.
 - `test_no_resolve_keeps_two_symlinks_distinct` — under
   `ZSHZ_NO_RESOLVE_SYMLINKS=1`, removing via `link2` does *not*
   remove the entry added via `link1`; the user has to remove via
@@ -1149,6 +1340,21 @@ matches as the original entry.
 
 - `test_uncommon_shrinks_to_keep_pattern_count` — `/foo/bar/foo/bar`
   with query `foo` shrinks to `/foo/bar/foo`.
+- `test_uncommon_trim_terminates_at_root` — with `/` in the database,
+  `z -e /` trimmed the destination down to `/` and then spun forever:
+  `${cd:h}` of `/` is `/`, so the trim made no progress while the
+  loop's stop condition never flipped. The call runs in a
+  backgrounded subshell behind a 10-second watchdog, so a regression
+  fails this test by timeout instead of hanging the whole suite.
+- `test_uncommon_case_sensitive_winner_trims_case_sensitively` —
+  `ZSHZ[CASE_INSENSITIVE]` was set *during* the scan by any leading
+  case-insensitive candidate, even when a case-sensitive match went
+  on to win, and under `ZSHZ_UNCOMMON` that stale flag forced the
+  trim through the case-insensitive branch and shortened by the wrong
+  amount. `$TESTDIR/foo/Foo` wins case-sensitively for query `foo`
+  while `$TESTDIR/FOO` is a case-insensitive-only decoy; the correct
+  trim drops the trailing `Foo` and yields `$TESTDIR/foo`. Skips via
+  `_test_skip_case_insensitive_fs`.
 - `test_default_with_single_match_returns_full_path` — without
   `UNCOMMON`, a single match returns its full path.
 - `test_default_returns_common_root_when_one_exists` — without
@@ -1166,6 +1372,33 @@ matches as the original entry.
 - `test_ascii_substring_finds_path_with_unicode` — ASCII substring
   search across UTF-8 byte boundaries (`proj-café-2026/notes`
   searched by `proj`).
+- `test_issue_48_cjk_echo_returns_byte_exact_path` — direct
+  regression for issue #48. `zshz -e TW` against a CJK path returned
+  a corrupted string — `TW4791主僣` for the real `TW4791主包内容` —
+  because Zsh's `print -v REPLY <arg>` mangled multibyte strings
+  until late 2020. `_zshz_printv` works around it with
+  `print -v REPLY -f %s <arg>`; simplify the helper back to the plain
+  form and this fails.
+- `test_common_root_line_preserves_multibyte_prefix` —
+  `_zshz_find_common_root` funnels the shared prefix through
+  `_zshz_printv`, a separate callsite from the `-e` path above, and
+  the `common:` line in `-l` output is what surfaces it. The parent
+  `プロジェクト` directory has to be in the database too, since the
+  line is only emitted when the common prefix is itself one of the
+  matched paths.
+- `test_cjk_path_with_escape_special_chars_round_trips` — a path that
+  is both multibyte and full of escape-targeted characters
+  (`project(主包)/notes`) must survive add and search together, since
+  it hits #48's concern and the escape chain in `_zshz_find_matches`
+  at once.
+- `test_cjk_substring_matches_at_start_middle_and_end` — the same
+  multibyte component at the start, middle, and end of three
+  different paths, checking that the `*$fnd*` glob does not split on
+  byte rather than character boundaries.
+- `test_case_insensitive_mode_does_not_corrupt_cjk` —
+  `ZSHZ_CASE=ignore` lowercases both sides with `:l`, which is a
+  no-op for characters without case, as most CJK are. Pins that the
+  no-op stays a no-op instead of mangling the bytes.
 
 ### `test_unload.zsh` — plugin unload / reload contract
 
@@ -1185,6 +1418,18 @@ hooks, and unset `ZSHZ`. Re-sourcing should bring everything back.
   clobber that.
 - `test_unload_removes_hooks` — `_zshz_precmd` and `_zshz_chpwd` are
   removed from `precmd_functions` / `chpwd_functions`.
+- `test_unload_leaves_no_plugin_functions_behind` — `zshz` defines
+  its helpers (`zshz_cd`, `_zshz_echo` among them) the first time it
+  runs, so the test runs it once before unloading, then sweeps the
+  function table for anything matching `zshz*`, `_zshz*` or `zsh-z*`
+  that unload failed to remove.
+- `test_unload_removes_plugin_dir_from_fpath` — the plugin directory
+  is gone from `$fpath` afterwards.
+- `test_unload_keeps_fpath_entry_matching_pwd` — inside a function
+  `$0` is the function name, which `:A` resolves relative to `$PWD`,
+  so an unload that recomputes `${0:A:h}` strips the *current*
+  directory from `$fpath` rather than the plugin's. An entry that
+  merely equals `$PWD` must survive.
 - `test_unload_then_reload_restores_function_and_widget` — sourcing
   again after unload restores the plugin to a clean state.
 - `test_reload_after_unload_captures_current_tab_binding` — re-source
