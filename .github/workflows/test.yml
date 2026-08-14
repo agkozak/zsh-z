@@ -1,0 +1,161 @@
+name: Tests
+
+on:
+  push:
+    branches: [master, develop]
+  pull_request:
+
+jobs:
+  test:
+    name: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install zsh (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y zsh
+
+      - name: Show zsh version
+        run: zsh --version
+
+      - name: Syntax check
+        run: |
+          zsh -n zsh-z.plugin.zsh
+          zsh -n _zshz
+
+      - name: Run tests
+        run: ZSHZ_HEAVY_TESTS=1 zsh tests/run.zsh
+
+  # Zsh 4.3.11 is the supported floor, but no current distro ships it (CentOS/
+  # RHEL 6 was the last, now EOL; a centos:6 job container also can't run the
+  # node20-based actions). So build it once from the upstream archive, cache the
+  # result, and run the suite against it -- this is what keeps the 4.3.11-only
+  # fallback paths (the umask-subshell file mode, the no-zf_chmod branch) covered.
+  test-zsh-4-3-11:
+    name: zsh 4.3.11 (built from source)
+    runs-on: ubuntu-latest
+    env:
+      ZSH_PREFIX: ${{ github.workspace }}/.zsh-4.3.11
+      ZSH_SHA256: 62a5a50413ace3ff7cc011c15d51d146b69b93752ebab095925df8a4f36057c8
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache zsh 4.3.11 build
+        id: cache-zsh
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.ZSH_PREFIX }}
+          # Bump the trailing -vN to force a rebuild.
+          key: zsh-4.3.11-${{ runner.os }}-v1
+
+      - name: Build zsh 4.3.11
+        if: steps.cache-zsh.outputs.cache-hit != 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libncurses-dev
+          curl -fsSLO https://www.zsh.org/pub/old/zsh-4.3.11.tar.gz
+          echo "${ZSH_SHA256}  zsh-4.3.11.tar.gz" | sha256sum -c -
+          tar xf zsh-4.3.11.tar.gz
+          cd zsh-4.3.11
+          # -fcommon: 4.3.11 predates GCC 10's -fno-common default and relies on
+          #   tentative-definition globals that would otherwise fail to link.
+          # --with-tcsetpgrp: configure's runtime tcsetpgrp probe needs a
+          #   controlling tty to detect support, and CI has none; it works on
+          #   Linux, so assert it rather than let the probe error out.
+          CFLAGS="-fcommon -O2" ./configure --prefix="$ZSH_PREFIX" --with-tcsetpgrp
+          make -j"$(nproc)"
+          make install
+
+      - name: Show zsh version
+        run: $ZSH_PREFIX/bin/zsh --version
+
+      # No `zsh -n' syntax check here: parse-only mode aborts on this old build
+      # (a munmap abort on the `typeset -gA ZSHZ' line) even though the plugin
+      # sources and runs cleanly. The modern-zsh job above covers the syntax check.
+      #
+      # Prepend the build to PATH so the child `zsh' processes the suite spawns
+      # (zshz_in_fresh_shell, the concurrency/lock tests) resolve to 4.3.11 too,
+      # not a system zsh -- otherwise those tests would silently exercise the
+      # wrong interpreter, or fail outright if no system zsh is installed.
+      - name: Run tests
+        run: PATH="$ZSH_PREFIX/bin:$PATH" ZSHZ_HEAVY_TESTS=1 "$ZSH_PREFIX/bin/zsh" tests/run.zsh
+
+  # MSYS2 (the Cygwin-family POSIX layer on Windows) is a supported platform with
+  # its own quirks: $OSTYPE reports `cygwin', chmod is ignored on the Windows-
+  # backed filesystem (the mode tests skip via a runtime probe), and the precmd
+  # path runs under a slow fork. Exercise it on a windows-latest runner via the
+  # official setup-msys2 action so those paths don't regress unnoticed. The full
+  # heavy suite currently contains 231 tests; capability-dependent cases are
+  # reported explicitly as skips.
+  test-msys2:
+    name: zsh on MSYS2 (Windows)
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      # Run on the host shell, before checkout, so the plugin and tests land with
+      # LF endings -- MSYS2 zsh chokes on the CRLF that checkout would apply by
+      # default on Windows.
+      - name: Keep LF line endings on checkout
+        shell: bash
+        run: git config --global core.autocrlf input
+
+      - uses: actions/checkout@v4
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          # The MSYS subsystem is the POSIX-emulation layer ($OSTYPE=cygwin)
+          # where zsh-z's Cygwin-family behavior lives -- not a MinGW variant.
+          msystem: MSYS
+          update: true
+          install: zsh gawk sed grep coreutils findutils
+
+      - name: Show zsh version
+        run: zsh --version
+
+      - name: Run tests
+        run: ZSHZ_HEAVY_TESTS=1 zsh tests/run.zsh
+
+  # Cygwin is the other supported Windows POSIX layer. It shares MSYS2's
+  # runtime lineage ($OSTYPE=cygwin) but isn't redundant: it ships a different
+  # zsh (5.8 vs 5.9) and, unlike a stock MSYS2, its default `ln -s' produces
+  # resolvable symlinks -- so the five symlink-resolution tests that skip on
+  # MSYS2 actually run here. The 231-test heavy suite reports unsupported
+  # capability-dependent cases explicitly as skips.
+  test-cygwin:
+    name: zsh on Cygwin (Windows)
+    runs-on: windows-latest
+    env:
+      # Keep the Cygwin login shell in the workspace instead of cd'ing to $HOME.
+      CHERE_INVOKING: '1'
+    defaults:
+      run:
+        # `-o igncr' tolerates CRLF in the step script; `--login' sets up the
+        # Cygwin PATH/mounts. Cygwin installs to C:\cygwin by default.
+        shell: C:\cygwin\bin\bash.exe --login --norc -eo pipefail -o igncr '{0}'
+    steps:
+      # Host shell (Git Bash, available before Cygwin exists), so the plugin and
+      # tests land with LF endings rather than the CRLF checkout applies on Windows.
+      - name: Keep LF line endings on checkout
+        shell: bash
+        run: git config --global core.autocrlf input
+
+      - uses: actions/checkout@v4
+
+      - uses: cygwin/cygwin-install-action@v6
+        with:
+          packages: zsh gawk sed grep coreutils findutils
+
+      - name: Show zsh version
+        run: zsh --version
+
+      - name: Run tests
+        run: ZSHZ_HEAVY_TESTS=1 zsh tests/run.zsh
