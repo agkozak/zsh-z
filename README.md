@@ -38,7 +38,7 @@ Zsh-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
 
 ## News
 
-### v2.0
+### v2.0 (August 14, 2026)
 
 Version **2.0** is a major step forward, and these are the changes most worth knowing about:
 
