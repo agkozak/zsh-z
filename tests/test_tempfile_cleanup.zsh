@@ -10,8 +10,7 @@
 # concurrent-ops invariant for the mixed-add/-x case. This file
 # pins the single-process failure paths.
 #
-# A few scenarios from the original LIST.md spec are intentionally
-# *not* covered:
+# A few scenarios are intentionally *not* covered:
 #   - Read-only datafile parent dir: tempfile creation itself fails
 #     (no tempfile to leak), but the mkdir/touch in `[[ -f $datafile ]]
 #     || touch ...' also writes to stderr ahead of `_zshz_add_or_remove_path'.

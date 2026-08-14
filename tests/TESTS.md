@@ -1120,8 +1120,8 @@ concurrent ops; this file pins the synchronous failure paths.
   that moved tempfile creation before `flock` would surface as a
   leak here.
 
-Two failure scenarios from the LIST.md spec are intentionally
-*not* covered, with reasons spelled out in the file's header:
+Two failure scenarios are intentionally *not* covered, with
+reasons spelled out in the file's header:
 
 - *Read-only parent dir mid-write*: once the dir is read-only,
   the plugin's own `mkdir -p`/`touch` to ensure the datafile
