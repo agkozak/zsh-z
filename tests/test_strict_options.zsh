@@ -64,6 +64,8 @@ test_source_with_combined_strict_options() {
 }
 # Exercise both descriptor allocation and file creation with clobber
 # protection enabled. The runner supplies an isolated database for each test.
+# Zsh 4.3.11 has no APPEND_CREATE option; only disable it where available
+# and treat its absence as off when checking that caller options are unchanged.
 _zshz_test_noclobber_write() {
   local initial_state=$1
   mkdir -p "$TESTDIR/work"
@@ -72,14 +74,15 @@ _zshz_test_noclobber_write() {
     : >| "$ZSHZ_DATA.lock"
   fi
 
-  setopt LOCAL_OPTIONS NO_CLOBBER NO_APPEND_CREATE
+  setopt LOCAL_OPTIONS NO_CLOBBER
+  (( ${+options[appendcreate]} )) && setopt NO_APPEND_CREATE
   zshz --add "$TESTDIR/work" || return 1
   assert_contains "$TESTDIR/work|" "$(< "$ZSHZ_DATA")" \
     'NO_CLOBBER: added directory should be recorded' || return 1
   zshz -x "$TESTDIR/work" || return 1
   assert_not_contains "$TESTDIR/work|" "$(< "$ZSHZ_DATA")" \
     'NO_CLOBBER: removed directory should leave the database' || return 1
-  [[ -o NO_CLOBBER && ! -o APPEND_CREATE ]] ||
+  [[ -o NO_CLOBBER && ${options[appendcreate]:-off} == off ]] ||
     fail 'database writes changed caller options'
 }
 
@@ -94,12 +97,13 @@ test_noclobber_write_new_database() {
 # Issue #105: creation must work without changing the caller's options.
 # Listing an empty database isolates initial creation from tempfile writes.
 test_noclobber_creates_database_on_query() {
-  setopt LOCAL_OPTIONS NO_CLOBBER NO_APPEND_CREATE
+  setopt LOCAL_OPTIONS NO_CLOBBER
+  (( ${+options[appendcreate]} )) && setopt NO_APPEND_CREATE
   # No matches yields a nonzero status; creation is what this test checks.
   zshz -l
   assert_file_exists "$ZSHZ_DATA" || return 1
   assert_eq '' "$(< "$ZSHZ_DATA")" 'new database should be empty' || return 1
-  [[ -o NO_CLOBBER && ! -o APPEND_CREATE ]] ||
+  [[ -o NO_CLOBBER && ${options[appendcreate]:-off} == off ]] ||
     fail 'database creation changed caller options'
 }
 
@@ -114,14 +118,15 @@ test_noclobber_creates_missing_lock_for_existing_database() {
   print -r -- "$TESTDIR/old|1|$EPOCHSECONDS" >| "$ZSHZ_DATA"
   [[ ! -e $ZSHZ_DATA.lock ]] || fail 'lockfile should not exist initially' || return 1
 
-  setopt LOCAL_OPTIONS NO_CLOBBER NO_APPEND_CREATE
+  setopt LOCAL_OPTIONS NO_CLOBBER
+  (( ${+options[appendcreate]} )) && setopt NO_APPEND_CREATE
   zshz --add "$TESTDIR/new" || return 1
   assert_file_exists "$ZSHZ_DATA.lock" || return 1
   assert_contains "$TESTDIR/old|" "$(< "$ZSHZ_DATA")" \
     'creating a lock must preserve existing history' || return 1
   assert_contains "$TESTDIR/new|" "$(< "$ZSHZ_DATA")" \
     'missing lock must not silently prevent recording' || return 1
-  [[ -o NO_CLOBBER && ! -o APPEND_CREATE ]] ||
+  [[ -o NO_CLOBBER && ${options[appendcreate]:-off} == off ]] ||
     fail 'lockfile creation changed caller options'
 }
 
