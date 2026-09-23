@@ -62,4 +62,33 @@ test_source_with_NO_NOMATCH() {
 test_source_with_combined_strict_options() {
   _zshz_test_strict_round_trip 'NO_UNSET WARN_CREATE_GLOBAL NO_NOMATCH'
 }
+# Exercise both descriptor allocation and file creation with clobber
+# protection enabled. The runner supplies an isolated database for each test.
+_zshz_test_noclobber_write() {
+  local initial_state=$1
+  mkdir -p "$TESTDIR/work"
+  if [[ $initial_state == existing ]]; then
+    : >| "$ZSHZ_DATA"
+    : >| "$ZSHZ_DATA.lock"
+  fi
+
+  setopt LOCAL_OPTIONS NO_CLOBBER NO_APPEND_CREATE
+  zshz --add "$TESTDIR/work" || return 1
+  assert_contains "$TESTDIR/work|" "$(< "$ZSHZ_DATA")" \
+    'NO_CLOBBER: added directory should be recorded' || return 1
+  zshz -x "$TESTDIR/work" || return 1
+  assert_not_contains "$TESTDIR/work|" "$(< "$ZSHZ_DATA")" \
+    'NO_CLOBBER: removed directory should leave the database' || return 1
+  [[ -o NO_CLOBBER && ! -o APPEND_CREATE ]] ||
+    fail 'database writes changed caller options'
+}
+
+test_noclobber_write_existing_database() {
+  _zshz_test_noclobber_write existing
+}
+
+test_noclobber_write_new_database() {
+  _zshz_test_noclobber_write new
+}
+
 # vim: fdm=indent:ts=2:et:sts=2:sw=2:
