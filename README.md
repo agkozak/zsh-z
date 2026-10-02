@@ -38,6 +38,12 @@ Zsh-z is a drop-in replacement for `rupa/z` and will, by default, use the same d
 
 ## News
 
+### v2.0.1 (October 1, 2026)
+
+- **Database and lockfile creation now works with `setopt NO_CLOBBER`.** Zsh-z can
+create missing files even when `APPEND_CREATE` is disabled, without changing
+your shell options or losing existing directory history.
+
 ### v2.0 (August 14, 2026)
 
 Version **2.0** is a major step forward, and these are the changes most worth knowing about:
