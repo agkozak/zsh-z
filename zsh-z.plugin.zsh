@@ -1710,63 +1710,66 @@ fi
 #   ZSHZ_CMD
 ############################################################
 _zshz_zle_completion_widget() {
+  () {
+    setopt LOCAL_OPTIONS EXTENDED_GLOB NO_KSH_ARRAYS NO_SH_WORD_SPLIT
 
-  setopt LOCAL_OPTIONS EXTENDED_GLOB NO_KSH_ARRAYS NO_SH_WORD_SPLIT
+    local cmd=${ZSHZ_CMD:-${_Z_CMD:-z}}
 
-  local cmd=${ZSHZ_CMD:-${_Z_CMD:-z}}
-
-  # Ensure tab completion works under `setopt COMPLETE_ALIASES'. Under that
-  # option zsh looks up `_comps[$cmd]' verbatim rather than expanding the
-  # alias to `zshz' first; compinit's static `#compdef' tag in `_zshz' is
-  # parsed literally (no parameter expansion) and only covers the literal
-  # `zshz' command. Run once -- the guard short-circuits on subsequent Tabs.
-  # Record what was registered, so `zsh-z_plugin_unload' can take back exactly
-  # this entry and nothing else. Keyed on the effect rather than compdef's exit
-  # status: if the mapping did not land, there is nothing to take back.
-  if (( ! ${+_comps[$cmd]} )); then
-    compdef _zshz $cmd 2> /dev/null
-    # Append rather than overwrite. Re-sourcing with a changed $ZSHZ_CMD
-    # registers a second command while the first mapping is still live, and a
-    # single slot would forget the earlier one and strand it at unload. Space-
-    # separated, like $ZSHZ[FUNCTIONS], and split with `${=...}' there.
-    [[ ${_comps[$cmd]-} == '_zshz' ]] &&
-      ZSHZ[COMPDEF]="${ZSHZ[COMPDEF]:+${ZSHZ[COMPDEF]} }$cmd"
-  fi
-
-  # If a trailing space was added after an already-completed absolute path
-  # (e.g. `z /usr/local/bin '), a second Tab would otherwise re-trigger
-  # completion on an empty word and insert a duplicate. Bail out early.
-  if [[ $LBUFFER[-1] == ' ' && ${${LBUFFER% }##* } == [/~]* ]]; then
-    return
-  fi
-
-  # Only act when there are at least two words after the command
-  if [[ $LBUFFER == ${cmd}\ *\ * ]]; then
-    local after=${LBUFFER#${cmd} }
-    local -a parts option_parts search_parts
-    local p past_options=0
-
-    parts=( ${(z)after} )
-    for p in $parts; do
-      if (( ! past_options )) && [[ $p == (--|-[cehlrRtx]##|--add|--complete|--help) ]]; then
-        option_parts+=( $p )
-        # `--' terminates option parsing; subsequent tokens are positional,
-        # even if they happen to look like options.
-        [[ $p == -- ]] && past_options=1
-      else
-        past_options=1
-        search_parts+=( $p )
-      fi
-    done
-
-    if (( ${#search_parts} > 1 )); then
-      LBUFFER="${cmd}${option_parts:+ ${(j: :)option_parts}} ${(j:*:)search_parts}"
+    # Ensure tab completion works under `setopt COMPLETE_ALIASES'. Under that
+    # option zsh looks up `_comps[$cmd]' verbatim rather than expanding the
+    # alias to `zshz' first; compinit's static `#compdef' tag in `_zshz' is
+    # parsed literally (no parameter expansion) and only covers the literal
+    # `zshz' command. Run once -- the guard short-circuits on subsequent Tabs.
+    # Record what was registered, so `zsh-z_plugin_unload' can take back exactly
+    # this entry and nothing else. Keyed on the effect rather than compdef's exit
+    # status: if the mapping did not land, there is nothing to take back.
+    if (( ! ${+_comps[$cmd]} )); then
+      compdef _zshz $cmd 2> /dev/null
+      # Append rather than overwrite. Re-sourcing with a changed $ZSHZ_CMD
+      # registers a second command while the first mapping is still live, and a
+      # single slot would forget the earlier one and strand it at unload. Space-
+      # separated, like $ZSHZ[FUNCTIONS], and split with `${=...}' there.
+      [[ ${_comps[$cmd]-} == '_zshz' ]] &&
+        ZSHZ[COMPDEF]="${ZSHZ[COMPDEF]:+${ZSHZ[COMPDEF]} }$cmd"
     fi
-  fi
+
+    # If a trailing space was added after an already-completed absolute path
+    # (e.g. `z /usr/local/bin '), a second Tab would otherwise re-trigger
+    # completion on an empty word and insert a duplicate. Bail out early.
+    if [[ $LBUFFER[-1] == ' ' && ${${LBUFFER% }##* } == [/~]* ]]; then
+      return 1
+    fi
+
+    # Only act when there are at least two words after the command
+    if [[ $LBUFFER == ${cmd}\ *\ * ]]; then
+      local after=${LBUFFER#${cmd} }
+      local -a parts option_parts search_parts
+      local p past_options=0
+
+      parts=( ${(z)after} )
+      for p in $parts; do
+        if (( ! past_options )) && [[ $p == (--|-[cehlrRtx]##|--add|--complete|--help) ]]; then
+          option_parts+=( $p )
+          # `--' terminates option parsing; subsequent tokens are positional,
+          # even if they happen to look like options.
+          [[ $p == -- ]] && past_options=1
+        else
+          past_options=1
+          search_parts+=( $p )
+        fi
+      done
+
+      if (( ${#search_parts} > 1 )); then
+        LBUFFER="${cmd}${option_parts:+ ${(j: :)option_parts}} ${(j:*:)search_parts}"
+      fi
+    fi
+
+    return 0
+  } || return
 
   # If Tab had a non-default binding, continue to use it; otherwise the default
   # expand-or-complete gets used.
-  zle ${ZSHZ[TAB_BINDING]:-expand-or-complete}
+  zle ${ZSHZ[TAB_BINDING]:-expand-or-complete} -w -- "$@"
 }
 
 # Register the widget and bind to Tab, but only if this script has not already

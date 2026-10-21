@@ -1491,6 +1491,9 @@ can't drive a real ZLE session non-interactively, so each test stubs
   becomes `z -e foo*bar` (flags stay separate from joined terms).
 - `test_widget_passes_through_single_term` — single-term queries
   are unchanged.
+- `test_widget_runs_tab_widget_under_callers_options` —
+  the wrapped widget should be called with the caller's options.
+  `_zshz_zle_completion_widget` not change `_comp_caller_options`
 - `test_widget_does_not_retrigger_on_completed_absolute_path` — a
   buffer ending in a trailing space after an absolute path bails
   out so a second Tab doesn't insert a duplicate.
