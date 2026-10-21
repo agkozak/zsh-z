@@ -1769,7 +1769,7 @@ _zshz_zle_completion_widget() {
 
   # If Tab had a non-default binding, continue to use it; otherwise the default
   # expand-or-complete gets used.
-  zle ${ZSHZ[TAB_BINDING]:-expand-or-complete}
+  zle ${ZSHZ[TAB_BINDING]:-expand-or-complete} -w -- "$@"
 }
 
 # Register the widget and bind to Tab, but only if this script has not already
