@@ -106,4 +106,17 @@ test_widget_double_dash_terminates_option_parsing() {
   assert_eq "z -- --add*foo*bar" "$out" \
     "tokens after -- must be treated as positional and joined with *"
 }
+
+test_widget_runs_tab_widget_under_callers_options() {
+  # Our widget sets EXTENDED_GLOB locally, but these should not leak into the
+  # widget it wraps. i.e. `_comp_caller_options` should not change
+  local out
+  out=$(zshz_in_fresh_shell "
+    zle() { print -- \"extendedglob=\${options[extendedglob]}\" }
+    LBUFFER='z us lo'
+     unsetopt extendedglob
+    _zshz_zle_completion_widget
+  ")
+  assert_eq "extendedglob=off" "$out" "widget should run under the caller's options"
+}
 # vim: fdm=indent:ts=2:et:sts=2:sw=2:
