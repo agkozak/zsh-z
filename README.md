@@ -327,7 +327,11 @@ Zsh-z has environment variables (they all begin with `ZSHZ_`) that change its be
 * `ZSHZ_DATA` changes the database file (default: `~/.z`)
 * `ZSHZ_ECHO` displays the new path name when changing directories (default: `0`)
 * `ZSHZ_EXCLUDE_DIRS` is an array of directories to keep out of the database (default: empty)
-* `ZSHZ_KEEP_DIRS` is an array of directories that should not be removed from the database, even if they are not currently available (useful when a drive is not always mounted) (default: empty)
+* `ZSHZ_KEEP_DIRS` is an array of directories that should not be removed from the database, even if
+  they are not currently available (useful when a drive is not always mounted) (default: empty). Set
+  it before loading Zsh-z; for example, put `ZSHZ_KEEP_DIRS=( /Volumes/Projects )` before the
+  plugin-loading line in your `.zshrc`. Existing entries at or below that mount point remain in the
+  database while it is unavailable.
 * `ZSHZ_LOCK_TIMEOUT` is the number of seconds to wait for the database lock before giving up on a write (default: `1`). Where `zsh/system` is unavailable and `zsystem flock` cannot be used -- MobaXterm's cut-down Cygwin, for instance -- Zsh-z serializes writes with an atomic `mkdir` on `~/.z.lock.d` instead, and this setting bounds the wait the same way. That fallback has no equivalent of the kernel releasing a lock when its holder dies, so a lock directory older than 30 seconds is treated as abandoned and cleared; a write takes milliseconds, so nothing legitimate is ever that old. A write that times out is dropped silently -- the automatic `precmd` add is best-effort -- so if the database seems to stop updating, the lock is probably contended: run `z --add .` by hand and check `$?`. A `2` is a lock-acquisition timeout, which confirms contention -- look for a stale process holding `~/.z.lock` (or a leftover `~/.z.lock.d` directory on the fallback path), or raise this setting. A `1` is something else entirely, usually a permissions or ownership problem, such as a root-owned `~/.z` or `~/.z.lock` left behind by an earlier `sudo -s` session.
 * `ZSHZ_MAX_SCORE` is the maximum combined score the database entries can have before they begin to age and potentially drop out of the database (default: 9000)
 * `ZSHZ_NO_RESOLVE_SYMLINKS` prevents symlink resolution (default: `0`)
